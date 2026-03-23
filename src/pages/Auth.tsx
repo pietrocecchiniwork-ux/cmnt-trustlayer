@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useState, useEffect } from "react";
 
 export default function Auth() {
@@ -18,12 +17,10 @@ export default function Auth() {
   }, [navigate]);
 
   const handleGoogle = async () => {
-    setLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/project/dashboard' },
     });
-    setLoading(false);
-    if (error) console.error("Google login error:", error);
   };
 
   const handleEmailOtp = async () => {
@@ -46,25 +43,32 @@ export default function Auth() {
         <p className="font-mono text-[18px] text-foreground tracking-tight">cemento</p>
       </div>
 
-      {!showEmail && !sent && (
+      {!sent && (
         <div className="w-full max-w-[300px] flex flex-col items-center">
-          <Button
-            variant="dark"
-            size="full"
-            onClick={handleGoogle}
-            disabled={loading}
-          >
-            <span className="font-sans text-[16px]">
-              {loading ? "connecting..." : "continue with google"}
-            </span>
-          </Button>
-
           <button
-            onClick={() => setShowEmail(true)}
-            className="font-mono text-[13px] text-muted-foreground mt-6 underline underline-offset-4 hover:text-foreground transition-colors"
+            onClick={handleGoogle}
+            className="w-full bg-foreground text-background rounded-none font-sans text-[15px] font-medium py-4"
           >
-            continue with email
+            continue with google
           </button>
+
+          <div className="relative w-full my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-2 font-mono text-[10px] text-muted-foreground">or</span>
+            </div>
+          </div>
+
+          {!showEmail && (
+            <button
+              onClick={() => setShowEmail(true)}
+              className="font-mono text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+            >
+              continue with email
+            </button>
+          )}
         </div>
       )}
 
