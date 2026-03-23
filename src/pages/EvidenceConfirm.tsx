@@ -81,7 +81,7 @@ export default function EvidenceConfirm() {
       sessionStorage.removeItem("evidenceMilestoneId");
 
       toast.success("Evidence submitted");
-      navigate("/project/submission-confirmed");
+      navigate(`/project/submission-confirmed?milestoneId=${milestoneId}`);
     } catch (err) {
       console.error("Submit evidence failed:", err);
       toast.error("Failed to submit evidence");
