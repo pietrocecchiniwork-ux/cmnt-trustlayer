@@ -12,7 +12,11 @@ export default function SubmissionConfirmed() {
   const { currentProjectId } = useProjectContext();
   const updateStatus = useUpdateMilestoneStatus();
 
-  const [evidenceCount, setEvidenceCount] = useState<number | null>(null);
+  const freshCountParam = searchParams.get("freshCount");
+
+  const [evidenceCount, setEvidenceCount] = useState<number | null>(
+    freshCountParam !== null ? parseInt(freshCountParam, 10) : null
+  );
   const [requiredCount, setRequiredCount] = useState<number>(1);
   const [checklist, setChecklist] = useState<string[]>([]);
   const [milestoneName, setMilestoneName] = useState("");
