@@ -313,6 +313,7 @@ export type Database = {
           id: string
           name: string
           payment_mode: boolean | null
+          project_code: string | null
           start_date: string | null
           total_budget: number | null
         }
@@ -324,6 +325,7 @@ export type Database = {
           id?: string
           name: string
           payment_mode?: boolean | null
+          project_code?: string | null
           start_date?: string | null
           total_budget?: number | null
         }
@@ -335,6 +337,7 @@ export type Database = {
           id?: string
           name?: string
           payment_mode?: boolean | null
+          project_code?: string | null
           start_date?: string | null
           total_budget?: number | null
         }

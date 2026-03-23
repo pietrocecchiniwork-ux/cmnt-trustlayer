@@ -107,6 +107,13 @@ export default function Home() {
         >
           <span className="font-sans text-[16px]">new project</span>
         </Button>
+
+        <button
+          onClick={() => navigate("/join")}
+          className="w-full text-center font-mono text-[13px] text-accent"
+        >
+          join a project
+        </button>
       </div>
     </div>
   );

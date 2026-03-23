@@ -4,6 +4,22 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 // ─── Projects ───
 
+export function useProject(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ["project", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId!)
+        .single();
+      if (error) { console.error("useProject error:", error); throw error; }
+      return data as Tables<"projects">;
+    },
+  });
+}
+
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],

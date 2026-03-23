@@ -19,6 +19,7 @@ export default function CreateProject() {
     paymentMode: false,
     milestoneMethod: "" as "" | "upload" | "template" | "manual",
   });
+  const [createdProject, setCreatedProject] = useState<{ id: string; project_code: string | null } | null>(null);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -35,21 +36,33 @@ export default function CreateProject() {
         total_budget: formData.totalBudget ? Number(formData.totalBudget) : null,
       });
       setCurrentProjectId(result.id);
-      toast.success("Project created");
-
-      // Navigate based on milestone method
-      if (formData.milestoneMethod === "upload") {
-        navigate("/document-upload");
-      } else if (formData.milestoneMethod === "template") {
-        navigate("/template-select");
-      } else if (formData.milestoneMethod === "manual") {
-        navigate("/manual-milestone");
-      } else {
-        navigate("/project/dashboard");
-      }
+      setCreatedProject({ id: result.id, project_code: result.project_code });
+      setStep(4);
     } catch (err) {
       console.error("Create project failed:", err);
       toast.error("Failed to create project");
+    }
+  };
+
+  const handleContinue = () => {
+    if (formData.milestoneMethod === "upload") {
+      navigate("/document-upload");
+    } else if (formData.milestoneMethod === "template") {
+      navigate("/template-select");
+    } else if (formData.milestoneMethod === "manual") {
+      navigate("/manual-milestone");
+    } else {
+      navigate("/project/dashboard");
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (!createdProject?.project_code) return;
+    try {
+      await navigator.clipboard.writeText(createdProject.project_code);
+      toast.success("code copied");
+    } catch {
+      toast.error("failed to copy");
     }
   };
 
@@ -62,15 +75,17 @@ export default function CreateProject() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
-      <div className="flex items-center justify-between mb-8">
-        <button
-          onClick={() => (step > 1 ? setStep(step - 1) : navigate("/"))}
-          className="font-mono text-[13px] text-muted-foreground"
-        >
-          ← back
-        </button>
-        <span className="font-mono text-[13px] text-muted-foreground">{step} / 3</span>
-      </div>
+      {step < 4 && (
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => (step > 1 ? setStep(step - 1) : navigate("/"))}
+            className="font-mono text-[13px] text-muted-foreground"
+          >
+            ← back
+          </button>
+          <span className="font-mono text-[13px] text-muted-foreground">{step} / 3</span>
+        </div>
+      )}
 
       <div className="flex-1">
         {step === 1 && (
@@ -174,21 +189,53 @@ export default function CreateProject() {
             </div>
           </>
         )}
+
+        {step === 4 && createdProject && (
+          <>
+            <h1 className="font-sans text-[22px] text-foreground mb-2">project created</h1>
+            <p className="font-sans text-[14px] text-muted-foreground mb-12">
+              share this code with your team so they can join
+            </p>
+
+            <div className="flex flex-col items-center py-10 border border-border">
+              <p className="font-mono text-[10px] text-muted-foreground mb-3 tracking-widest uppercase">
+                your project code
+              </p>
+              <p className="font-mono text-[32px] text-foreground tracking-wider leading-none">
+                {createdProject.project_code ?? "—"}
+              </p>
+              <button
+                onClick={handleCopyCode}
+                className="mt-6 font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5"
+              >
+                copy code
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      <Button
-        variant="dark"
-        size="full"
-        disabled={!canAdvance() || createProject.isPending}
-        onClick={() => {
-          if (step < 3) setStep(step + 1);
-          else handleCreate();
-        }}
-      >
-        <span className="font-sans text-[16px]">
-          {step < 3 ? "next" : createProject.isPending ? "creating..." : "create project"}
-        </span>
-      </Button>
+      {step < 4 && (
+        <Button
+          variant="dark"
+          size="full"
+          disabled={!canAdvance() || createProject.isPending}
+          onClick={() => {
+            if (step < 3) setStep(step + 1);
+            else handleCreate();
+          }}
+        >
+          <span className="font-sans text-[16px]">
+            {step < 3 ? "next" : createProject.isPending ? "creating..." : "create project"}
+          </span>
+        </Button>
+      )}
+
+      {step === 4 && (
+        <Button variant="dark" size="full" onClick={handleContinue}>
+          <span className="font-sans text-[16px]">continue</span>
+        </Button>
+      )}
     </div>
   );
 }

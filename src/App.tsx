@@ -28,6 +28,7 @@ import EvidenceList from "./pages/EvidenceList";
 import PaymentsList from "./pages/PaymentsList";
 import MilestonesList from "./pages/MilestonesList";
 import SubmitEvidence from "./pages/SubmitEvidence";
+import JoinProject from "./pages/JoinProject";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/document-upload" element={<DocumentUpload />} />
               <Route path="/manual-milestone" element={<ManualMilestone />} />
               <Route path="/whatsapp-sim" element={<WhatsAppSim />} />
+              <Route path="/join" element={<JoinProject />} />
               
               {/* Project screens with bottom nav */}
               <Route element={<AppLayout />}>
