@@ -82,12 +82,19 @@ export default function EvidenceConfirm() {
       sessionStorage.removeItem("capturedPhotoBase64");
       sessionStorage.removeItem("evidenceMilestoneId");
 
-      // Await cache invalidation so SubmissionConfirmed sees fresh count
-      await queryClient.invalidateQueries({ queryKey: ["evidence", milestoneId] });
-      await queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
+      // Fetch fresh count AFTER insert has resolved
+      const { count: freshCount, error: countErr } = await supabase
+        .from("evidence")
+        .select("id", { count: "exact", head: true })
+        .eq("milestone_id", milestoneId);
+      if (countErr) console.error("Fresh count error:", countErr);
+
+      // Invalidate caches for other screens
+      queryClient.invalidateQueries({ queryKey: ["evidence", milestoneId] });
+      queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
 
       toast.success("Evidence submitted");
-      navigate(`/project/submission-confirmed?milestoneId=${milestoneId}`);
+      navigate(`/project/submission-confirmed?milestoneId=${milestoneId}&freshCount=${freshCount ?? 0}`);
     } catch (err) {
       console.error("Submit evidence failed:", err);
       toast.error("Failed to submit evidence");
