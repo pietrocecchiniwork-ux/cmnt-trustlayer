@@ -27,7 +27,7 @@ export default function SubmissionConfirmed() {
     if (
       allSubmitted &&
       milestone &&
-      (milestone.status === "in_progress" || milestone.status === "overdue") &&
+      milestone.status !== "in_review" && milestone.status !== "complete" &&
       currentProjectId &&
       !autoUpdated
     ) {
