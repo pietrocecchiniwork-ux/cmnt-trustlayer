@@ -82,6 +82,10 @@ export default function EvidenceConfirm() {
       sessionStorage.removeItem("capturedPhotoBase64");
       sessionStorage.removeItem("evidenceMilestoneId");
 
+      // Await cache invalidation so SubmissionConfirmed sees fresh count
+      await queryClient.invalidateQueries({ queryKey: ["evidence", milestoneId] });
+      await queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
+
       toast.success("Evidence submitted");
       navigate(`/project/submission-confirmed?milestoneId=${milestoneId}`);
     } catch (err) {
