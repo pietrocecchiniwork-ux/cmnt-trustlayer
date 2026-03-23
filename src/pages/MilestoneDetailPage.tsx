@@ -68,7 +68,7 @@ export default function MilestoneDetailPage() {
   };
 
   // Contractor view
-  if (role === "contractor" && (milestone.status === "in_progress" || milestone.status === "pending")) {
+  if (role === "contractor" && (milestone.status === "in_progress" || milestone.status === "pending" || milestone.status === "overdue")) {
     return (
       <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
         <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-4">← back</button>
