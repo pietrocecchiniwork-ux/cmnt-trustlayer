@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useCreateMilestone, useMilestones } from "@/hooks/useSupabaseProject";
+import { useCreateMilestone, useMilestones, useProjectMembers } from "@/hooks/useSupabaseProject";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export default function ManualMilestone() {
@@ -10,19 +11,21 @@ export default function ManualMilestone() {
   const { currentProjectId } = useProjectContext();
   const createMilestone = useCreateMilestone();
   const { data: existingMilestones = [] } = useMilestones(currentProjectId ?? undefined);
+  const { data: members = [], isLoading: membersLoading } = useProjectMembers(currentProjectId ?? undefined);
   const [formData, setFormData] = useState({
     name: "",
     dueDate: "",
     paymentValue: "",
-    role: "contractor",
   });
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [checklistItems, setChecklistItems] = useState<string[]>([""]);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const roles = ["pm", "contractor", "trade", "client"];
+  // Only members who have joined (user_id present) can be assigned
+  const assignableMembers = members.filter((m) => m.user_id !== null);
 
   const addChecklistItem = () => setChecklistItems((prev) => [...prev, ""]);
   const updateChecklistItem = (i: number, val: string) =>
@@ -41,7 +44,7 @@ export default function ManualMilestone() {
     }
     const checklist = checklistItems.map((s) => s.trim()).filter(Boolean);
     try {
-      await createMilestone.mutateAsync({
+      const newMilestone = await createMilestone.mutateAsync({
         project_id: currentProjectId,
         name: formData.name,
         due_date: formData.dueDate || null,
@@ -50,9 +53,23 @@ export default function ManualMilestone() {
         created_from: "manual" as const,
         checklist,
       });
+
+      const selectedMember = assignableMembers.find((m) => m.id === selectedMemberId);
+      if (selectedMember?.user_id) {
+        const { error: assignErr } = await supabase
+          .from("milestone_assignments")
+          .insert({
+            milestone_id: newMilestone.id,
+            user_id: selectedMember.user_id,
+            role: selectedMember.role,
+          });
+        if (assignErr) console.error("milestone_assignments insert error:", assignErr);
+      }
+
       toast.success("Milestone saved");
       if (addAnother) {
-        setFormData({ name: "", dueDate: "", paymentValue: "", role: "contractor" });
+        setFormData({ name: "", dueDate: "", paymentValue: "" });
+        setSelectedMemberId("");
         setChecklistItems([""]);
       } else {
         navigate("/project/dashboard");
@@ -77,14 +94,36 @@ export default function ManualMilestone() {
         </div>
 
         <div>
-          <p className="font-mono text-[10px] text-muted-foreground mb-2">assigned role</p>
-          <div className="flex border-b border-border">
-            {roles.map((r) => (
-              <button key={r} onClick={() => updateField("role", r)} className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${formData.role === r ? "text-accent border-b-2 border-accent" : "text-muted-foreground"}`}>
-                {r}
+          <p className="font-mono text-[10px] text-muted-foreground mb-2">assign to</p>
+          {membersLoading ? (
+            <select disabled className="underline-input text-muted-foreground font-mono text-[13px] bg-transparent w-full">
+              <option>loading team...</option>
+            </select>
+          ) : assignableMembers.length === 0 ? (
+            <p className="font-sans text-[13px] text-muted-foreground border-b border-border py-2">
+              invite team members first —{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/project/team")}
+                className="text-accent underline underline-offset-4"
+              >
+                go to team
               </button>
-            ))}
-          </div>
+            </p>
+          ) : (
+            <select
+              value={selectedMemberId}
+              onChange={(e) => setSelectedMemberId(e.target.value)}
+              className="underline-input font-mono text-[13px] bg-transparent w-full"
+            >
+              <option value="">— none —</option>
+              {assignableMembers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} — {m.role}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>

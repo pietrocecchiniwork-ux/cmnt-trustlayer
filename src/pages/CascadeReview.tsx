@@ -1,16 +1,98 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-
-const affectedMilestones = [
-  { name: "plastering and drylining", oldDate: "22 mar 2026", newDate: "28 mar 2026" },
-  { name: "second fix and joinery", oldDate: "10 apr 2026", newDate: "16 apr 2026" },
-  { name: "decoration and finishing", oldDate: "28 apr 2026", newDate: "04 may 2026" },
-];
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { useMilestones, useCurrentUser } from "@/hooks/useSupabaseProject";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { format, addDays, differenceInCalendarDays, parseISO } from "date-fns";
 
 export default function CascadeReview() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { currentProjectId } = useProjectContext();
+  const { data: milestones = [], isLoading } = useMilestones(currentProjectId ?? undefined);
+  const { data: currentUser } = useCurrentUser();
   const [reason, setReason] = useState("");
+  const [newDates, setNewDates] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const overdueMilestone = milestones.find((m) => m.status === "overdue");
+
+  const overdueDays = useMemo(() => {
+    if (!overdueMilestone?.due_date) return 0;
+    return Math.max(0, differenceInCalendarDays(new Date(), parseISO(overdueMilestone.due_date)));
+  }, [overdueMilestone]);
+
+  const affectedRows = useMemo(() => {
+    if (!overdueMilestone) return [];
+    return milestones
+      .filter((m) => m.position > overdueMilestone.position && m.due_date !== null)
+      .map((m) => {
+        const oldDate = m.due_date!;
+        const suggested = format(addDays(parseISO(oldDate), overdueDays), "yyyy-MM-dd");
+        return {
+          id: m.id,
+          name: m.name,
+          oldDate,
+          newDate: newDates[m.id] ?? suggested,
+        };
+      });
+  }, [milestones, overdueMilestone, overdueDays, newDates]);
+
+  const handleApprove = async () => {
+    if (!reason.trim() || !currentProjectId) return;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      for (const row of affectedRows) {
+        const { error: updateErr } = await supabase
+          .from("milestones")
+          .update({ due_date: row.newDate })
+          .eq("id", row.id);
+        if (updateErr) throw updateErr;
+
+        const { error: shiftErr } = await supabase
+          .from("milestone_shifts")
+          .insert({
+            milestone_id: row.id,
+            old_date: row.oldDate,
+            new_date: row.newDate,
+            reason: reason.trim(),
+            approved_by: currentUser?.id ?? null,
+            approved_at: now,
+          });
+        if (shiftErr) throw shiftErr;
+      }
+      queryClient.invalidateQueries({ queryKey: ["milestones", currentProjectId] });
+      toast.success("Timeline updated");
+      navigate("/project/dashboard");
+    } catch (err) {
+      console.error("Cascade approve failed:", err);
+      toast.error("Failed to update timeline");
+      setSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
+      </div>
+    );
+  }
+
+  if (!overdueMilestone) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">
+          ← back
+        </button>
+        <p className="font-sans text-[16px] text-muted-foreground">no overdue milestones found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
@@ -20,7 +102,8 @@ export default function CascadeReview() {
 
       <h1 className="font-sans text-[22px] text-foreground">timeline update</h1>
       <p className="font-sans text-[16px] text-muted-foreground mt-3">
-        first fix electrical is 6 days overdue. 3 milestones affected.
+        {overdueMilestone.name} is {overdueDays} day{overdueDays !== 1 ? "s" : ""} overdue.{" "}
+        {affectedRows.length} milestone{affectedRows.length !== 1 ? "s" : ""} affected.
       </p>
 
       <div className="divider mt-6 mb-6" />
@@ -32,13 +115,27 @@ export default function CascadeReview() {
           <span className="w-24 font-mono text-[10px] text-muted-foreground text-right">old</span>
           <span className="w-24 font-mono text-[10px] text-destructive text-right">new</span>
         </div>
-        {affectedMilestones.map((m) => (
-          <div key={m.name} className="flex items-center py-3 border-b border-border">
-            <span className="flex-1 font-sans text-[14px] text-foreground">{m.name}</span>
+        {affectedRows.length === 0 && (
+          <p className="font-sans text-[14px] text-muted-foreground py-4">
+            no downstream milestones with dates to shift
+          </p>
+        )}
+        {affectedRows.map((row) => (
+          <div key={row.id} className="flex items-center py-3 border-b border-border">
+            <span className="flex-1 font-sans text-[14px] text-foreground">{row.name}</span>
             <span className="w-24 font-mono text-[11px] text-muted-foreground text-right line-through decoration-border">
-              {m.oldDate}
+              {format(parseISO(row.oldDate), "dd MMM yyyy")}
             </span>
-            <span className="w-24 font-mono text-[11px] text-destructive text-right">{m.newDate}</span>
+            <div className="w-24 flex justify-end">
+              <input
+                type="date"
+                value={row.newDate}
+                onChange={(e) =>
+                  setNewDates((prev) => ({ ...prev, [row.id]: e.target.value }))
+                }
+                className="font-mono text-[11px] text-destructive bg-transparent border-none outline-none text-right w-full"
+              />
+            </div>
           </div>
         ))}
       </div>
@@ -56,10 +153,12 @@ export default function CascadeReview() {
       <Button
         variant="dark"
         size="full"
-        disabled={!reason.trim()}
-        onClick={() => navigate("/project/dashboard")}
+        disabled={!reason.trim() || saving}
+        onClick={handleApprove}
       >
-        <span className="font-sans text-[16px]">approve revised dates</span>
+        <span className="font-sans text-[16px]">
+          {saving ? "updating..." : "approve revised dates"}
+        </span>
       </Button>
     </div>
   );
