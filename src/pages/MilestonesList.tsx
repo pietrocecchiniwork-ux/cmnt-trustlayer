@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useDemoProject } from "@/contexts/DemoProjectContext";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { useMilestones } from "@/hooks/useSupabaseProject";
 import { useRole } from "@/contexts/RoleContext";
 import { Button } from "@/components/ui/button";
 
@@ -13,14 +14,17 @@ const statusDotClass: Record<string, string> = {
 
 export default function MilestonesList() {
   const navigate = useNavigate();
-  const { currentProject } = useDemoProject();
+  const { currentProjectId } = useProjectContext();
+  const { data: milestones = [], isLoading } = useMilestones(currentProjectId ?? undefined);
   const { role } = useRole();
 
-  if (!currentProject) return null;
-
-  const milestones = role === "contractor"
-    ? currentProject.milestones.filter(m => m.assignedRole === "contractor" || m.assignedRole === "trade")
-    : currentProject.milestones;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
@@ -39,12 +43,17 @@ export default function MilestonesList() {
               <span className="font-mono text-[16px] text-muted-foreground">{String(m.position).padStart(2, "0")}</span>
               <div>
                 <p className="font-sans text-[14px] text-foreground">{m.name}</p>
-                <p className="font-mono text-[11px] text-muted-foreground">{m.dueDate} · £{m.paymentValue.toLocaleString()}</p>
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  {m.due_date ?? "no date"} · £{Number(m.payment_value ?? 0).toLocaleString()}
+                </p>
               </div>
             </div>
             <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass[m.status]}`} />
           </button>
         ))}
+        {milestones.length === 0 && (
+          <p className="font-sans text-[14px] text-muted-foreground mt-4">no milestones yet</p>
+        )}
       </div>
 
       {role === "pm" && (

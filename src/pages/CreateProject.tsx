@@ -1,10 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useCreateProject } from "@/hooks/useSupabaseProject";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { toast } from "sonner";
 
 export default function CreateProject() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const createProject = useCreateProject();
+  const { setCurrentProjectId } = useProjectContext();
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -17,9 +22,26 @@ export default function CreateProject() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleCreate = async () => {
+    try {
+      const result = await createProject.mutateAsync({
+        name: formData.name,
+        address: formData.address || null,
+        start_date: formData.startDate || null,
+        end_date: formData.endDate || null,
+        payment_mode: formData.paymentMode,
+      });
+      setCurrentProjectId(result.id);
+      toast.success("Project created");
+      navigate("/invite-team");
+    } catch (err) {
+      console.error("Create project failed:", err);
+      toast.error("Failed to create project. Are you signed in?");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <button onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} className="font-mono text-[13px] text-muted-foreground">
           ← back
@@ -32,34 +54,10 @@ export default function CreateProject() {
           <>
             <h1 className="font-sans text-[22px] text-foreground mb-8">new project</h1>
             <div className="space-y-6">
-              <input
-                type="text"
-                placeholder="project name"
-                value={formData.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                className="underline-input"
-              />
-              <input
-                type="text"
-                placeholder="address"
-                value={formData.address}
-                onChange={(e) => updateField("address", e.target.value)}
-                className="underline-input"
-              />
-              <input
-                type="date"
-                placeholder="start date"
-                value={formData.startDate}
-                onChange={(e) => updateField("startDate", e.target.value)}
-                className="underline-input"
-              />
-              <input
-                type="date"
-                placeholder="end date"
-                value={formData.endDate}
-                onChange={(e) => updateField("endDate", e.target.value)}
-                className="underline-input"
-              />
+              <input type="text" placeholder="project name" value={formData.name} onChange={(e) => updateField("name", e.target.value)} className="underline-input" />
+              <input type="text" placeholder="address" value={formData.address} onChange={(e) => updateField("address", e.target.value)} className="underline-input" />
+              <input type="date" placeholder="start date" value={formData.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="underline-input" />
+              <input type="date" placeholder="end date" value={formData.endDate} onChange={(e) => updateField("endDate", e.target.value)} className="underline-input" />
             </div>
           </>
         )}
@@ -72,17 +70,8 @@ export default function CreateProject() {
                 <p className="font-sans text-[16px] text-foreground">release payments on milestone completion</p>
                 <p className="font-mono text-[12px] text-muted-foreground mt-1">certificates generated automatically</p>
               </div>
-              <button
-                onClick={() => updateField("paymentMode", !formData.paymentMode)}
-                className={`w-12 h-6 rounded-full transition-colors relative ${
-                  formData.paymentMode ? "bg-accent" : "bg-muted"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 w-5 h-5 bg-background rounded-full transition-transform ${
-                    formData.paymentMode ? "translate-x-6" : "translate-x-0.5"
-                  }`}
-                />
+              <button onClick={() => updateField("paymentMode", !formData.paymentMode)} className={`w-12 h-6 rounded-full transition-colors relative ${formData.paymentMode ? "bg-accent" : "bg-muted"}`}>
+                <span className={`absolute top-0.5 w-5 h-5 bg-background rounded-full transition-transform ${formData.paymentMode ? "translate-x-6" : "translate-x-0.5"}`} />
               </button>
             </div>
           </>
@@ -116,12 +105,13 @@ export default function CreateProject() {
       <Button
         variant="dark"
         size="full"
+        disabled={createProject.isPending}
         onClick={() => {
           if (step < 3) setStep(step + 1);
-          else navigate("/invite-team");
+          else handleCreate();
         }}
       >
-        <span className="font-sans text-[16px]">{step < 3 ? "next" : "create project"}</span>
+        <span className="font-sans text-[16px]">{step < 3 ? "next" : createProject.isPending ? "creating..." : "create project"}</span>
       </Button>
     </div>
   );

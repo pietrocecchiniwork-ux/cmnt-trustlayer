@@ -1,7 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useDemoProject } from "@/contexts/DemoProjectContext";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { useMilestones } from "@/hooks/useSupabaseProject";
+import { useRealtimeMilestones, useRealtimeEvidence } from "@/hooks/useRealtimeSubscription";
 import { useRole } from "@/contexts/RoleContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const statusDotClass: Record<string, string> = {
   pending: "bg-muted-foreground",
@@ -21,32 +25,45 @@ const statusNumColor: Record<string, string> = {
 
 export default function PMDashboard() {
   const navigate = useNavigate();
-  const { currentProject } = useDemoProject();
+  const { currentProjectId } = useProjectContext();
   const { role } = useRole();
+  const { data: milestones = [], isLoading } = useMilestones(currentProjectId ?? undefined);
+  useRealtimeMilestones(currentProjectId ?? undefined);
+  useRealtimeEvidence(currentProjectId ?? undefined);
 
-  const project = currentProject;
+  // Fetch project details
+  const { data: project } = useQuery({
+    queryKey: ["project", currentProjectId],
+    enabled: !!currentProjectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", currentProjectId!)
+        .single();
+      if (error) { console.error("fetch project error:", error); throw error; }
+      return data;
+    },
+  });
+
+  if (!currentProjectId || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
+      </div>
+    );
+  }
+
   if (!project) return null;
 
-  const milestones = project.milestones;
   const completed = milestones.filter((m) => m.status === "complete").length;
   const total = milestones.length;
   const overdueMilestone = milestones.find((m) => m.status === "overdue");
   const progressPct = total > 0 ? (completed / total) * 100 : 0;
 
-  // Contractor: show only assigned milestones
-  const displayMilestones = role === "contractor"
-    ? milestones.filter((m) => m.assignedRole === "contractor" || m.assignedRole === "trade")
-    : milestones;
-  
-  const displayCompleted = role === "contractor"
-    ? displayMilestones.filter((m) => m.status === "complete").length
-    : completed;
-  const displayTotal = displayMilestones.length;
-
-  // Client: show budget released
   const releasedBudget = milestones
     .filter((m) => m.status === "complete")
-    .reduce((sum, m) => sum + m.paymentValue, 0);
+    .reduce((sum, m) => sum + Number(m.payment_value ?? 0), 0);
 
   if (role === "client") {
     return <ClientDashboard project={project} completed={completed} total={total} releasedBudget={releasedBudget} milestones={milestones} />;
@@ -54,23 +71,19 @@ export default function PMDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Light top half */}
       <div className="bg-background px-6 pt-12 pb-6">
         <p className="font-mono text-[12px] text-muted-foreground uppercase tracking-wider">{project.name}</p>
 
-        {/* Completion count */}
         <div className="flex items-baseline gap-3 mt-4">
-          <span className="font-mono text-[80px] leading-none tracking-tight text-foreground">{displayCompleted}</span>
+          <span className="font-mono text-[80px] leading-none tracking-tight text-foreground">{completed}</span>
           <span className="font-mono text-[24px] text-muted-foreground">/</span>
-          <span className="font-mono text-[80px] leading-none tracking-tight text-muted-foreground">{displayTotal}</span>
+          <span className="font-mono text-[80px] leading-none tracking-tight text-muted-foreground">{total}</span>
         </div>
 
-        {/* Progress bar */}
         <div className="w-full h-px bg-border mt-6 relative">
           <div className="h-px bg-accent absolute left-0 top-0" style={{ width: `${progressPct}%` }} />
         </div>
 
-        {/* Overdue alert */}
         {overdueMilestone && role === "pm" && (
           <button
             onClick={() => navigate("/project/cascade-review")}
@@ -78,17 +91,16 @@ export default function PMDashboard() {
           >
             <span className="w-1.5 h-1.5 rounded-full bg-destructive flex-shrink-0" />
             <span className="font-sans text-[13px] text-foreground flex-1">
-              {overdueMilestone.name} · 6 days overdue
+              {overdueMilestone.name} · overdue
             </span>
             <span className="font-mono text-[14px] text-muted-foreground">→</span>
           </button>
         )}
       </div>
 
-      {/* Dark bottom half */}
       <div className="flex-1 bg-surface-dark px-6 pt-6 pb-6">
         <div className="space-y-0">
-          {displayMilestones.map((m) => (
+          {milestones.map((m) => (
             <button
               key={m.id}
               onClick={() => navigate(`/project/milestone/${m.id}`)}
@@ -115,7 +127,6 @@ export default function PMDashboard() {
   );
 }
 
-// Client Dashboard component
 function ClientDashboard({ project, completed, total, releasedBudget, milestones }: {
   project: any;
   completed: number;
@@ -125,31 +136,18 @@ function ClientDashboard({ project, completed, total, releasedBudget, milestones
 }) {
   const progressPct = total > 0 ? (completed / total) * 100 : 0;
 
-  // Step chart data points
-  const chartData = milestones.map((m, i) => ({
-    x: (i / (milestones.length - 1)) * 100,
-    completed: m.status === "complete",
-  }));
-
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
       <p className="font-mono text-[12px] text-muted-foreground uppercase tracking-wider">{project.name}</p>
-
       <p className="font-mono text-[80px] leading-none tracking-tight text-foreground mt-4">
         {completed}/{total}
       </p>
-
-      {/* Progress bar */}
       <div className="w-full h-px bg-border mt-6 relative">
         <div className="h-px bg-accent absolute left-0 top-0" style={{ width: `${progressPct}%` }} />
       </div>
-
-      {/* Released budget */}
       <p className="font-mono text-[28px] text-success mt-8">
         £{releasedBudget.toLocaleString()} released
       </p>
-
-      {/* Step chart */}
       <div className="mt-8 flex-1">
         <StepChart milestones={milestones} />
       </div>
@@ -157,11 +155,9 @@ function ClientDashboard({ project, completed, total, releasedBudget, milestones
   );
 }
 
-// Step chart with hard right angles
 function StepChart({ milestones }: { milestones: any[] }) {
   const width = 100;
   const height = 60;
-  const completedCount = milestones.filter((m) => m.status === "complete").length;
   const points: string[] = [];
 
   milestones.forEach((m, i) => {
@@ -176,30 +172,12 @@ function StepChart({ milestones }: { milestones: any[] }) {
     }
   });
 
-  // Labels
   const months = ["jan", "feb", "mar", "apr", "may"];
 
   return (
     <div className="relative">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-40" preserveAspectRatio="none">
-        <polyline
-          points={points.join(" ")}
-          fill="none"
-          stroke="hsl(var(--foreground))"
-          strokeWidth="0.5"
-          vectorEffect="non-scaling-stroke"
-        />
-        {/* Current position dot */}
-        {completedCount > 0 && completedCount < milestones.length && (
-          <circle
-            cx={(completedCount / Math.max(milestones.length - 1, 1)) * width}
-            cy={height * 0.8}
-            r="1.5"
-            fill="hsl(var(--foreground))"
-            stroke="hsl(var(--background))"
-            strokeWidth="0.5"
-          />
-        )}
+        <polyline points={points.join(" ")} fill="none" stroke="hsl(var(--foreground))" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="flex justify-between mt-2">
         {months.map((m) => (

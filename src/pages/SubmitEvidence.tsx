@@ -1,14 +1,16 @@
 import { useNavigate } from "react-router-dom";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { useMilestones } from "@/hooks/useSupabaseProject";
 import { Button } from "@/components/ui/button";
-import { useDemoProject } from "@/contexts/DemoProjectContext";
 
 export default function SubmitEvidence() {
   const navigate = useNavigate();
-  const { currentProject } = useDemoProject();
+  const { currentProjectId } = useProjectContext();
+  const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
 
-  const activeMilestones = currentProject?.milestones.filter(
+  const activeMilestones = milestones.filter(
     m => m.status === "in_progress" || m.status === "overdue"
-  ) || [];
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
@@ -20,12 +22,12 @@ export default function SubmitEvidence() {
         {activeMilestones.map((m) => (
           <button
             key={m.id}
-            onClick={() => navigate("/project/camera")}
+            onClick={() => navigate(`/project/camera?milestoneId=${m.id}`)}
             className="w-full flex items-center justify-between py-4 border-b border-border text-left"
           >
             <div>
               <p className="font-sans text-[14px] text-foreground">{m.name}</p>
-              <p className="font-mono text-[11px] text-muted-foreground">{m.dueDate}</p>
+              <p className="font-mono text-[11px] text-muted-foreground">{m.due_date ?? "no date"}</p>
             </div>
             <span className="font-mono text-[14px] text-muted-foreground">→</span>
           </button>
