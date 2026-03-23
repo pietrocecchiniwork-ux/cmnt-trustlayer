@@ -1,7 +1,8 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useMilestones, useEvidence, useUpdateMilestoneStatus } from "@/hooks/useSupabaseProject";
+import { useUpdateMilestoneStatus } from "@/hooks/useSupabaseProject";
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 
 export default function SubmissionConfirmed() {
@@ -9,37 +10,75 @@ export default function SubmissionConfirmed() {
   const [searchParams] = useSearchParams();
   const milestoneId = searchParams.get("milestoneId") ?? "";
   const { currentProjectId } = useProjectContext();
-  const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
-  const { data: evidenceItems = [] } = useEvidence(milestoneId || undefined);
   const updateStatus = useUpdateMilestoneStatus();
+
+  const [evidenceCount, setEvidenceCount] = useState<number | null>(null);
+  const [requiredCount, setRequiredCount] = useState<number>(1);
+  const [checklist, setChecklist] = useState<string[]>([]);
+  const [milestoneName, setMilestoneName] = useState("");
+  const [milestoneStatus, setMilestoneStatus] = useState("");
   const [autoUpdated, setAutoUpdated] = useState(false);
 
-  const milestone = milestones.find((m) => m.id === milestoneId);
-  const evidenceCount = evidenceItems.length;
+  // Fresh DB queries on mount — no cache
+  useEffect(() => {
+    if (!milestoneId) return;
 
-  // Use checklist length as required count, fallback to 1
-  const checklist: string[] = milestone && Array.isArray(milestone.checklist) ? milestone.checklist as string[] : [];
-  const requiredCount = checklist.length || 1;
-  const allSubmitted = evidenceCount >= requiredCount;
-  const nextItemName = checklist[evidenceCount] ?? null;
+    // 1. Fresh evidence count
+    supabase
+      .from("evidence")
+      .select("id", { count: "exact", head: true })
+      .eq("milestone_id", milestoneId)
+      .then(({ count, error }) => {
+        if (error) console.error("Fresh evidence count error:", error);
+        setEvidenceCount(count ?? 0);
+      });
+
+    // 2. Fresh milestone record for checklist + status
+    supabase
+      .from("milestones")
+      .select("name, status, checklist")
+      .eq("id", milestoneId)
+      .single()
+      .then(({ data, error }) => {
+        if (error) console.error("Fresh milestone fetch error:", error);
+        if (data) {
+          setMilestoneName(data.name);
+          setMilestoneStatus(data.status);
+          const cl: string[] = Array.isArray(data.checklist) ? data.checklist as string[] : [];
+          setChecklist(cl);
+          setRequiredCount(cl.length || 1);
+        }
+      });
+  }, [milestoneId]);
+
+  const allSubmitted = evidenceCount !== null && evidenceCount >= requiredCount;
+  const nextItemName = evidenceCount !== null ? checklist[evidenceCount] ?? null : null;
 
   // Auto-update milestone to in_review when all evidence is submitted
   useEffect(() => {
     if (
       allSubmitted &&
-      milestone &&
-      milestone.status !== "in_review" && milestone.status !== "complete" &&
+      milestoneStatus &&
+      milestoneStatus !== "in_review" && milestoneStatus !== "complete" &&
       currentProjectId &&
       !autoUpdated
     ) {
       setAutoUpdated(true);
       updateStatus.mutateAsync({
-        id: milestone.id,
+        id: milestoneId,
         status: "in_review",
         projectId: currentProjectId,
       }).catch((err) => console.error("Auto-update to in_review failed:", err));
     }
-  }, [allSubmitted, milestone, currentProjectId, autoUpdated]);
+  }, [allSubmitted, milestoneStatus, currentProjectId, autoUpdated]);
+
+  if (evidenceCount === null) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background px-6 items-center justify-center">
+        <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 items-center justify-center text-center">
