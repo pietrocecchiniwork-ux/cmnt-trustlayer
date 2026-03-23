@@ -55,14 +55,14 @@ Deno.serve(async (req: Request) => {
 
     // 2. Milestones
     const milestones = [
-      { name: "site setup and demolition", due_date: "2026-01-10", payment_value: 8000, status: "complete", position: 1 },
-      { name: "foundations and groundwork", due_date: "2026-01-28", payment_value: 15000, status: "complete", position: 2 },
-      { name: "structural frame and roof", due_date: "2026-02-20", payment_value: 22000, status: "complete", position: 3 },
-      { name: "first fix electrical and plumbing", due_date: "2026-03-08", payment_value: 11000, status: "overdue", position: 4 },
-      { name: "plastering and drylining", due_date: "2026-03-22", payment_value: 9000, status: "in_progress", position: 5 },
-      { name: "second fix and joinery", due_date: "2026-04-10", payment_value: 14000, status: "pending", position: 6 },
-      { name: "decoration and finishing", due_date: "2026-04-28", payment_value: 7000, status: "pending", position: 7 },
-      { name: "final inspection and handover", due_date: "2026-05-12", payment_value: 6000, status: "pending", position: 8 },
+      { name: "site setup and demolition", due_date: "2026-01-10", payment_value: 8000, status: "complete", position: 1, checklist: ["site hoarding erected", "welfare facilities installed", "existing services located and marked", "asbestos survey completed", "skip and waste management in place"] },
+      { name: "foundations and groundwork", due_date: "2026-01-28", payment_value: 15000, status: "complete", position: 2, checklist: ["trial holes dug", "foundation trenches excavated", "concrete poured and cured", "damp proof membrane laid", "building control inspection passed"] },
+      { name: "structural frame and roof", due_date: "2026-02-20", payment_value: 22000, status: "complete", position: 3, checklist: ["steel beams installed and padstones set", "new openings formed and lintels installed", "structural engineer sign-off obtained", "roof structure formed", "roof tiles or covering fixed"] },
+      { name: "first fix electrical and plumbing", due_date: "2026-03-08", payment_value: 11000, status: "overdue", position: 4, checklist: ["consumer unit position set", "cable routes run", "soil and waste pipes run", "hot and cold supply pipes run", "earth bonding completed"] },
+      { name: "plastering and drylining", due_date: "2026-03-22", payment_value: 9000, status: "in_progress", position: 5, checklist: ["dot and dab or studwork drylining fixed", "coving grounds fixed", "wet plaster scratch coat applied", "finish coat applied", "reveals and beads finished"] },
+      { name: "second fix and joinery", due_date: "2026-04-10", payment_value: 14000, status: "pending", position: 6, checklist: ["skirting and architrave fixed", "doors hung", "sockets and switches fitted", "light fittings installed", "sanitaryware fitted"] },
+      { name: "decoration and finishing", due_date: "2026-04-28", payment_value: 7000, status: "pending", position: 7, checklist: ["mist coat applied", "full emulsion applied", "gloss to woodwork", "floor covering fitted", "thresholds and trims fixed"] },
+      { name: "final inspection and handover", due_date: "2026-05-12", payment_value: 6000, status: "pending", position: 8, checklist: ["full snagging inspection completed", "all defects remedied", "building control completion certificate obtained", "O&M manuals provided", "keys and warranties handed over"] },
     ];
     const { data: mData, error: mErr } = await admin
       .from("milestones")

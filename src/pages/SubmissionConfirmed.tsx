@@ -17,10 +17,11 @@ export default function SubmissionConfirmed() {
   const milestone = milestones.find((m) => m.id === milestoneId);
   const evidenceCount = evidenceItems.length;
 
-  // For now we consider 4 evidence items as "complete" for a milestone
-  // This is a simple heuristic — could be replaced with a required_evidence_count column
-  const requiredCount = 4;
+  // Use checklist length as required count, fallback to 1
+  const checklist: string[] = milestone && Array.isArray(milestone.checklist) ? milestone.checklist as string[] : [];
+  const requiredCount = checklist.length || 1;
   const allSubmitted = evidenceCount >= requiredCount;
+  const nextItemName = checklist[evidenceCount] ?? null;
 
   // Auto-update milestone to in_review when all evidence is submitted
   useEffect(() => {
@@ -59,9 +60,13 @@ export default function SubmissionConfirmed() {
       ) : (
         <div>
           <p className="font-mono text-[10px] text-muted-foreground mb-2">still needed</p>
-          <p className="font-sans text-[14px] text-foreground">
-            {requiredCount - evidenceCount} more evidence item{requiredCount - evidenceCount !== 1 ? "s" : ""}
-          </p>
+          {nextItemName ? (
+            <p className="font-sans text-[14px] text-foreground">{nextItemName}</p>
+          ) : (
+            <p className="font-sans text-[14px] text-foreground">
+              {requiredCount - evidenceCount} more item{requiredCount - evidenceCount !== 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       )}
 
@@ -70,7 +75,7 @@ export default function SubmissionConfirmed() {
           <Button
             variant="dark"
             size="full"
-            onClick={() => navigate(`/project/camera?milestoneId=${milestoneId}`)}
+            onClick={() => navigate(`/project/camera?milestoneId=${milestoneId}&item=${encodeURIComponent(nextItemName ?? "")}`)}
           >
             <span className="font-sans text-[16px]">submit next item</span>
           </Button>

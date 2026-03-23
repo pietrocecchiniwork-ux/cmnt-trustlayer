@@ -5,12 +5,12 @@ export default function CameraScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const milestoneId = searchParams.get("milestoneId") ?? "";
+  const itemName = searchParams.get("item") ?? "";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Convert to base64 and pass via sessionStorage
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1];
@@ -24,10 +24,14 @@ export default function CameraScreen() {
 
   return (
     <div className="flex flex-col min-h-screen bg-surface-dark px-6 pt-12 pb-6 items-center">
-      <div className="w-full flex items-center justify-between mb-8">
+      <div className="w-full flex items-center justify-between mb-4">
         <p className="font-mono text-[12px] text-surface-dark-foreground">capture evidence</p>
         <button onClick={() => navigate(-1)} className="font-mono text-[18px] text-surface-dark-foreground">✕</button>
       </div>
+
+      {itemName && (
+        <p className="font-sans text-[16px] text-surface-dark-foreground mb-6 w-full text-left">{itemName}</p>
+      )}
 
       <div className="flex-1 flex items-center justify-center w-full max-w-[300px]">
         <div className="relative w-full aspect-square">

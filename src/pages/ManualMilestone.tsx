@@ -15,14 +15,20 @@ export default function ManualMilestone() {
     dueDate: "",
     paymentValue: "",
     role: "contractor",
-    evidenceDescription: "",
   });
+  const [checklistItems, setChecklistItems] = useState<string[]>([""]);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const roles = ["pm", "contractor", "trade", "client"];
+
+  const addChecklistItem = () => setChecklistItems((prev) => [...prev, ""]);
+  const updateChecklistItem = (i: number, val: string) =>
+    setChecklistItems((prev) => prev.map((item, idx) => (idx === i ? val : item)));
+  const removeChecklistItem = (i: number) =>
+    setChecklistItems((prev) => prev.filter((_, idx) => idx !== i));
 
   const handleSave = async (addAnother: boolean) => {
     if (!currentProjectId) {
@@ -33,19 +39,21 @@ export default function ManualMilestone() {
       toast.error("Milestone name is required");
       return;
     }
+    const checklist = checklistItems.map((s) => s.trim()).filter(Boolean);
     try {
       await createMilestone.mutateAsync({
         project_id: currentProjectId,
         name: formData.name,
         due_date: formData.dueDate || null,
         payment_value: formData.paymentValue ? Number(formData.paymentValue) : 0,
-        description: formData.evidenceDescription || null,
         position: existingMilestones.length + 1,
         created_from: "manual" as const,
+        checklist,
       });
       toast.success("Milestone saved");
       if (addAnother) {
-        setFormData({ name: "", dueDate: "", paymentValue: "", role: "contractor", evidenceDescription: "" });
+        setFormData({ name: "", dueDate: "", paymentValue: "", role: "contractor" });
+        setChecklistItems([""]);
       } else {
         navigate("/project/dashboard");
       }
@@ -60,7 +68,7 @@ export default function ManualMilestone() {
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">← back</button>
       <h1 className="font-sans text-[22px] text-foreground mb-8">add milestone</h1>
 
-      <div className="flex-1 space-y-6">
+      <div className="flex-1 space-y-6 overflow-y-auto">
         <input type="text" placeholder="milestone name" value={formData.name} onChange={(e) => updateField("name", e.target.value)} className="underline-input" />
         <input type="date" placeholder="due date" value={formData.dueDate} onChange={(e) => updateField("dueDate", e.target.value)} className="underline-input" />
         <div className="relative">
@@ -79,12 +87,31 @@ export default function ManualMilestone() {
           </div>
         </div>
 
-        <textarea placeholder="describe required evidence" value={formData.evidenceDescription} onChange={(e) => updateField("evidenceDescription", e.target.value)} className="underline-input min-h-[80px] resize-none" />
+        <div>
+          <p className="font-mono text-[10px] text-muted-foreground mb-3">evidence checklist</p>
+          <div className="space-y-2">
+            {checklistItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder={`item ${i + 1}`}
+                  value={item}
+                  onChange={(e) => updateChecklistItem(i, e.target.value)}
+                  className="underline-input flex-1"
+                />
+                {checklistItems.length > 1 && (
+                  <button onClick={() => removeChecklistItem(i)} className="font-mono text-[14px] text-destructive">×</button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button onClick={addChecklistItem} className="font-mono text-[12px] text-accent mt-2">+ add item</button>
+        </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 pt-4">
         <Button variant="dark" size="full" onClick={() => handleSave(false)} disabled={createMilestone.isPending}>
-          <span className="font-sans text-[16px]">{createMilestone.isPending ? "saving..." : "save milestone"}</span>
+          <span className="font-sans text-[16px]">{createMilestone.isPending ? "saving…" : "save milestone"}</span>
         </Button>
         <Button variant="outline" size="full" onClick={() => handleSave(true)} disabled={createMilestone.isPending}>
           <span className="font-sans text-[16px]">save and add another</span>
