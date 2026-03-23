@@ -26,6 +26,7 @@ export default function EvidenceConfirm() {
   const [submitting, setSubmitting] = useState(false);
   const submitEvidence = useSubmitEvidence();
   const { data: user } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const photo = sessionStorage.getItem("capturedPhoto");
