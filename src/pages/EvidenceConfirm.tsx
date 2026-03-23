@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useSubmitEvidence, uploadEvidencePhoto, useCurrentUser } from "@/hooks/useSupabaseProject";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +26,7 @@ export default function EvidenceConfirm() {
   const [submitting, setSubmitting] = useState(false);
   const submitEvidence = useSubmitEvidence();
   const { data: user } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const photo = sessionStorage.getItem("capturedPhoto");
@@ -79,6 +81,10 @@ export default function EvidenceConfirm() {
       sessionStorage.removeItem("capturedPhoto");
       sessionStorage.removeItem("capturedPhotoBase64");
       sessionStorage.removeItem("evidenceMilestoneId");
+
+      // Await cache invalidation so SubmissionConfirmed sees fresh count
+      await queryClient.invalidateQueries({ queryKey: ["evidence", milestoneId] });
+      await queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
 
       toast.success("Evidence submitted");
       navigate(`/project/submission-confirmed?milestoneId=${milestoneId}`);
