@@ -72,7 +72,7 @@ export default function EvidenceConfirm() {
         photo_url: photoUrl,
         note: note || null,
         channel: "app" as const,
-        ai_tags: aiTags ? (aiTags as unknown as Record<string, unknown>) : {},
+        ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
       });
 
       // Clear session
