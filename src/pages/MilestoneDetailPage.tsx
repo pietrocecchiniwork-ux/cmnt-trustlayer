@@ -37,6 +37,13 @@ export default function MilestoneDetailPage() {
   const config = statusConfig[milestone.status];
   const numColor = numberColor[milestone.status];
 
+  // Parse checklist from milestone
+  const checklist: string[] = Array.isArray(milestone.checklist) ? milestone.checklist as string[] : [];
+  const requiredCount = checklist.length || 1;
+  const completedCount = evidenceItems.length;
+  const nextItemIndex = completedCount;
+  const nextItemName = checklist[nextItemIndex] ?? null;
+
   const handleApprove = async () => {
     try {
       await updateStatus.mutateAsync({
@@ -68,7 +75,7 @@ export default function MilestoneDetailPage() {
   };
 
   // Contractor view
-  if (role === "contractor" && (milestone.status === "in_progress" || milestone.status === "pending" || milestone.status === "overdue")) {
+  if (role === "contractor" && milestone.status !== "complete" && milestone.status !== "in_review") {
     return (
       <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
         <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-4">← back</button>
@@ -78,11 +85,28 @@ export default function MilestoneDetailPage() {
         <h1 className="font-sans text-[22px] leading-tight mt-3 text-foreground">{milestone.name}</h1>
         <p className="font-mono text-[13px] text-muted-foreground mt-2">{milestone.due_date ?? "no date"}</p>
 
-        <div className="divider mt-6" />
-        <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">description</p>
-        <p className="font-sans text-[14px] text-foreground mb-6">{milestone.description || "No description"}</p>
+        {/* Checklist progress */}
+        {checklist.length > 0 && (
+          <>
+            <div className="divider mt-6" />
+            <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">
+              evidence checklist — {completedCount} / {requiredCount}
+            </p>
+            <div className="space-y-2 mb-6">
+              {checklist.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i < completedCount ? "bg-success" : "bg-border"}`} />
+                  <span className={`font-sans text-[13px] ${i < completedCount ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                    {item}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
-        <p className="font-mono text-[10px] text-muted-foreground mb-4">submitted evidence ({evidenceItems.length})</p>
+        <div className="divider" />
+        <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">submitted evidence ({completedCount})</p>
         <div className="flex-1 space-y-3">
           {evidenceItems.map((e) => (
             <div key={e.id} className="flex items-start gap-3 py-2">
@@ -101,10 +125,22 @@ export default function MilestoneDetailPage() {
           ))}
         </div>
 
-        <p className="font-mono text-[12px] text-muted-foreground mb-3">submit evidence</p>
-        <Button variant="dark" size="full" onClick={() => navigate(`/project/camera?milestoneId=${milestone.id}`)}>
-          <span className="font-sans text-[16px]">take photo</span>
-        </Button>
+        {completedCount < requiredCount && (
+          <div className="pt-4">
+            {nextItemName && (
+              <p className="font-mono text-[12px] text-muted-foreground mb-3">
+                next: {nextItemName}
+              </p>
+            )}
+            <Button variant="dark" size="full" onClick={() => navigate(`/project/camera?milestoneId=${milestone.id}&item=${encodeURIComponent(nextItemName ?? "")}`)}>
+              <span className="font-sans text-[16px]">take photo</span>
+            </Button>
+          </div>
+        )}
+
+        {completedCount >= requiredCount && (
+          <p className="font-mono text-[12px] text-success mt-4">✓ all evidence submitted — awaiting PM review</p>
+        )}
       </div>
     );
   }
@@ -130,8 +166,28 @@ export default function MilestoneDetailPage() {
           <span className="font-mono text-[12px] text-muted-foreground">{config.label}</span>
         </div>
 
+        {/* Checklist section */}
+        {checklist.length > 0 && (
+          <>
+            <div className="divider mt-6" />
+            <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">
+              checklist — {completedCount} / {requiredCount}
+            </p>
+            <div className="space-y-2 mb-4">
+              {checklist.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i < completedCount ? "bg-success" : "bg-border"}`} />
+                  <span className={`font-sans text-[13px] ${i < completedCount ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                    {item}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="divider mt-6" />
-        <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">evidence ({evidenceItems.length})</p>
+        <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">evidence ({completedCount})</p>
 
         <div className="space-y-4">
           {evidenceItems.map((item) => (
