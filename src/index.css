@@ -2,95 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 60 4% 93%;
+    --foreground: 60 3% 10%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 60 4% 93%;
+    --card-foreground: 60 3% 10%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 60 4% 93%;
+    --popover-foreground: 60 3% 10%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 60 3% 10%;
+    --primary-foreground: 60 4% 93%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 60 4% 84%;
+    --secondary-foreground: 60 3% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 60 4% 84%;
+    --muted-foreground: 60 1% 53%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 75% 54%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 22 65% 47%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --success: 150 33% 36%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    --warning: 22 65% 47%;
 
-    --sidebar-background: 0 0% 98%;
+    --surface-dark: 60 3% 10%;
+    --surface-dark-foreground: 60 4% 93%;
+    --surface-dark-muted: 60 2% 34%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --border: 60 4% 84%;
+    --input: 60 4% 84%;
+    --ring: 220 75% 54%;
 
-    --sidebar-primary: 240 5.9% 10%;
+    --radius: 0px;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-background: 60 4% 93%;
+    --sidebar-foreground: 60 3% 10%;
+    --sidebar-primary: 60 3% 10%;
+    --sidebar-primary-foreground: 60 4% 93%;
+    --sidebar-accent: 60 4% 84%;
+    --sidebar-accent-foreground: 60 3% 10%;
+    --sidebar-border: 60 4% 84%;
+    --sidebar-ring: 220 75% 54%;
 
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --font-mono: 'DM Mono', monospace;
+    --font-sans: 'DM Sans', sans-serif;
   }
 }
 
@@ -101,5 +64,52 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+
+  .divider {
+    @apply w-full h-px bg-border;
+  }
+
+  .status-dot {
+    @apply w-1.5 h-1.5 rounded-full inline-block;
+  }
+
+  .status-dot-pending {
+    @apply status-dot bg-muted-foreground;
+  }
+
+  .status-dot-active {
+    @apply status-dot bg-accent;
+  }
+
+  .status-dot-overdue {
+    @apply status-dot bg-destructive;
+  }
+
+  .status-dot-complete {
+    @apply status-dot bg-success;
+  }
+
+  .status-dot-review {
+    @apply status-dot bg-accent;
+  }
+
+  .underline-input {
+    @apply w-full bg-transparent border-0 border-b border-border px-0 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-colors;
+    font-family: var(--font-sans);
+    font-size: 16px;
   }
 }
