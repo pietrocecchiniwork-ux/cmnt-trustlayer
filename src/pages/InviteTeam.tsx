@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { useAddProjectMember } from "@/hooks/useSupabaseProject";
+import { toast } from "sonner";
 
 type Role = "pm" | "contractor" | "trade" | "client";
 
@@ -14,65 +17,67 @@ const roles: Role[] = ["pm", "contractor", "trade", "client"];
 
 export default function InviteTeam() {
   const navigate = useNavigate();
+  const { currentProjectId } = useProjectContext();
+  const addMember = useAddProjectMember();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<Role>("contractor");
+  const [sending, setSending] = useState(false);
 
-  const addMember = () => {
+  const handleAdd = () => {
     if (!name.trim()) return;
     setMembers([...members, { name, phone, role }]);
     setName("");
     setPhone("");
   };
 
+  const handleSendInvites = async () => {
+    if (!currentProjectId) {
+      toast.error("No project selected");
+      return;
+    }
+    setSending(true);
+    try {
+      for (const m of members) {
+        await addMember.mutateAsync({
+          project_id: currentProjectId,
+          name: m.name,
+          phone_number: m.phone || null,
+          role: m.role,
+          status: "invited" as const,
+        });
+      }
+      toast.success(`${members.length} invite(s) sent`);
+      navigate("/milestone-setup");
+    } catch (err) {
+      console.error("Send invites failed:", err);
+      toast.error("Failed to send invites");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
-      <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">
-        ← back
-      </button>
-
+      <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">← back</button>
       <h1 className="font-sans text-[22px] text-foreground mb-8">invite team</h1>
 
       <div className="space-y-4 mb-6">
-        <input
-          type="text"
-          placeholder="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="underline-input"
-        />
-        <input
-          type="tel"
-          placeholder="phone number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="underline-input"
-        />
-
-        {/* Role selector */}
+        <input type="text" placeholder="name" value={name} onChange={(e) => setName(e.target.value)} className="underline-input" />
+        <input type="tel" placeholder="phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="underline-input" />
         <div className="flex border-b border-border">
           {roles.map((r) => (
-            <button
-              key={r}
-              onClick={() => setRole(r)}
-              className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${
-                role === r
-                  ? "text-accent border-b-2 border-accent"
-                  : "text-muted-foreground"
-              }`}
-            >
+            <button key={r} onClick={() => setRole(r)} className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${role === r ? "text-accent border-b-2 border-accent" : "text-muted-foreground"}`}>
               {r}
             </button>
           ))}
         </div>
-
-        <Button variant="outline" size="default" onClick={addMember} className="w-full mt-2">
+        <Button variant="outline" size="default" onClick={handleAdd} className="w-full mt-2">
           <span className="font-sans text-[14px]">add member</span>
         </Button>
       </div>
 
-      {/* Members list */}
       <div className="flex-1">
         {members.map((m, i) => (
           <div key={i} className="flex items-center justify-between py-3 border-b border-border">
@@ -82,13 +87,8 @@ export default function InviteTeam() {
         ))}
       </div>
 
-      <Button
-        variant="dark"
-        size="full"
-        onClick={() => navigate("/milestone-setup")}
-        disabled={members.length === 0}
-      >
-        <span className="font-sans text-[16px]">send invites</span>
+      <Button variant="dark" size="full" onClick={handleSendInvites} disabled={members.length === 0 || sending}>
+        <span className="font-sans text-[16px]">{sending ? "sending..." : "send invites"}</span>
       </Button>
     </div>
   );
