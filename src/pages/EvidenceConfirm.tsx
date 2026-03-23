@@ -15,6 +15,19 @@ interface AiTags {
   building_element: string;
 }
 
+function generateEvidenceCode(): string {
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const rand = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `EVD-${date}-${rand}`;
+}
+
+function formatCoords(lat: number, lng: number): string {
+  const latDir = lat >= 0 ? "N" : "S";
+  const lngDir = lng >= 0 ? "E" : "W";
+  return `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`;
+}
+
 export default function EvidenceConfirm() {
   const navigate = useNavigate();
   const [note, setNote] = useState("");
@@ -24,6 +37,8 @@ export default function EvidenceConfirm() {
   const [aiTags, setAiTags] = useState<AiTags | null>(null);
   const [tagging, setTagging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [evidenceCode] = useState<string>(() => generateEvidenceCode());
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const submitEvidence = useSubmitEvidence();
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
@@ -51,6 +66,15 @@ export default function EvidenceConfirm() {
         }
       });
     }
+
+    // Request geolocation — never blocks submission
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setCoords(null),
+        { timeout: 5000 }
+      );
+    }
   }, []);
 
   const handleSubmit = async () => {
@@ -68,13 +92,16 @@ export default function EvidenceConfirm() {
         photoUrl = await uploadEvidencePhoto(blob, "evidence.jpg");
       }
 
-      await submitEvidence.mutateAsync({
+      const result = await submitEvidence.mutateAsync({
         milestone_id: milestoneId,
         submitted_by: user.id,
         photo_url: photoUrl,
         note: note || null,
         channel: "app" as const,
         ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
+        evidence_code: evidenceCode,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
       });
 
       // Clear session
@@ -94,7 +121,7 @@ export default function EvidenceConfirm() {
       queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
 
       toast.success("Evidence submitted");
-      navigate(`/project/submission-confirmed?milestoneId=${milestoneId}&freshCount=${freshCount ?? 0}`);
+      navigate(`/project/submission-confirmed?milestoneId=${milestoneId}&freshCount=${freshCount ?? 0}&evidenceCode=${encodeURIComponent(result?.evidence_code ?? evidenceCode)}`);
     } catch (err) {
       console.error("Submit evidence failed:", err);
       toast.error("Failed to submit evidence");
@@ -120,7 +147,7 @@ export default function EvidenceConfirm() {
       <p className="font-mono text-[10px] text-muted-foreground mb-3">
         {tagging ? "analysing photo..." : "ai tags"}
       </p>
-      <div className="flex flex-wrap gap-x-6 gap-y-2 mb-6">
+      <div className="flex flex-wrap gap-x-6 gap-y-2 mb-2">
         {tagEntries.map(([key, val]) => (
           <span key={key} className="font-mono text-[11px] text-accent border-b border-accent/40 pb-0.5">
             {String(val).replace(/_/g, " ")}
@@ -130,6 +157,12 @@ export default function EvidenceConfirm() {
           <span className="font-mono text-[11px] text-muted-foreground animate-pulse">analysing...</span>
         )}
       </div>
+      {coords && (
+        <p className="font-mono text-[10px] text-muted-foreground mb-4">
+          {formatCoords(coords.lat, coords.lng)}
+        </p>
+      )}
+      {!coords && <div className="mb-4" />}
 
       <input
         type="text"

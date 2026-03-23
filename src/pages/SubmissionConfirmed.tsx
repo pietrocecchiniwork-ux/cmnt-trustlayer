@@ -13,6 +13,7 @@ export default function SubmissionConfirmed() {
   const updateStatus = useUpdateMilestoneStatus();
 
   const freshCountParam = searchParams.get("freshCount");
+  const evidenceCode = searchParams.get("evidenceCode");
 
   const [evidenceCount, setEvidenceCount] = useState<number | null>(
     freshCountParam !== null ? parseInt(freshCountParam, 10) : null
@@ -92,6 +93,9 @@ export default function SubmissionConfirmed() {
       <p className="font-sans text-[20px] text-muted-foreground mt-2">
         {allSubmitted ? "evidence complete" : `of ${requiredCount} submitted`}
       </p>
+      {evidenceCode && (
+        <p className="font-mono text-[11px] text-muted-foreground mt-1">{evidenceCode}</p>
+      )}
 
       <div className="divider mt-8 mb-6 w-full" />
 

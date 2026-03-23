@@ -53,7 +53,10 @@ export type Database = {
         Row: {
           ai_tags: Json | null
           channel: Database["public"]["Enums"]["evidence_channel"]
+          evidence_code: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           milestone_id: string
           note: string | null
           photo_url: string | null
@@ -63,7 +66,10 @@ export type Database = {
         Insert: {
           ai_tags?: Json | null
           channel?: Database["public"]["Enums"]["evidence_channel"]
+          evidence_code?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           milestone_id: string
           note?: string | null
           photo_url?: string | null
@@ -73,7 +79,10 @@ export type Database = {
         Update: {
           ai_tags?: Json | null
           channel?: Database["public"]["Enums"]["evidence_channel"]
+          evidence_code?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           milestone_id?: string
           note?: string | null
           photo_url?: string | null
