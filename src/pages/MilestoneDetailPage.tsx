@@ -162,7 +162,7 @@ export default function MilestoneDetailPage() {
         </div>
       </div>
 
-      {milestone.status === "in_review" && (
+      {(milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
         <div className="px-6 pb-6 space-y-3">
           <Button variant="approve" size="full" onClick={handleApprove} disabled={updateStatus.isPending}>
             <span className="font-sans text-[16px]">approve</span>
