@@ -6,7 +6,7 @@ const pmLinks = [
   { label: "milestones", path: "/project/milestones" },
   { label: "evidence", path: "/project/evidence" },
   { label: "payments", path: "/project/payments" },
-  { label: "team", path: "/project/team" },
+  { label: "activity", path: "/project/activity" },
 ];
 
 const contractorLinks = [
@@ -21,7 +21,7 @@ const routeColorMap: Record<string, { bg: string; text: string; activeText: stri
   "/project/milestones": { bg: "bg-surface-dark", text: "text-surface-dark-foreground/40", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
   "/project/evidence":   { bg: "bg-surface-cream", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
   "/project/payments":   { bg: "bg-surface-dark", text: "text-surface-dark-foreground/40", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
-  "/project/team":       { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
+  "/project/activity":   { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
   "/project/submit":     { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
 };
 
