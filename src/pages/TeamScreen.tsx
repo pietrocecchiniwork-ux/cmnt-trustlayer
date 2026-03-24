@@ -13,9 +13,9 @@ export default function TeamScreen() {
   const { role } = useRole();
 
   const handleCopyCode = async () => {
-    if (!project?.project_code) return;
+    if (!project?.id) return;
     try {
-      await navigator.clipboard.writeText(project.project_code);
+      await navigator.clipboard.writeText(project.id);
       toast.success("code copied");
     } catch {
       toast.error("failed to copy");
