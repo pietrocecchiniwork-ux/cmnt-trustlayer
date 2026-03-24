@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
@@ -67,8 +67,6 @@ export default function MilestoneDetailPage() {
   const createTask = useCreateTask();
   const createChange = useCreateChange();
 
-  const seededRef = useRef(false);
-
   // ─── Edit state ───
   const [editing, setEditing] = useState(false);
   // ─── Quality assessment state ───
@@ -91,42 +89,6 @@ export default function MilestoneDetailPage() {
     console.log("[MilestoneDetail] milestoneId:", milestoneId, "validMilestoneId:", validMilestoneId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ─── Auto-seed tasks from legacy checklist (backwards compat) ───
-  useEffect(() => {
-    if (seededRef.current) return;
-    if (!milestone || !validMilestoneId) return;
-    if (tasksLoading) return;
-    if (tasks.length > 0) { seededRef.current = true; return; }
-
-    const checklist: string[] = Array.isArray(milestone.checklist)
-      ? (milestone.checklist as string[])
-      : [];
-    if (checklist.length === 0) return;
-
-    seededRef.current = true;
-    checklist.forEach((item, i) => {
-      createTask.mutate(
-        { milestone_id: validMilestoneId, name: item, position: i + 1, evidence_required: true },
-        {
-          onSuccess: (task) => {
-            if (currentProjectId) {
-              createChange.mutate({
-                project_id: currentProjectId,
-                entity_type: "task",
-                entity_id: task.id,
-                entity_name: task.name,
-                change_type: "created",
-                changed_by: currentUser?.id,
-                changed_by_name: currentUser?.email ?? undefined,
-              });
-            }
-          },
-        }
-      );
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [milestone, validMilestoneId, tasks.length, tasksLoading]);
 
   if (!milestone) return null;
 
