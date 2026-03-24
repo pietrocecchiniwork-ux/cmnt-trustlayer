@@ -7,7 +7,8 @@ export default function EvidenceList() {
   const { data: evidence = [], isLoading } = useProjectEvidence(currentProjectId ?? undefined);
 
   return (
-    <div className="flex flex-col min-h-screen screen-cream">
+    <div className="min-h-screen screen-cream">
+     <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
       {/* Header */}
       <div className="px-6 pt-10 pb-6">
         <div className="flex items-center justify-between mb-6">
