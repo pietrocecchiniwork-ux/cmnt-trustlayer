@@ -241,7 +241,7 @@ export default function EvidenceConfirm() {
                 value={editedTags[key]}
                 onChange={(e) => setEditedTags({ ...editedTags, [key]: e.target.value })}
               >
-                {tagOptions[key].map((opt) => (
+                {tagOptions[key]!.map((opt) => (
                   <option key={opt} value={opt}>{opt.replace(/_/g, " ")}</option>
                 ))}
               </select>
