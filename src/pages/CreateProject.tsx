@@ -12,6 +12,7 @@ interface InlineTeamMember {
   name: string;
   role: Role;
   phone: string;
+  email: string;
 }
 
 export default function CreateProject() {
@@ -31,7 +32,7 @@ export default function CreateProject() {
   });
   const [createdProject, setCreatedProject] = useState<{ id: string; code: string } | null>(null);
   const [teamMembers, setTeamMembers] = useState<InlineTeamMember[]>([
-    { name: "", role: "contractor", phone: "" },
+    { name: "", role: "contractor", phone: "", email: "" },
   ]);
   const [savingTeam, setSavingTeam] = useState(false);
 
@@ -78,7 +79,7 @@ export default function CreateProject() {
           name: m.name.trim(),
           role: m.role,
           phone_number: m.phone.trim() || null,
-          email: null,
+          email: m.email.trim().toLowerCase() || null,
           status: "invited" as const,
         });
       }
@@ -116,7 +117,7 @@ export default function CreateProject() {
   };
 
   const addTeamRow = () => {
-    setTeamMembers([...teamMembers, { name: "", role: "contractor", phone: "" }]);
+    setTeamMembers([...teamMembers, { name: "", role: "contractor", phone: "", email: "" }]);
   };
 
   const updateTeamMember = (index: number, field: keyof InlineTeamMember, value: string) => {
@@ -280,6 +281,13 @@ export default function CreateProject() {
                     placeholder="name"
                     value={member.name}
                     onChange={(e) => updateTeamMember(idx, "name", e.target.value)}
+                    className="underline-input"
+                  />
+                  <input
+                    type="email"
+                    placeholder="email"
+                    value={member.email}
+                    onChange={(e) => updateTeamMember(idx, "email", e.target.value)}
                     className="underline-input"
                   />
                   <div className="flex border-b border-border">
