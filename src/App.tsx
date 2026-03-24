@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { DemoProjectProvider } from "@/contexts/DemoProjectContext";
 import { AppLayout } from "@/components/AppLayout";
+import { supabase } from "@/integrations/supabase/client";
 
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
@@ -37,9 +39,25 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function AuthSessionListener() {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
+        queryClient.invalidateQueries();
+      }
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <AuthSessionListener />
       <Toaster />
       <Sonner />
       <DemoProjectProvider>
