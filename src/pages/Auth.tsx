@@ -14,11 +14,16 @@ export default function Auth() {
   const { setCurrentProjectId } = useProjectContext();
   const { t } = useTranslation();
   const [showEmail, setShowEmail] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const seedingRef = useRef(false);
 
   useEffect(() => {
@@ -56,6 +61,23 @@ export default function Auth() {
       seedingRef.current = false;
     } finally {
       setDemoLoading(false);
+    }
+  };
+
+  const handlePasswordAuth = async () => {
+    if (!email.trim() || !password.trim()) return;
+    setPasswordLoading(true);
+    setPasswordError(null);
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({ email, password });
+      setPasswordLoading(false);
+      if (error) setPasswordError(error.message);
+      else setSent(true);
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      setPasswordLoading(false);
+      if (error) setPasswordError(error.message);
+      else navigate("/");
     }
   };
 
@@ -110,13 +132,20 @@ export default function Auth() {
             </div>
           </div>
 
-          {!showEmail && (
+          {!showEmail && !showPassword && (
             <>
               <button
                 onClick={() => setShowEmail(true)}
                 className="font-mono text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
               >
                 {t("auth.continue_email")}
+              </button>
+
+              <button
+                onClick={() => setShowPassword(true)}
+                className="font-mono text-[11px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors mt-4"
+              >
+                sign in with password
               </button>
 
               <button
@@ -152,6 +181,52 @@ export default function Auth() {
 
           <button
             onClick={() => setShowEmail(false)}
+            className="font-mono text-[13px] text-muted-foreground mt-6 underline underline-offset-4 hover:text-foreground transition-colors"
+          >
+            {t("common.back")}
+          </button>
+        </div>
+      )}
+
+      {showPassword && !sent && (
+        <div className="w-full max-w-[300px] flex flex-col items-center">
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="underline-input text-center mb-4"
+          />
+          <input
+            type="password"
+            placeholder="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="underline-input text-center mb-8"
+          />
+          {passwordError && (
+            <p className="font-mono text-[11px] text-destructive mb-4 w-full">{passwordError}</p>
+          )}
+          <Button
+            variant="dark"
+            size="full"
+            onClick={handlePasswordAuth}
+            disabled={passwordLoading}
+          >
+            <span className="font-sans text-[16px]">
+              {passwordLoading ? "…" : isSignUp ? "create account" : "sign in"}
+            </span>
+          </Button>
+
+          <button
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="font-mono text-[11px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors mt-4"
+          >
+            {isSignUp ? "already have an account?" : "create account"}
+          </button>
+
+          <button
+            onClick={() => { setShowPassword(false); setPasswordError(null); }}
             className="font-mono text-[13px] text-muted-foreground mt-6 underline underline-offset-4 hover:text-foreground transition-colors"
           >
             {t("common.back")}

@@ -1,6 +1,5 @@
 import { Outlet } from "react-router-dom";
 import { BottomNav } from "./BottomNav";
-import { RoleSwitcher } from "./RoleSwitcher";
 import { BurgerMenu } from "./BurgerMenu";
 
 export function AppLayout() {
@@ -12,7 +11,6 @@ export function AppLayout() {
         <Outlet />
       </div>
       <BottomNav />
-      <RoleSwitcher />
     </div>
   );
 }
