@@ -32,6 +32,18 @@ export default function PMDashboard() {
   useRealtimeMilestones(currentProjectId ?? undefined);
   useRealtimeEvidence(currentProjectId ?? undefined);
 
+  const [isAnon, setIsAnon] = useState(false);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.is_anonymous) setIsAnon(true);
+    });
+  }, []);
+
+  const handleExitDemo = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
   // Fetch project details
   const { data: project } = useQuery({
     queryKey: ["project", currentProjectId],
