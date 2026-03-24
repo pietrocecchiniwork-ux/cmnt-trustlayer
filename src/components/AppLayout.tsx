@@ -4,7 +4,7 @@ import { RoleSwitcher } from "./RoleSwitcher";
 
 export function AppLayout() {
   return (
-    <div className="max-w-md mx-auto relative min-h-screen pb-24">
+    <div className="min-h-screen">
       <Outlet />
       <BottomNav />
       <RoleSwitcher />
