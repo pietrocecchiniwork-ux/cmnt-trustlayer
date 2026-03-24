@@ -19,6 +19,7 @@ export default {
       },
       colors: {
         border: "hsl(var(--border))",
+        "border-light": "hsl(var(--border-light))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -48,10 +49,18 @@ export default {
           foreground: "hsl(var(--success-foreground))",
         },
         warning: "hsl(var(--warning))",
+        "surface-orange": {
+          DEFAULT: "hsl(var(--surface-orange))",
+          foreground: "hsl(var(--surface-orange-foreground))",
+        },
         "surface-dark": {
           DEFAULT: "hsl(var(--surface-dark))",
           foreground: "hsl(var(--surface-dark-foreground))",
           muted: "hsl(var(--surface-dark-muted))",
+        },
+        "surface-cream": {
+          DEFAULT: "hsl(var(--surface-cream))",
+          foreground: "hsl(var(--surface-cream-foreground))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -86,10 +95,25 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "dither-spin": {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
+        },
+        "dither-pulse": {
+          "0%, 100%": { opacity: "0.3" },
+          "50%": { opacity: "1" },
+        },
+        "dot-trail": {
+          "0%": { strokeDashoffset: "314" },
+          "100%": { strokeDashoffset: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "dither-spin": "dither-spin 30s linear infinite",
+        "dither-pulse": "dither-pulse 3s ease-in-out infinite",
+        "dot-trail": "dot-trail 3s ease-in-out infinite",
       },
     },
   },
