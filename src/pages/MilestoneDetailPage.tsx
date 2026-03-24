@@ -197,6 +197,7 @@ export default function MilestoneDetailPage() {
   const confirmApprove = async (assessment: string) => {
     setQaPrompt(false);
     try {
+      console.log("[confirmApprove] step 1: updating evidence items", evidenceItems.length);
       await Promise.all(
         evidenceItems.map((e) =>
           updateEvidence.mutateAsync({
@@ -208,7 +209,9 @@ export default function MilestoneDetailPage() {
           })
         )
       );
+      console.log("[confirmApprove] step 2: updating milestone status to complete");
       await updateStatus.mutateAsync({ id: milestone.id, status: "complete", projectId: currentProjectId! });
+      console.log("[confirmApprove] step 3: creating change log");
       if (currentProjectId) {
         await createChange.mutateAsync({
           project_id: currentProjectId,
@@ -221,9 +224,11 @@ export default function MilestoneDetailPage() {
           new_value: { quality_assessment: assessment },
         });
       }
+      console.log("[confirmApprove] done");
       toast.success(t("milestone.approved"));
       navigate(-1);
-    } catch {
+    } catch (err) {
+      console.error("[confirmApprove] FAILED:", err);
       toast.error("Failed to approve milestone");
     }
   };
