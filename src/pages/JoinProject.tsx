@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
@@ -9,9 +9,11 @@ type Role = "contractor" | "trade" | "client";
 
 export default function JoinProject() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setCurrentProjectId } = useProjectContext();
+  const initialCode = (searchParams.get("code") ?? "").trim().toUpperCase();
 
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode);
   const [looking, setLooking] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [found, setFound] = useState<{ id: string; name: string } | null>(null);
@@ -20,28 +22,42 @@ export default function JoinProject() {
   const [role, setRole] = useState<Role | "">("");
   const [joining, setJoining] = useState(false);
 
-  const handleLookup = async () => {
-    const trimmed = code.trim();
+  const lookupProject = async (inputCode: string) => {
+    const trimmed = inputCode.trim().toUpperCase();
     if (!trimmed) return;
+
     setLooking(true);
     setNotFound(false);
     setFound(null);
+
     try {
-      // Use security definer RPC to lookup by project_code (bypasses RLS)
       const { data, error } = await supabase.rpc("lookup_project_by_code", {
-        _code: trimmed.toUpperCase(),
+        _code: trimmed,
       });
+
       if (error || !data || (Array.isArray(data) && data.length === 0)) {
         setNotFound(true);
-      } else {
-        const project = Array.isArray(data) ? data[0] : data;
-        setFound({ id: project.id, name: project.name });
+        return;
       }
-    } catch {
+
+      const project = Array.isArray(data) ? data[0] : data;
+      setCode(trimmed);
+      setFound({ id: project.id, name: project.name });
+    } catch (err) {
+      console.error("lookup project by code failed:", err);
       setNotFound(true);
     } finally {
       setLooking(false);
     }
+  };
+
+  useEffect(() => {
+    if (!initialCode) return;
+    void lookupProject(initialCode);
+  }, [initialCode]);
+
+  const handleLookup = async () => {
+    await lookupProject(code);
   };
 
   const handleJoin = async () => {
@@ -53,6 +69,24 @@ export default function JoinProject() {
         navigate("/auth");
         return;
       }
+
+      const { data: existingMembership, error: existingError } = await supabase
+        .from("project_members")
+        .select("id")
+        .eq("project_id", found.id)
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+
+      if (existingMembership) {
+        setCurrentProjectId(found.id);
+        toast.success(`already joined ${found.name}`);
+        navigate("/project/dashboard");
+        return;
+      }
+
       const { error } = await supabase.from("project_members").insert({
         project_id: found.id,
         user_id: user.id,
@@ -67,7 +101,8 @@ export default function JoinProject() {
       navigate("/project/dashboard");
     } catch (err) {
       console.error("Join project error:", err);
-      toast.error("failed to join project");
+      const message = err instanceof Error ? err.message : "failed to join project";
+      toast.error(`failed to join project: ${message}`);
     } finally {
       setJoining(false);
     }

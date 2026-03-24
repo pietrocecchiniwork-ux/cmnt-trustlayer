@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useAddProjectMember } from "@/hooks/useSupabaseProject";
+import { useAddProjectMember, useProject } from "@/hooks/useSupabaseProject";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type Role = "pm" | "contractor" | "trade" | "client";
@@ -20,6 +21,7 @@ const roles: Role[] = ["pm", "contractor", "trade", "client"];
 export default function InviteTeam() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
+  const { data: project } = useProject(currentProjectId ?? undefined);
   const addMember = useAddProjectMember();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [name, setName] = useState("");
@@ -49,6 +51,11 @@ export default function InviteTeam() {
     }
     setSending(true);
     try {
+      let savedCount = 0;
+      let emailedCount = 0;
+      let emailErrors = 0;
+      const inviteCode = project?.project_code;
+
       for (const m of members) {
         await addMember.mutateAsync({
           project_id: currentProjectId,
@@ -57,12 +64,42 @@ export default function InviteTeam() {
           role: m.role,
           status: "invited" as const,
         });
+        savedCount += 1;
+
+        if (m.email.trim() && inviteCode) {
+          const { error: emailErr } = await supabase.auth.signInWithOtp({
+            email: m.email.trim().toLowerCase(),
+            options: {
+              emailRedirectTo: `${window.location.origin}/join?code=${encodeURIComponent(inviteCode)}`,
+            },
+          });
+
+          if (emailErr) {
+            emailErrors += 1;
+            console.error("Invite email failed:", emailErr);
+          } else {
+            emailedCount += 1;
+          }
+        }
       }
-      toast.success(`${members.length} invite(s) sent`);
+
+      const membersWithEmail = members.filter((member) => member.email.trim().length > 0).length;
+      if (savedCount === 0) {
+        toast.error("No invites were saved");
+      } else if (membersWithEmail > 0 && !inviteCode) {
+        toast.warning(`${savedCount} invite(s) saved, but email delivery is unavailable because project code is missing`);
+      } else if (emailErrors > 0) {
+        toast.warning(`${savedCount} invite(s) saved · ${emailedCount} email(s) sent · ${emailErrors} failed`);
+      } else if (emailedCount > 0) {
+        toast.success(`${savedCount} invite(s) saved · ${emailedCount} email(s) sent`);
+      } else {
+        toast.success(`${savedCount} invite(s) saved`);
+      }
       navigate("/milestone-setup");
     } catch (err) {
       console.error("Send invites failed:", err);
-      toast.error("Failed to send invites");
+      const message = err instanceof Error ? err.message : "Failed to send invites";
+      toast.error(message);
     } finally {
       setSending(false);
     }

@@ -14,7 +14,7 @@ const statusColors: Record<string, string> = {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { setCurrentProjectId } = useProjectContext();
+  const { currentProjectId, setCurrentProjectId } = useProjectContext();
   const { data: projects = [], isLoading, refetch } = useProjects();
   const [seeding, setSeeding] = useState(false);
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -44,12 +44,21 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!isLoading && authed && projects.length === 0) {
-      navigate("/onboarding");
-    }
-  }, [isLoading, authed, projects.length, navigate]);
+    if (isLoading || !authed) return;
 
-  if (authed === null || (!isLoading && authed && projects.length === 0)) return null;
+    if (projects.length === 0) {
+      navigate("/onboarding");
+      return;
+    }
+
+    const selectedProject = projects.find((project) => project.id === currentProjectId) ?? projects[0];
+    if (selectedProject && selectedProject.id !== currentProjectId) {
+      setCurrentProjectId(selectedProject.id);
+    }
+    navigate("/project/dashboard");
+  }, [isLoading, authed, projects, currentProjectId, setCurrentProjectId, navigate]);
+
+  if (authed === null || (authed && !isLoading)) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
