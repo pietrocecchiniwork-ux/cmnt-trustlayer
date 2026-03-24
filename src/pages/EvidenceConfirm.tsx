@@ -99,9 +99,6 @@ export default function EvidenceConfirm() {
         note: note || null,
         channel: "app" as const,
         ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
-        evidence_code: evidenceCode,
-        latitude: coords?.lat ?? null,
-        longitude: coords?.lng ?? null,
       });
 
       // Clear session
