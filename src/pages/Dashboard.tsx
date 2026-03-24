@@ -92,9 +92,17 @@ export default function PMDashboard() {
           )}
         </div>
 
-        <p className="font-mono text-[28px] tracking-tight mt-6">
-          {project.name?.toLowerCase()}
-        </p>
+        <div className="flex items-baseline gap-3 mt-6">
+          <p className="font-mono text-[28px] tracking-tight">
+            {project.name?.toLowerCase()}
+          </p>
+          <button
+            onClick={() => navigate("/project/team")}
+            className="font-mono text-[11px] opacity-50 hover:opacity-100 transition-opacity"
+          >
+            team
+          </button>
+        </div>
       </div>
 
       {/* Dithered progress circle */}

@@ -87,7 +87,11 @@ export default function ProjectActivity() {
       )}
 
       {!isLoading && changes.length === 0 && (
-        <p className="font-sans text-[13px] text-muted-foreground">no activity yet</p>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="font-sans text-[15px] text-muted-foreground text-center leading-relaxed max-w-[260px]">
+            no activity yet — changes to milestones, tasks, and team members will appear here
+          </p>
+        </div>
       )}
 
       <div className="space-y-5">

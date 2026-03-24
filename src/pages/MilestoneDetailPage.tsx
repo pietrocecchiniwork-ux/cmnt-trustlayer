@@ -46,7 +46,7 @@ export default function MilestoneDetailPage() {
   const { currentProjectId } = useProjectContext();
   const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
   const { data: evidenceItems = [] } = useEvidence(milestoneId);
-  const { data: tasks = [] } = useTasks(milestoneId);
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks(milestoneId);
   const { data: currentUser } = useCurrentUser();
   const { role } = useRole();
 
@@ -59,6 +59,10 @@ export default function MilestoneDetailPage() {
 
   // ─── Edit state ───
   const [editing, setEditing] = useState(false);
+
+  // ─── Add task state ───
+  const [addingTask, setAddingTask] = useState(false);
+  const [newTaskName, setNewTaskName] = useState("");
   const [editName, setEditName] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editPayment, setEditPayment] = useState("");
@@ -69,6 +73,7 @@ export default function MilestoneDetailPage() {
   useEffect(() => {
     if (seededRef.current) return;
     if (!milestone || !milestoneId) return;
+    if (tasksLoading) return; // wait until query settles before deciding to seed
     if (tasks.length > 0) { seededRef.current = true; return; }
 
     const checklist: string[] = Array.isArray(milestone.checklist)
@@ -98,7 +103,7 @@ export default function MilestoneDetailPage() {
       );
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [milestone, milestoneId, tasks.length]);
+  }, [milestone, milestoneId, tasks.length, tasksLoading]);
 
   if (!milestone) return null;
 
@@ -206,11 +211,40 @@ export default function MilestoneDetailPage() {
     }
   };
 
+  // ─── Add task handler ───
+  const handleAddTask = async () => {
+    const name = newTaskName.trim();
+    if (!name || !milestoneId) return;
+    createTask.mutate(
+      { milestone_id: milestoneId, name, position: tasks.length + 1, evidence_required: true },
+      {
+        onSuccess: (task) => {
+          if (currentProjectId) {
+            createChange.mutate({
+              project_id: currentProjectId,
+              entity_type: "task",
+              entity_id: task.id,
+              entity_name: task.name,
+              change_type: "created",
+              changed_by: currentUser?.id,
+              changed_by_name: currentUser?.email ?? undefined,
+            });
+          }
+          setNewTaskName("");
+          setAddingTask(false);
+        },
+      }
+    );
+  };
+
   // ─── Tasks section (shared across roles) ───
-  const tasksSection = tasks.length > 0 && (
+  const tasksSection = (
     <>
       <div className="divider mt-6" />
       <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">tasks</p>
+      {tasksLoading && (
+        <p className="font-mono text-[11px] text-muted-foreground">loading…</p>
+      )}
       <div className="space-y-0">
         {tasks.map((task) => (
           <button
@@ -229,6 +263,37 @@ export default function MilestoneDetailPage() {
           </button>
         ))}
       </div>
+
+      {/* Add task */}
+      {addingTask ? (
+        <div className="flex gap-2 items-center mt-3">
+          <input
+            autoFocus
+            className="flex-1 bg-secondary border border-border rounded px-3 py-1.5 font-sans text-[14px] text-foreground"
+            placeholder="task name"
+            value={newTaskName}
+            onChange={(e) => setNewTaskName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAddTask(); if (e.key === "Escape") setAddingTask(false); }}
+          />
+          <button
+            onClick={handleAddTask}
+            disabled={createTask.isPending}
+            className="font-mono text-[12px] text-foreground border border-foreground rounded px-3 py-1.5"
+          >
+            add
+          </button>
+          <button onClick={() => setAddingTask(false)} className="font-mono text-[12px] text-muted-foreground">
+            cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAddingTask(true)}
+          className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-3"
+        >
+          + add task
+        </button>
+      )}
     </>
   );
 
