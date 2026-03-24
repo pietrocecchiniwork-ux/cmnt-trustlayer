@@ -169,8 +169,20 @@ export function useProjectEvidence(projectId: string | undefined) {
 export function useSubmitEvidence() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (evidence: TablesInsert<"evidence">) => {
-      const { data, error } = await supabase
+    mutationFn: async (evidence: TablesInsert<"evidence"> & {
+      file_hash?: string | null;
+      file_size_bytes?: number | null;
+      verification_level?: number;
+      training_eligible?: boolean;
+      label_dimensions_captured?: number;
+      ai_tags_original?: Record<string, unknown> | null;
+      human_override?: boolean;
+      task_id?: string | null;
+      evidence_code?: string;
+      gps_lat?: number | null;
+      gps_lng?: number | null;
+    }) => {
+      const { data, error } = await db
         .from("evidence")
         .insert(evidence)
         .select()
@@ -178,8 +190,38 @@ export function useSubmitEvidence() {
       if (error) { console.error("submitEvidence error:", error); throw error; }
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { milestone_id: string }) => {
       qc.invalidateQueries({ queryKey: ["evidence", data.milestone_id] });
+      qc.invalidateQueries({ queryKey: ["project-evidence"] });
+    },
+  });
+}
+
+export function useUpdateEvidence() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      milestoneId,
+      ...updates
+    }: {
+      id: string;
+      milestoneId: string;
+      quality_assessment?: string;
+      label_dimensions_captured?: number;
+      verification_level?: number;
+    }) => {
+      const { data, error } = await db
+        .from("evidence")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) { console.error("updateEvidence error:", error); throw error; }
+      return { ...(data as Record<string, unknown>), milestoneId };
+    },
+    onSuccess: (data: { milestoneId: string }) => {
+      qc.invalidateQueries({ queryKey: ["evidence", data.milestoneId] });
       qc.invalidateQueries({ queryKey: ["project-evidence"] });
     },
   });

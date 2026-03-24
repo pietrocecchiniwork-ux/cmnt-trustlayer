@@ -15,6 +15,15 @@ interface AiTags {
   building_element: string;
 }
 
+const tagOptions: Record<keyof AiTags, string[]> = {
+  work_type: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
+  trade_category: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
+  location_in_building: ["basement", "ground_floor", "first_floor", "second_floor", "roof", "exterior", "kitchen", "bathroom", "living_room", "bedroom", "hallway", "garage"],
+  completion_stage: ["started", "in_progress", "nearly_complete", "complete", "snagging"],
+  condition_flag: ["good", "acceptable", "poor", "defect", "damage"],
+  building_element: ["wall", "floor", "ceiling", "roof", "window", "door", "foundation", "pipe", "cable", "fitting", "fixture"],
+};
+
 function generateEvidenceCode(): string {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -28,17 +37,33 @@ function formatCoords(lat: number, lng: number): string {
   return `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`;
 }
 
+async function computeHash(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer();
+  const hashBuf = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export default function EvidenceConfirm() {
   const navigate = useNavigate();
   const [note, setNote] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [milestoneId, setMilestoneId] = useState<string>("");
+  const [taskId, setTaskId] = useState<string>("");
   const [aiTags, setAiTags] = useState<AiTags | null>(null);
+  const [aiTagsOriginal, setAiTagsOriginal] = useState<AiTags | null>(null);
   const [tagging, setTagging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [evidenceCode] = useState<string>(() => generateEvidenceCode());
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Tag correction state
+  const [correcting, setCorrecting] = useState(false);
+  const [editedTags, setEditedTags] = useState<AiTags | null>(null);
+  const [tagsEdited, setTagsEdited] = useState(false);
+
   const submitEvidence = useSubmitEvidence();
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
@@ -47,9 +72,11 @@ export default function EvidenceConfirm() {
     const photo = sessionStorage.getItem("capturedPhoto");
     const base64 = sessionStorage.getItem("capturedPhotoBase64");
     const mId = sessionStorage.getItem("evidenceMilestoneId");
+    const tId = sessionStorage.getItem("evidenceTaskId");
     setPhotoDataUrl(photo);
     setPhotoBase64(base64);
     setMilestoneId(mId ?? "");
+    setTaskId(tId ?? "");
 
     if (base64) {
       setTagging(true);
@@ -74,6 +101,21 @@ export default function EvidenceConfirm() {
     }
   }, []);
 
+  const startCorrection = () => {
+    setEditedTags(aiTags ? { ...aiTags } : null);
+    setCorrecting(true);
+  };
+
+  const saveCorrection = () => {
+    if (!editedTags) return;
+    if (!tagsEdited) {
+      setAiTagsOriginal(aiTags);
+    }
+    setAiTags(editedTags);
+    setTagsEdited(true);
+    setCorrecting(false);
+  };
+
   const handleSubmit = async () => {
     if (!milestoneId || !user) {
       toast.error("Missing milestone or not signed in");
@@ -82,9 +124,13 @@ export default function EvidenceConfirm() {
     setSubmitting(true);
     try {
       let photoUrl: string | null = null;
+      let fileHash: string | null = null;
+      let fileSizeBytes: number | null = null;
 
       if (photoDataUrl) {
         const blob = await fetch(photoDataUrl).then(r => r.blob());
+        fileSizeBytes = blob.size;
+        fileHash = await computeHash(blob);
         photoUrl = await uploadEvidencePhoto(blob, "evidence.jpg");
       }
 
@@ -95,11 +141,24 @@ export default function EvidenceConfirm() {
         note: note || null,
         channel: "app" as const,
         ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
+        // LCM data layer fields
+        file_hash: fileHash,
+        file_size_bytes: fileSizeBytes,
+        verification_level: 1,
+        training_eligible: true,
+        label_dimensions_captured: 1,
+        ai_tags_original: tagsEdited && aiTagsOriginal ? JSON.parse(JSON.stringify(aiTagsOriginal)) : null,
+        human_override: tagsEdited,
+        task_id: taskId || null,
+        evidence_code: evidenceCode,
+        gps_lat: coords?.lat ?? null,
+        gps_lng: coords?.lng ?? null,
       });
 
       sessionStorage.removeItem("capturedPhoto");
       sessionStorage.removeItem("capturedPhotoBase64");
       sessionStorage.removeItem("evidenceMilestoneId");
+      sessionStorage.removeItem("evidenceTaskId");
 
       const { count: freshCount, error: countErr } = await supabase
         .from("evidence")
@@ -120,7 +179,7 @@ export default function EvidenceConfirm() {
     }
   };
 
-  const tagEntries = aiTags ? Object.entries(aiTags) : [];
+  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]) : [];
 
   return (
     <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
@@ -134,19 +193,66 @@ export default function EvidenceConfirm() {
         </div>
       )}
 
-      <p className="font-mono text-[10px] text-muted-foreground mb-3">
-        {tagging ? "analysing photo..." : "ai tags"}
-      </p>
-      <div className="flex flex-wrap gap-x-6 gap-y-2 mb-2">
-        {tagEntries.map(([key, val]) => (
-          <span key={key} className="font-mono text-[11px] text-accent border-b border-accent/40 pb-0.5">
-            {String(val).replace(/_/g, " ")}
-          </span>
-        ))}
-        {tagging && (
-          <span className="font-mono text-[11px] text-muted-foreground animate-pulse">analysing...</span>
+      <div className="flex items-center gap-3 mb-1">
+        <p className="font-mono text-[10px] text-muted-foreground">
+          {tagging ? "analysing photo..." : "ai tags"}
+        </p>
+        {!tagging && aiTags && !correcting && (
+          <button
+            onClick={startCorrection}
+            className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            correct tags
+          </button>
         )}
       </div>
+
+      {correcting && editedTags ? (
+        <div className="mb-4 space-y-2">
+          {(Object.keys(editedTags) as (keyof AiTags)[]).map((key) => (
+            <div key={key} className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-muted-foreground w-36 flex-shrink-0">
+                {key.replace(/_/g, " ")}
+              </span>
+              <select
+                className="flex-1 bg-secondary border border-border rounded px-2 py-1 font-mono text-[11px] text-foreground"
+                value={editedTags[key]}
+                onChange={(e) => setEditedTags({ ...editedTags, [key]: e.target.value })}
+              >
+                {tagOptions[key].map((opt) => (
+                  <option key={opt} value={opt}>{opt.replace(/_/g, " ")}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={saveCorrection}
+              className="font-mono text-[11px] text-foreground border border-foreground rounded px-3 py-1"
+            >
+              save
+            </button>
+            <button
+              onClick={() => setCorrecting(false)}
+              className="font-mono text-[11px] text-muted-foreground"
+            >
+              cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-x-6 gap-y-2 mb-2">
+          {tagEntries.map(([key, val]) => (
+            <span key={key} className={`font-mono text-[11px] border-b pb-0.5 ${tagsEdited ? "text-foreground border-foreground/40" : "text-accent border-accent/40"}`}>
+              {String(val).replace(/_/g, " ")}
+            </span>
+          ))}
+          {tagging && (
+            <span className="font-mono text-[11px] text-muted-foreground animate-pulse">analysing...</span>
+          )}
+        </div>
+      )}
+
       {coords && (
         <p className="font-mono text-[10px] text-muted-foreground mb-4">
           {formatCoords(coords.lat, coords.lng)}

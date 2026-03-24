@@ -4,17 +4,19 @@ import { useMilestones } from "@/hooks/useSupabaseProject";
 import { useRole } from "@/contexts/RoleContext";
 import { Button } from "@/components/ui/button";
 import { MilestoneFlipCard } from "@/components/MilestoneFlipCard";
+import { useTranslation } from "react-i18next";
 
 export default function MilestonesList() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { data: milestones = [], isLoading } = useMilestones(currentProjectId ?? undefined);
   const { role } = useRole();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen screen-dark">
-        <p className="font-mono text-[13px] opacity-40 animate-pulse">loading...</p>
+        <p className="font-mono text-[13px] opacity-40 animate-pulse">{t("common.loading")}</p>
       </div>
     );
   }
@@ -29,10 +31,13 @@ export default function MilestonesList() {
           <span className="font-mono text-[16px] opacity-40">—</span>
         </div>
         <p className="font-mono text-[28px] tracking-tight">
-          {role === "contractor" ? "my tasks" : "milestones"}
+          {role === "contractor" ? t("navigation.my_tasks") : t("navigation.milestones")}
         </p>
         <p className="font-mono text-[12px] opacity-40 mt-1">
-          {milestones.length} items · {milestones.filter(m => m.status === "complete").length} complete
+          {t("milestone.items_complete", {
+            count: milestones.length,
+            done: milestones.filter(m => m.status === "complete").length,
+          })}
         </p>
       </div>
 
@@ -43,7 +48,7 @@ export default function MilestonesList() {
             <MilestoneFlipCard key={m.id} milestone={m} />
           ))}
           {milestones.length === 0 && (
-            <p className="font-mono text-[13px] opacity-40 mt-4">no milestones yet</p>
+            <p className="font-mono text-[13px] opacity-40 mt-4">{t("milestone.no_milestones")}</p>
           )}
         </div>
 
@@ -52,7 +57,7 @@ export default function MilestonesList() {
             onClick={() => navigate("/manual-milestone")}
             className="w-full mt-6 py-4 border border-surface-dark-foreground/20 font-mono text-[13px] text-surface-dark-foreground/60 hover:text-surface-dark-foreground hover:border-surface-dark-foreground/40 transition-colors"
           >
-            + add milestone
+            {t("milestone.add_milestone")}
           </button>
         )}
       </div>

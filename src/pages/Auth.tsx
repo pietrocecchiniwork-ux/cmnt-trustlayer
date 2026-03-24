@@ -6,11 +6,13 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 export default function Auth() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { setCurrentProjectId } = useProjectContext();
+  const { t } = useTranslation();
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -43,7 +45,6 @@ export default function Auth() {
       const { data, error } = await supabase.functions.invoke("seed-demo-project");
       if (error) throw error;
 
-      // Clear all cached queries so dashboard fetches fresh data
       await queryClient.invalidateQueries();
       queryClient.clear();
 
@@ -74,7 +75,7 @@ export default function Auth() {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center justify-center">
         <div className="w-10 h-10 bg-foreground rounded-sm mb-4" />
-        <p className="font-mono text-[12px] text-muted-foreground animate-pulse">setting up demo...</p>
+        <p className="font-mono text-[12px] text-muted-foreground animate-pulse">{t("auth.setting_up_demo")}</p>
       </div>
     );
   }
@@ -93,7 +94,7 @@ export default function Auth() {
             onClick={handleGoogle}
             className="w-full bg-foreground text-background rounded-none font-sans text-[15px] font-medium py-4"
           >
-            continue with google
+            {t("auth.continue_google")}
           </button>
 
           {googleError && (
@@ -105,7 +106,7 @@ export default function Auth() {
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-background px-2 font-mono text-[10px] text-muted-foreground">or</span>
+              <span className="bg-background px-2 font-mono text-[10px] text-muted-foreground">{t("common.or")}</span>
             </div>
           </div>
 
@@ -115,14 +116,14 @@ export default function Auth() {
                 onClick={() => setShowEmail(true)}
                 className="font-mono text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
               >
-                continue with email
+                {t("auth.continue_email")}
               </button>
 
               <button
                 onClick={handleDemo}
                 className="font-mono text-[11px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors mt-8"
               >
-                explore demo
+                {t("auth.explore_demo")}
               </button>
             </>
           )}
@@ -145,7 +146,7 @@ export default function Auth() {
             disabled={loading}
           >
             <span className="font-sans text-[16px]">
-              {loading ? "sending..." : "send magic link"}
+              {loading ? t("auth.sending") : t("auth.send_magic_link")}
             </span>
           </Button>
 
@@ -153,16 +154,16 @@ export default function Auth() {
             onClick={() => setShowEmail(false)}
             className="font-mono text-[13px] text-muted-foreground mt-6 underline underline-offset-4 hover:text-foreground transition-colors"
           >
-            ← back
+            {t("common.back")}
           </button>
         </div>
       )}
 
       {sent && (
         <div className="flex flex-col items-center">
-          <p className="font-sans text-[22px] text-foreground mb-4 text-center">check your email</p>
+          <p className="font-sans text-[22px] text-foreground mb-4 text-center">{t("auth.check_email")}</p>
           <p className="font-sans text-[14px] text-muted-foreground text-center">
-            we sent a magic link to {email}
+            {t("auth.magic_link_sent", { email })}
           </p>
         </div>
       )}

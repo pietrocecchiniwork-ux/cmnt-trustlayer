@@ -2,14 +2,21 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useCreateMilestone, useMilestones, useProjectMembers } from "@/hooks/useSupabaseProject";
+import { useCreateMilestone, useCreateTask, useMilestones, useProjectMembers } from "@/hooks/useSupabaseProject";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface TaskDraft {
+  name: string;
+  assigneeId: string;
+  budget: string;
+}
 
 export default function ManualMilestone() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const createMilestone = useCreateMilestone();
+  const createTask = useCreateTask();
   const { data: existingMilestones = [] } = useMilestones(currentProjectId ?? undefined);
   const { data: members = [], isLoading: membersLoading } = useProjectMembers(currentProjectId ?? undefined);
   const [formData, setFormData] = useState({
@@ -18,7 +25,7 @@ export default function ManualMilestone() {
     paymentValue: "",
   });
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
-  const [checklistItems, setChecklistItems] = useState<string[]>([""]);
+  const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([{ name: "", assigneeId: "", budget: "" }]);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -27,11 +34,11 @@ export default function ManualMilestone() {
   // Only members who have joined (user_id present) can be assigned
   const assignableMembers = members.filter((m) => m.user_id !== null);
 
-  const addChecklistItem = () => setChecklistItems((prev) => [...prev, ""]);
-  const updateChecklistItem = (i: number, val: string) =>
-    setChecklistItems((prev) => prev.map((item, idx) => (idx === i ? val : item)));
-  const removeChecklistItem = (i: number) =>
-    setChecklistItems((prev) => prev.filter((_, idx) => idx !== i));
+  const addTaskDraft = () => setTaskDrafts((prev) => [...prev, { name: "", assigneeId: "", budget: "" }]);
+  const updateTaskDraft = (i: number, field: keyof TaskDraft, val: string) =>
+    setTaskDrafts((prev) => prev.map((t, idx) => (idx === i ? { ...t, [field]: val } : t)));
+  const removeTaskDraft = (i: number) =>
+    setTaskDrafts((prev) => prev.filter((_, idx) => idx !== i));
 
   const handleSave = async (addAnother: boolean) => {
     if (!currentProjectId) {
@@ -42,7 +49,6 @@ export default function ManualMilestone() {
       toast.error("Milestone name is required");
       return;
     }
-    const checklist = checklistItems.map((s) => s.trim()).filter(Boolean);
     try {
       const newMilestone = await createMilestone.mutateAsync({
         project_id: currentProjectId,
@@ -51,8 +57,24 @@ export default function ManualMilestone() {
         payment_value: formData.paymentValue ? Number(formData.paymentValue) : 0,
         position: existingMilestones.length + 1,
         created_from: "manual" as const,
-        checklist,
+        checklist: [],
       });
+
+      // Create task records for each non-empty task draft
+      const validTasks = taskDrafts.filter((t) => t.name.trim());
+      await Promise.all(
+        validTasks.map((t, i) => {
+          const assignee = assignableMembers.find((m) => m.id === t.assigneeId);
+          return createTask.mutateAsync({
+            milestone_id: newMilestone.id,
+            name: t.name.trim(),
+            position: i + 1,
+            evidence_required: true,
+            ...(assignee?.user_id && { assigned_to: assignee.user_id, assigned_to_name: assignee.name, assigned_role: assignee.role }),
+            ...(t.budget && { budget: Number(t.budget) }),
+          });
+        })
+      );
 
       const selectedMember = assignableMembers.find((m) => m.id === selectedMemberId);
       if (selectedMember?.user_id) {
@@ -70,7 +92,7 @@ export default function ManualMilestone() {
       if (addAnother) {
         setFormData({ name: "", dueDate: "", paymentValue: "" });
         setSelectedMemberId("");
-        setChecklistItems([""]);
+        setTaskDrafts([{ name: "", assigneeId: "", budget: "" }]);
       } else {
         navigate("/project/dashboard");
       }
@@ -127,24 +149,48 @@ export default function ManualMilestone() {
         </div>
 
         <div>
-          <p className="font-mono text-[10px] text-muted-foreground mb-3">evidence checklist</p>
-          <div className="space-y-2">
-            {checklistItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder={`item ${i + 1}`}
-                  value={item}
-                  onChange={(e) => updateChecklistItem(i, e.target.value)}
-                  className="underline-input flex-1"
-                />
-                {checklistItems.length > 1 && (
-                  <button onClick={() => removeChecklistItem(i)} className="font-mono text-[14px] text-destructive">×</button>
-                )}
+          <p className="font-mono text-[10px] text-muted-foreground mb-3">tasks</p>
+          <div className="space-y-4">
+            {taskDrafts.map((task, i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder={`task ${i + 1}`}
+                    value={task.name}
+                    onChange={(e) => updateTaskDraft(i, "name", e.target.value)}
+                    className="underline-input flex-1"
+                  />
+                  {taskDrafts.length > 1 && (
+                    <button onClick={() => removeTaskDraft(i)} className="font-mono text-[14px] text-destructive">×</button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={task.assigneeId}
+                    onChange={(e) => updateTaskDraft(i, "assigneeId", e.target.value)}
+                    className="flex-1 bg-transparent border-b border-border font-mono text-[12px] text-foreground py-1"
+                  >
+                    <option value="">— assign to —</option>
+                    {assignableMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-1 w-24">
+                    <span className="font-mono text-[12px] text-muted-foreground">£</span>
+                    <input
+                      type="number"
+                      placeholder="budget"
+                      value={task.budget}
+                      onChange={(e) => updateTaskDraft(i, "budget", e.target.value)}
+                      className="flex-1 bg-transparent border-b border-border font-mono text-[12px] text-foreground py-1 w-full"
+                    />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-          <button onClick={addChecklistItem} className="font-mono text-[12px] text-accent mt-2">+ add item</button>
+          <button onClick={addTaskDraft} className="font-mono text-[12px] text-accent mt-3">+ add task</button>
         </div>
       </div>
 

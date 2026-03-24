@@ -6,6 +6,7 @@ export default function CameraScreen() {
   const [searchParams] = useSearchParams();
   const milestoneId = searchParams.get("milestoneId") ?? "";
   const itemName = searchParams.get("item") ?? "";
+  const taskId = searchParams.get("taskId") ?? "";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,6 +18,7 @@ export default function CameraScreen() {
       sessionStorage.setItem("capturedPhoto", reader.result as string);
       sessionStorage.setItem("capturedPhotoBase64", base64);
       sessionStorage.setItem("evidenceMilestoneId", milestoneId);
+      sessionStorage.setItem("evidenceTaskId", taskId);
       navigate("/project/evidence-confirm");
     };
     reader.readAsDataURL(file);

@@ -13,8 +13,19 @@ const ProjectContext = createContext<ProjectContextType>({
   setCurrentProjectId: () => {},
 });
 
+const STORAGE_KEY = "cmnt_current_project_id";
+
 export function DemoProjectProvider({ children }: { children: ReactNode }) {
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [currentProjectId, _setCurrentProjectId] = useState<string | null>(
+    () => localStorage.getItem(STORAGE_KEY)
+  );
+
+  const setCurrentProjectId = (id: string | null) => {
+    _setCurrentProjectId(id);
+    if (id) localStorage.setItem(STORAGE_KEY, id);
+    else localStorage.removeItem(STORAGE_KEY);
+  };
+
   return (
     <ProjectContext.Provider value={{ currentProjectId, setCurrentProjectId }}>
       {children}

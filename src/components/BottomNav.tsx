@@ -1,19 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
-
-const pmLinks = [
-  { label: "dashboard", path: "/project/dashboard" },
-  { label: "milestones", path: "/project/milestones" },
-  { label: "evidence", path: "/project/evidence" },
-  { label: "payments", path: "/project/payments" },
-  { label: "activity", path: "/project/activity" },
-];
-
-const contractorLinks = [
-  { label: "dashboard", path: "/project/dashboard" },
-  { label: "my tasks", path: "/project/milestones" },
-  { label: "submit", path: "/project/submit" },
-];
+import { useTranslation } from "react-i18next";
 
 // Map routes to their screen color classes
 const routeColorMap: Record<string, { bg: string; text: string; activeText: string; borderColor: string }> = {
@@ -31,8 +18,23 @@ export function BottomNav() {
   const { role } = useRole();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (role === "client") return null;
+
+  const pmLinks = [
+    { key: "navigation.dashboard", path: "/project/dashboard" },
+    { key: "navigation.milestones", path: "/project/milestones" },
+    { key: "navigation.evidence", path: "/project/evidence" },
+    { key: "navigation.payments", path: "/project/payments" },
+    { key: "navigation.activity", path: "/project/activity" },
+  ];
+
+  const contractorLinks = [
+    { key: "navigation.dashboard", path: "/project/dashboard" },
+    { key: "navigation.my_tasks", path: "/project/milestones" },
+    { key: "navigation.submit", path: "/project/submit" },
+  ];
 
   const links = role === "pm" ? pmLinks : contractorLinks;
   const colors = routeColorMap[location.pathname] ?? defaultColors;
@@ -52,7 +54,7 @@ export function BottomNav() {
                   : `${colors.text}`
               }`}
             >
-              {link.label}
+              {t(link.key)}
             </button>
           );
         })}

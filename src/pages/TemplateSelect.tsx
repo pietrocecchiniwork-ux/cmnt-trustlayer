@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useCreateMilestone } from "@/hooks/useSupabaseProject";
+import { useCreateMilestone, useCreateTask } from "@/hooks/useSupabaseProject";
 import { milestoneTemplates } from "@/data/milestoneTemplates";
 import { toast } from "sonner";
 
@@ -12,6 +12,7 @@ export default function TemplateSelect() {
   const [loading, setLoading] = useState(false);
   const { currentProjectId } = useProjectContext();
   const createMilestone = useCreateMilestone();
+  const createTask = useCreateTask();
 
   const selectedTemplate = milestoneTemplates.find((t) => t.id === selected);
 
@@ -20,13 +21,24 @@ export default function TemplateSelect() {
     setLoading(true);
     try {
       for (const m of selectedTemplate.milestones) {
-        await createMilestone.mutateAsync({
+        const newMilestone = await createMilestone.mutateAsync({
           project_id: currentProjectId,
           name: m.name,
           position: m.position,
           created_from: "template" as const,
-          checklist: m.checklist,
+          checklist: [],
         });
+
+        // Create task records from template tasks
+        for (const task of m.tasks) {
+          await createTask.mutateAsync({
+            milestone_id: newMilestone.id,
+            name: task.name,
+            position: task.position,
+            evidence_required: task.evidence_required,
+            assigned_role: task.assigned_role,
+          });
+        }
       }
       toast.success(`${selectedTemplate.milestones.length} milestones created`);
       navigate("/project/dashboard");
@@ -57,7 +69,7 @@ export default function TemplateSelect() {
           >
             <p className="font-sans text-[15px] text-foreground">{t.name}</p>
             <p className="font-mono text-[12px] text-muted-foreground mt-1">
-              {t.milestones.length} milestones · {t.milestones.reduce((s, m) => s + m.checklist.length, 0)} checklist items
+              {t.milestones.length} milestones · {t.milestones.reduce((s, m) => s + m.tasks.length, 0)} tasks
             </p>
           </button>
         ))}
@@ -73,7 +85,7 @@ export default function TemplateSelect() {
                 {m.name}
               </p>
               <p className="font-mono text-[10px] text-muted-foreground ml-6">
-                {m.checklist.length} items: {m.checklist.slice(0, 2).join(", ")}{m.checklist.length > 2 ? "…" : ""}
+                {m.tasks.length} tasks: {m.tasks.slice(0, 2).map(t => t.name).join(", ")}{m.tasks.length > 2 ? "…" : ""}
               </p>
             </div>
           ))}

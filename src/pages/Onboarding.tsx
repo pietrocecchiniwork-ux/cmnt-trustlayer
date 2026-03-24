@@ -1,14 +1,16 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
       <p className="font-mono text-[18px] text-foreground">cemento</p>
 
       <p className="font-sans text-[26px] font-light text-foreground mt-10">
-        what brings you here?
+        {t("project.what_brings")}
       </p>
 
       <div className="flex flex-col mt-8" style={{ gap: "12px" }}>
@@ -18,9 +20,9 @@ export default function Onboarding() {
           style={{ padding: "20px", borderRadius: 0 }}
         >
           <div className="flex flex-col">
-            <span className="font-sans text-[17px] text-foreground">i'm managing a project</span>
+            <span className="font-sans text-[17px] text-foreground">{t("project.managing")}</span>
             <span className="font-mono text-[11px] text-muted-foreground mt-1">
-              create a project and invite your team
+              {t("project.managing_sub")}
             </span>
           </div>
           <span className="font-mono text-[16px] text-muted-foreground ml-4">→</span>
@@ -32,9 +34,9 @@ export default function Onboarding() {
           style={{ padding: "20px", borderRadius: 0 }}
         >
           <div className="flex flex-col">
-            <span className="font-sans text-[17px] text-foreground">i'm joining a project</span>
+            <span className="font-sans text-[17px] text-foreground">{t("project.joining")}</span>
             <span className="font-mono text-[11px] text-muted-foreground mt-1">
-              enter your project code from the PM
+              {t("project.joining_sub")}
             </span>
           </div>
           <span className="font-mono text-[16px] text-muted-foreground ml-4">→</span>
@@ -46,7 +48,7 @@ export default function Onboarding() {
           onClick={() => navigate("/demo")}
           className="font-mono text-[11px] text-muted-foreground underline"
         >
-          explore demo first
+          {t("project.explore_first")}
         </button>
       </div>
     </div>

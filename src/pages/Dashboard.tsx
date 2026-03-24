@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { DitheredCircle } from "@/components/DitheredCircle";
+import { useTranslation } from "react-i18next";
 
 const statusDotClass: Record<string, string> = {
   pending: "bg-muted-foreground",
@@ -20,6 +21,7 @@ export default function PMDashboard() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { role } = useRole();
+  const { t } = useTranslation();
   const { data: milestones = [], isLoading } = useMilestones(currentProjectId ?? undefined);
   useRealtimeMilestones(currentProjectId ?? undefined);
   useRealtimeEvidence(currentProjectId ?? undefined);
@@ -53,7 +55,7 @@ export default function PMDashboard() {
   if (!currentProjectId || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
+        <p className="font-mono text-[13px] text-muted-foreground animate-pulse">{t("common.loading")}</p>
       </div>
     );
   }
@@ -74,7 +76,7 @@ export default function PMDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen screen-orange">
+    <div className="flex flex-col min-h-screen bg-background">
      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
       {/* Header */}
       <div className="px-6 pt-10 pb-0">
@@ -85,7 +87,7 @@ export default function PMDashboard() {
               onClick={handleExitDemo}
               className="font-mono text-[11px] opacity-70 hover:opacity-100 transition-opacity"
             >
-              exit demo
+              {t("auth.sign_out")}
             </button>
           ) : (
             <span className="font-mono text-[16px] opacity-70">—</span>
@@ -100,7 +102,7 @@ export default function PMDashboard() {
             onClick={() => navigate("/project/team")}
             className="font-mono text-[11px] opacity-50 hover:opacity-100 transition-opacity"
           >
-            team →
+            {t("navigation.team")} →
           </button>
         </div>
       </div>
@@ -109,9 +111,9 @@ export default function PMDashboard() {
       <div className="flex justify-center py-10">
         <DitheredCircle
           size={220}
-          label="milestones"
+          label={t("navigation.milestones")}
           value={`${completed}/${total}`}
-          sublabel="complete"
+          sublabel={t("milestone.status.complete")}
         />
       </div>
 
@@ -133,7 +135,7 @@ export default function PMDashboard() {
         >
           <span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
           <span className="font-mono text-[12px] flex-1">
-            {overdueMilestone.name?.toLowerCase()} · overdue
+            {overdueMilestone.name?.toLowerCase()} · {t("milestone.status.overdue")}
           </span>
           <span className="font-mono text-[14px]">↓</span>
         </button>

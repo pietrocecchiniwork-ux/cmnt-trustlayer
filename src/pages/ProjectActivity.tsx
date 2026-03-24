@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useProjectChanges } from "@/hooks/useSupabaseProject";
 import type { ProjectChange } from "@/hooks/useSupabaseProject";
+import { supabase } from "@/integrations/supabase/client";
 import { format, isToday, isYesterday } from "date-fns";
 
 const entityDot: Record<string, string> = {
@@ -75,10 +77,38 @@ export default function ProjectActivity() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { data: changes = [], isLoading } = useProjectChanges(currentProjectId ?? undefined);
+  const [timedOut, setTimedOut] = useState(false);
+
+  // Debug: log project ID on mount
+  useEffect(() => {
+    console.log("[ProjectActivity] currentProjectId on mount:", currentProjectId);
+    // If still null after 2 seconds, treat as no-data (avoid infinite loading)
+    const t = setTimeout(() => {
+      if (!currentProjectId) {
+        console.warn("[ProjectActivity] currentProjectId still null after 2s — showing empty state");
+        setTimedOut(true);
+      }
+    }, 2000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Direct RLS check: query project_changes and log any error
+  useEffect(() => {
+    if (!currentProjectId) return;
+    supabase
+      .from("project_changes" as never)
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", currentProjectId)
+      .then(({ count, error }) => {
+        if (error) console.error("[ProjectActivity] RLS check error:", error);
+        else console.log("[ProjectActivity] project_changes count:", count);
+      });
+  }, [currentProjectId]);
 
   // Query is disabled when projectId is null — treat as empty, not loading
-  const showLoading = isLoading && !!currentProjectId;
-  const showEmpty = !showLoading && changes.length === 0;
+  const showLoading = (isLoading && !!currentProjectId) && !timedOut;
+  const showEmpty = (!showLoading && changes.length === 0) || (!currentProjectId && timedOut);
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-8">
