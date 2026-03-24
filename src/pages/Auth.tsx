@@ -20,11 +20,10 @@ export default function Auth() {
 
   const handleGoogle = async () => {
     setGoogleError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + '/project/dashboard' },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + '/project/dashboard',
     });
-    if (error) setGoogleError(error.message);
+    if (result?.error) setGoogleError(result.error.message);
   };
 
   const handleEmailOtp = async () => {
