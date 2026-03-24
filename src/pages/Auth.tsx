@@ -11,7 +11,7 @@ export default function Auth() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [demoLoading, setDemoLoading] = useState(false);
+  
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
