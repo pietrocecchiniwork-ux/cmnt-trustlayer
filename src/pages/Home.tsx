@@ -80,7 +80,7 @@ export default function Home() {
     }
   }, [isLoading, authed, projects, currentProjectId, setCurrentProjectId, navigate]);
 
-  if (authed === null || (authed && !isLoading)) return null;
+  if (authed === null || isLoading) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
