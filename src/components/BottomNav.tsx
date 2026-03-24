@@ -38,7 +38,7 @@ export function BottomNav() {
   const colors = routeColorMap[location.pathname] ?? defaultColors;
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 ${colors.bg} z-40`}>
+    <nav className={`fixed bottom-0 left-0 right-0 ${colors.bg} z-40 border-t border-current/5`}>
       <div className="max-w-md mx-auto flex justify-around py-4 px-6">
         {links.map((link) => {
           const isActive = location.pathname === link.path;
