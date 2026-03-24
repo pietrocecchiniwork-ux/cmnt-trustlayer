@@ -27,66 +27,6 @@ export default function Auth() {
     if (result?.error) setGoogleError(result.error.message);
   };
 
-  const handleDemo = async () => {
-    setDemoLoading(true);
-
-    const { data: { user }, error: authError } = await supabase.auth.signInAnonymously();
-    if (authError || !user) { setDemoLoading(false); return; }
-
-    const { data: project } = await supabase.from("projects").insert({
-      name: "14 Kensington Mews — Demo",
-      address: "14 Kensington Mews, London W8",
-      start_date: "2026-01-10",
-      end_date: "2026-05-25",
-      payment_mode: true,
-      total_budget: 92000,
-      created_by: user.id,
-    }).select().single();
-
-    if (!project) { setDemoLoading(false); return; }
-
-    const milestonesPayload = [
-      { name: "Site setup and demolition",         status: "complete"    as const, payment_value: 8000,  due_date: "2026-01-10", position: 1 },
-      { name: "Foundations and groundwork",         status: "complete"    as const, payment_value: 15000, due_date: "2026-01-28", position: 2 },
-      { name: "Structural frame and roof",          status: "complete"    as const, payment_value: 22000, due_date: "2026-02-20", position: 3 },
-      { name: "First fix electrical and plumbing",  status: "overdue"     as const, payment_value: 11000, due_date: "2026-03-08", position: 4 },
-      { name: "Plastering and drylining",           status: "in_progress" as const, payment_value: 9000,  due_date: "2026-03-22", position: 5 },
-      { name: "Second fix and joinery",             status: "pending"     as const, payment_value: 14000, due_date: "2026-04-10", position: 6 },
-      { name: "Decoration and finishing",           status: "pending"     as const, payment_value: 7000,  due_date: "2026-04-28", position: 7 },
-      { name: "Final inspection and handover",      status: "pending"     as const, payment_value: 6000,  due_date: "2026-05-12", position: 8 },
-    ].map(m => ({ ...m, project_id: project.id, created_from: "manual" as const }));
-
-    const [{ data: milestones }] = await Promise.all([
-      supabase.from("milestones").insert(milestonesPayload).select(),
-      supabase.from("project_members").insert([
-        { project_id: project.id, user_id: user.id, name: "You",      role: "pm"         as const, status: "active"     as const, joined_at: new Date().toISOString() },
-        { project_id: project.id,                   name: "Mark T.",  role: "contractor" as const, status: "confirmed"  as const },
-        { project_id: project.id,                   name: "Sarah K.", role: "trade"      as const, status: "confirmed"  as const },
-        { project_id: project.id,                   name: "James R.", role: "client"     as const, status: "confirmed"  as const },
-      ]),
-    ]);
-
-    if (!milestones) { setDemoLoading(false); return; }
-
-    const sorted = [...milestones].sort((a, b) => a.position - b.position);
-    const m4 = sorted[3];
-
-    await Promise.all([
-      supabase.from("evidence").insert([
-        { milestone_id: m4.id, note: "First fix wiring complete in kitchen and living room", ai_tags: ["electrical", "first-fix", "wiring", "kitchen"],        channel: "app"      as const, submitted_by: user.id },
-        { milestone_id: m4.id, note: "Consumer unit installed and labelled",                 ai_tags: ["electrical", "consumer-unit", "labelling"],             channel: "whatsapp" as const, submitted_by: user.id },
-        { milestone_id: m4.id, note: "Hot and cold feeds roughed in for bathrooms",          ai_tags: ["plumbing", "first-fix", "bathroom", "pipework"],         channel: "app"      as const, submitted_by: user.id },
-        { milestone_id: m4.id, note: "Soil stack connected and pressure tested",             ai_tags: ["plumbing", "soil-stack", "pressure-test", "drainage"],   channel: "app"      as const, submitted_by: user.id },
-      ]),
-      supabase.from("payment_certificates").insert([
-        { milestone_id: sorted[0].id, amount: 8000,  released_at: new Date().toISOString(), released_by: user.id },
-        { milestone_id: sorted[1].id, amount: 15000, released_at: new Date().toISOString(), released_by: user.id },
-        { milestone_id: sorted[2].id, amount: 22000, released_at: new Date().toISOString(), released_by: user.id },
-      ]),
-    ]);
-
-    navigate("/project/dashboard");
-  };
 
   const handleEmailOtp = async () => {
     if (!email.trim()) return;
