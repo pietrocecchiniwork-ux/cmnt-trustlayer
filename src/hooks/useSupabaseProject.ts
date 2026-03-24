@@ -269,6 +269,9 @@ export type Task = {
   assigned_to_name: string | null;
   assigned_role: string | null;
   evidence_required: boolean;
+  due_date: string | null;
+  budget: number | null;
+  depends_on: string | null;
   completed_at: string | null;
   completed_by: string | null;
   created_at: string;
@@ -338,6 +341,9 @@ export function useCreateTask() {
       assigned_to_name?: string;
       assigned_role?: string;
       evidence_required?: boolean;
+      due_date?: string;
+      budget?: number;
+      depends_on?: string;
     }) => {
       const { data, error } = await db
         .from("tasks")
@@ -369,6 +375,9 @@ export function useUpdateTask() {
       assigned_to_name?: string;
       assigned_role?: string;
       evidence_required?: boolean;
+      due_date?: string;
+      budget?: number;
+      depends_on?: string | null;
       completed_at?: string;
       completed_by?: string;
     }) => {

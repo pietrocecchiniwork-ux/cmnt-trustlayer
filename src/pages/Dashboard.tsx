@@ -100,7 +100,7 @@ export default function PMDashboard() {
             onClick={() => navigate("/project/team")}
             className="font-mono text-[11px] opacity-50 hover:opacity-100 transition-opacity"
           >
-            team
+            team →
           </button>
         </div>
       </div>

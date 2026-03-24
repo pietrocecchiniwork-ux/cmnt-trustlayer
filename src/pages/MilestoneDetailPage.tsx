@@ -63,6 +63,8 @@ export default function MilestoneDetailPage() {
   // ─── Add task state ───
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState("");
+  const [newTaskDate, setNewTaskDate] = useState("");
+  const [newTaskBudget, setNewTaskBudget] = useState("");
   const [editName, setEditName] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editPayment, setEditPayment] = useState("");
@@ -216,7 +218,14 @@ export default function MilestoneDetailPage() {
     const name = newTaskName.trim();
     if (!name || !milestoneId) return;
     createTask.mutate(
-      { milestone_id: milestoneId, name, position: tasks.length + 1, evidence_required: true },
+      {
+        milestone_id: milestoneId,
+        name,
+        position: tasks.length + 1,
+        evidence_required: true,
+        due_date: newTaskDate || undefined,
+        budget: newTaskBudget ? Number(newTaskBudget) : undefined,
+      },
       {
         onSuccess: (task) => {
           if (currentProjectId) {
@@ -231,6 +240,8 @@ export default function MilestoneDetailPage() {
             });
           }
           setNewTaskName("");
+          setNewTaskDate("");
+          setNewTaskBudget("");
           setAddingTask(false);
         },
       }
@@ -266,25 +277,45 @@ export default function MilestoneDetailPage() {
 
       {/* Add task */}
       {addingTask ? (
-        <div className="flex gap-2 items-center mt-3">
+        <div className="mt-3 space-y-2">
           <input
             autoFocus
-            className="flex-1 bg-secondary border border-border rounded px-3 py-1.5 font-sans text-[14px] text-foreground"
+            className="w-full bg-secondary border border-border rounded px-3 py-1.5 font-sans text-[14px] text-foreground"
             placeholder="task name"
             value={newTaskName}
             onChange={(e) => setNewTaskName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleAddTask(); if (e.key === "Escape") setAddingTask(false); }}
+            onKeyDown={(e) => { if (e.key === "Escape") setAddingTask(false); }}
           />
-          <button
-            onClick={handleAddTask}
-            disabled={createTask.isPending}
-            className="font-mono text-[12px] text-foreground border border-foreground rounded px-3 py-1.5"
-          >
-            add
-          </button>
-          <button onClick={() => setAddingTask(false)} className="font-mono text-[12px] text-muted-foreground">
-            cancel
-          </button>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              className="flex-1 bg-secondary border border-border rounded px-3 py-1.5 font-mono text-[13px] text-foreground"
+              value={newTaskDate}
+              onChange={(e) => setNewTaskDate(e.target.value)}
+            />
+            <div className="flex items-center gap-1 w-28">
+              <span className="font-mono text-[13px] text-muted-foreground">£</span>
+              <input
+                type="number"
+                className="flex-1 bg-secondary border border-border rounded px-2 py-1.5 font-mono text-[13px] text-foreground"
+                placeholder="budget"
+                value={newTaskBudget}
+                onChange={(e) => setNewTaskBudget(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddTask}
+              disabled={createTask.isPending || !newTaskName.trim()}
+              className="font-mono text-[12px] text-foreground border border-foreground rounded px-3 py-1.5"
+            >
+              add
+            </button>
+            <button onClick={() => { setAddingTask(false); setNewTaskName(""); setNewTaskDate(""); setNewTaskBudget(""); }} className="font-mono text-[12px] text-muted-foreground">
+              cancel
+            </button>
+          </div>
         </div>
       ) : (
         <button
@@ -293,6 +324,13 @@ export default function MilestoneDetailPage() {
         >
           + add task
         </button>
+      )}
+
+      {/* Budget allocation summary */}
+      {tasks.length > 0 && (
+        <p className="font-mono text-[11px] text-muted-foreground mt-4">
+          tasks: £{tasks.reduce((s, t) => s + (t.budget ?? 0), 0).toLocaleString()} of £{Number(milestone?.payment_value ?? 0).toLocaleString()} allocated
+        </p>
       )}
     </>
   );

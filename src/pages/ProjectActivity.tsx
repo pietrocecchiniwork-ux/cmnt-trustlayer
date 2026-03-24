@@ -76,17 +76,21 @@ export default function ProjectActivity() {
   const { currentProjectId } = useProjectContext();
   const { data: changes = [], isLoading } = useProjectChanges(currentProjectId ?? undefined);
 
+  // Query is disabled when projectId is null — treat as empty, not loading
+  const showLoading = isLoading && !!currentProjectId;
+  const showEmpty = !showLoading && changes.length === 0;
+
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-8">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-6">← back</button>
       <h1 className="font-sans text-[22px] leading-tight text-foreground">activity</h1>
       <p className="font-mono text-[11px] text-muted-foreground mt-1 mb-8">full audit trail</p>
 
-      {isLoading && (
+      {showLoading && (
         <p className="font-mono text-[12px] text-muted-foreground">loading…</p>
       )}
 
-      {!isLoading && changes.length === 0 && (
+      {showEmpty && (
         <div className="flex-1 flex items-center justify-center">
           <p className="font-sans text-[15px] text-muted-foreground text-center leading-relaxed max-w-[260px]">
             no activity yet — changes to milestones, tasks, and team members will appear here
