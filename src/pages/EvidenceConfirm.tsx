@@ -275,6 +275,12 @@ export default function EvidenceConfirm() {
         </div>
       )}
 
+      {aiTags?.ai_summary && (
+        <p className="font-mono text-[11px] text-muted-foreground italic mb-4 leading-relaxed">
+          {aiTags.ai_summary}
+        </p>
+      )}
+
       {coords && (
         <p className="font-mono text-[10px] text-muted-foreground mb-4">
           {formatCoords(coords.lat, coords.lng)}
