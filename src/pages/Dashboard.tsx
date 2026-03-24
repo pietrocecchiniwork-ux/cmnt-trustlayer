@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useMilestones } from "@/hooks/useSupabaseProject";
 import { useRealtimeMilestones, useRealtimeEvidence } from "@/hooks/useRealtimeSubscription";
@@ -7,21 +6,14 @@ import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { DitheredCircle } from "@/components/DitheredCircle";
 
 const statusDotClass: Record<string, string> = {
   pending: "bg-muted-foreground",
-  in_progress: "bg-accent",
+  in_progress: "bg-foreground",
   overdue: "bg-destructive",
   in_review: "bg-accent",
   complete: "bg-success",
-};
-
-const statusNumColor: Record<string, string> = {
-  pending: "text-muted-foreground",
-  in_progress: "text-accent",
-  overdue: "text-destructive",
-  in_review: "text-accent",
-  complete: "text-success",
 };
 
 export default function PMDashboard() {
@@ -44,7 +36,6 @@ export default function PMDashboard() {
     navigate("/auth");
   };
 
-  // Fetch project details
   const { data: project } = useQuery({
     queryKey: ["project", currentProjectId],
     enabled: !!currentProjectId,
@@ -83,68 +74,81 @@ export default function PMDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="bg-background px-6 pt-12 pb-6">
+    <div className="flex flex-col min-h-screen screen-orange">
+      {/* Header */}
+      <div className="px-6 pt-10 pb-0">
         <div className="flex items-center justify-between">
-          <p className="font-mono text-[12px] text-muted-foreground uppercase tracking-wider">{project.name}</p>
-          {isAnon && (
+          <span className="font-mono text-[11px] opacity-70">✳</span>
+          {isAnon ? (
             <button
               onClick={handleExitDemo}
-              className="font-mono text-[11px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+              className="font-mono text-[11px] opacity-70 hover:opacity-100 transition-opacity"
             >
               exit demo
             </button>
+          ) : (
+            <span className="font-mono text-[16px] opacity-70">—</span>
           )}
         </div>
 
-        <div className="flex items-baseline gap-3 mt-4">
-          <span className="font-mono text-[80px] leading-none tracking-tight text-foreground">{completed}</span>
-          <span className="font-mono text-[24px] text-muted-foreground">/</span>
-          <span className="font-mono text-[80px] leading-none tracking-tight text-muted-foreground">{total}</span>
-        </div>
-
-        <div className="w-full h-px bg-border mt-6 relative">
-          <div className="h-px bg-accent absolute left-0 top-0" style={{ width: `${progressPct}%` }} />
-        </div>
-
-        {overdueMilestone && role === "pm" && (
-          <button
-            onClick={() => navigate("/project/cascade-review")}
-            className="w-full flex items-center gap-3 mt-4 py-3 text-left"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-destructive flex-shrink-0" />
-            <span className="font-sans text-[13px] text-foreground flex-1">
-              {overdueMilestone.name} · overdue
-            </span>
-            <span className="font-mono text-[14px] text-muted-foreground">→</span>
-          </button>
-        )}
+        <p className="font-mono text-[28px] tracking-tight mt-6">
+          {project.name?.toLowerCase()}
+        </p>
       </div>
 
-      <div className="flex-1 bg-surface-dark px-6 pt-6 pb-6">
+      {/* Dithered progress circle */}
+      <div className="flex justify-center py-10">
+        <DitheredCircle
+          size={220}
+          label="milestones"
+          value={`${completed}/${total}`}
+          sublabel="complete"
+        />
+      </div>
+
+      {/* Progress bar */}
+      <div className="px-6">
+        <div className="w-full h-px bg-foreground/20 relative">
+          <div
+            className="h-px bg-foreground absolute left-0 top-0 transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Overdue alert */}
+      {overdueMilestone && role === "pm" && (
+        <button
+          onClick={() => navigate("/project/cascade-review")}
+          className="mx-6 mt-4 flex items-center gap-3 py-3 border-b border-foreground/20 text-left"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
+          <span className="font-mono text-[12px] flex-1">
+            {overdueMilestone.name?.toLowerCase()} · overdue
+          </span>
+          <span className="font-mono text-[14px]">↓</span>
+        </button>
+      )}
+
+      {/* Milestone list */}
+      <div className="flex-1 px-6 mt-6 pb-6">
         <div className="space-y-0">
           {milestones.map((m) => (
             <button
               key={m.id}
               onClick={() => navigate(`/project/milestone/${m.id}`)}
-              className="w-full flex items-center justify-between py-4 border-b border-surface-dark-muted text-left"
+              className="w-full flex items-center justify-between py-4 border-b border-foreground/15 text-left group"
             >
               <div className="flex items-center gap-4">
-                <span className={`font-mono text-[20px] ${statusNumColor[m.status]}`}>
+                <span className="font-mono text-[18px] opacity-40 group-hover:opacity-100 transition-opacity">
                   {String(m.position).padStart(2, "0")}
                 </span>
-                <span className="font-sans text-[14px] text-surface-dark-foreground">{m.name}</span>
+                <span className="font-mono text-[13px]">{m.name?.toLowerCase()}</span>
               </div>
               <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass[m.status]}`} />
             </button>
           ))}
         </div>
-
-        {role === "pm" && (
-          <Button variant="light" size="full" className="mt-6" onClick={() => navigate("/manual-milestone")}>
-            <span className="font-sans text-[16px]">add milestone</span>
-          </Button>
-        )}
       </div>
     </div>
   );
@@ -157,22 +161,36 @@ function ClientDashboard({ project, completed, total, releasedBudget, milestones
   releasedBudget: number;
   milestones: any[];
 }) {
-  const progressPct = total > 0 ? (completed / total) * 100 : 0;
-
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
-      <p className="font-mono text-[12px] text-muted-foreground uppercase tracking-wider">{project.name}</p>
-      <p className="font-mono text-[80px] leading-none tracking-tight text-foreground mt-4">
-        {completed}/{total}
-      </p>
-      <div className="w-full h-px bg-border mt-6 relative">
-        <div className="h-px bg-accent absolute left-0 top-0" style={{ width: `${progressPct}%` }} />
+    <div className="flex flex-col min-h-screen screen-cream">
+      <div className="px-6 pt-10">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[14px]">←</span>
+          <span className="font-mono text-[16px]">—</span>
+        </div>
       </div>
-      <p className="font-mono text-[28px] text-success mt-8">
-        £{releasedBudget.toLocaleString()} released
-      </p>
-      <div className="mt-8 flex-1">
+
+      <div className="flex justify-center py-12">
+        <DitheredCircle
+          size={240}
+          label="released"
+          value={`£${(releasedBudget / 1000).toFixed(0)}k`}
+          sublabel="total balance"
+        />
+      </div>
+
+      {/* Step chart area */}
+      <div className="px-6 flex-1">
         <StepChart milestones={milestones} />
+      </div>
+
+      {/* Bottom nav labels */}
+      <div className="px-6 pb-6 pt-4">
+        <div className="flex justify-around">
+          <span className="font-mono text-[12px] opacity-50">balance</span>
+          <span className="font-mono text-[12px] opacity-50">budget</span>
+          <span className="font-mono text-[12px] border-b border-foreground pb-0.5">expenses</span>
+        </div>
       </div>
     </div>
   );
@@ -195,16 +213,22 @@ function StepChart({ milestones }: { milestones: any[] }) {
     }
   });
 
-  const months = ["jan", "feb", "mar", "apr", "may"];
+  const months = ["feb", "mar", "apr", "may", "jun"];
 
   return (
     <div className="relative">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-40" preserveAspectRatio="none">
-        <polyline points={points.join(" ")} fill="none" stroke="hsl(var(--foreground))" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+        <polyline
+          points={points.join(" ")}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="0.8"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
       <div className="flex justify-between mt-2">
         {months.map((m) => (
-          <span key={m} className="font-mono text-[10px] text-muted-foreground uppercase">{m}</span>
+          <span key={m} className="font-mono text-[10px] uppercase opacity-50">{m}</span>
         ))}
       </div>
     </div>

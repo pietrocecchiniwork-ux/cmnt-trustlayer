@@ -33,11 +33,17 @@
 
     --warning: 22 65% 47%;
 
+    /* Screen-specific surfaces */
+    --surface-orange: 27 80% 60%;
+    --surface-orange-foreground: 60 3% 10%;
     --surface-dark: 60 3% 10%;
     --surface-dark-foreground: 60 4% 93%;
     --surface-dark-muted: 60 2% 34%;
+    --surface-cream: 48 30% 92%;
+    --surface-cream-foreground: 60 3% 10%;
 
-    --border: 60 4% 84%;
+    --border: 60 3% 10%;
+    --border-light: 60 4% 78%;
     --input: 60 4% 84%;
     --ring: 220 75% 54%;
 
@@ -80,7 +86,7 @@
   }
 
   .divider {
-    @apply w-full h-px bg-border;
+    @apply w-full h-px bg-foreground/20;
   }
 
   .status-dot {
@@ -108,8 +114,67 @@
   }
 
   .underline-input {
-    @apply w-full bg-transparent border-0 border-b border-border px-0 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-colors;
+    @apply w-full bg-transparent border-0 border-b border-foreground/30 px-0 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground transition-colors;
     font-family: var(--font-sans);
     font-size: 16px;
   }
+
+  /* Screen background utilities */
+  .screen-orange {
+    background-color: hsl(var(--surface-orange));
+    color: hsl(var(--surface-orange-foreground));
+  }
+
+  .screen-dark {
+    background-color: hsl(var(--surface-dark));
+    color: hsl(var(--surface-dark-foreground));
+  }
+
+  .screen-cream {
+    background-color: hsl(var(--surface-cream));
+    color: hsl(var(--surface-cream-foreground));
+  }
+
+  /* Dithered circle animation */
+  .dither-ring {
+    position: relative;
+  }
+
+  .dither-ring::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(
+      currentColor 0deg 3deg,
+      transparent 3deg 12deg
+    );
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+    animation: dither-spin 30s linear infinite;
+  }
+
+  /* Thin line border style from reference */
+  .line-border {
+    border: 1px solid currentColor;
+  }
+
+  .line-border-b {
+    border-bottom: 1px solid currentColor;
+  }
+}
+
+@keyframes dither-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dither-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes dot-appear {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
 }
