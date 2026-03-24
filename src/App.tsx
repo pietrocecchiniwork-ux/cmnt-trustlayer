@@ -31,6 +31,8 @@ import PaymentsList from "./pages/PaymentsList";
 import MilestonesList from "./pages/MilestonesList";
 import SubmitEvidence from "./pages/SubmitEvidence";
 import JoinProject from "./pages/JoinProject";
+import TaskDetail from "./pages/TaskDetail";
+import ProjectActivity from "./pages/ProjectActivity";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +73,8 @@ const App = () => (
                 <Route path="/project/submission-confirmed" element={<SubmissionConfirmed />} />
                 <Route path="/project/cascade-review" element={<CascadeReview />} />
                 <Route path="/project/payment-certificate/:milestoneId" element={<PaymentCertificate />} />
+                <Route path="/project/task/:taskId" element={<TaskDetail />} />
+                <Route path="/project/activity" element={<ProjectActivity />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

@@ -256,6 +256,226 @@ export async function uploadEvidencePhoto(file: Blob, fileName: string): Promise
   return data.publicUrl;
 }
 
+// ─── Local types for new tables (not yet in generated types) ───
+
+export type Task = {
+  id: string;
+  milestone_id: string;
+  name: string;
+  description: string | null;
+  position: number;
+  status: "pending" | "in_progress" | "complete";
+  assigned_to: string | null;
+  assigned_to_name: string | null;
+  assigned_role: string | null;
+  evidence_required: boolean;
+  completed_at: string | null;
+  completed_by: string | null;
+  created_at: string;
+};
+
+export type ProjectChange = {
+  id: string;
+  project_id: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_name: string | null;
+  change_type: string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  old_value: Record<string, unknown> | null;
+  new_value: Record<string, unknown> | null;
+  note: string | null;
+  created_at: string;
+};
+
+// ─── Tasks ───
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
+export function useTask(taskId: string | undefined) {
+  return useQuery({
+    queryKey: ["task", taskId],
+    enabled: !!taskId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("tasks")
+        .select("*")
+        .eq("id", taskId!)
+        .single();
+      if (error) { console.error("useTask error:", error); throw error; }
+      return data as Task;
+    },
+  });
+}
+
+export function useTasks(milestoneId: string | undefined) {
+  return useQuery({
+    queryKey: ["tasks", milestoneId],
+    enabled: !!milestoneId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("tasks")
+        .select("*")
+        .eq("milestone_id", milestoneId!)
+        .order("position", { ascending: true });
+      if (error) { console.error("useTasks error:", error); throw error; }
+      return data as Task[];
+    },
+  });
+}
+
+export function useCreateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (task: {
+      milestone_id: string;
+      name: string;
+      description?: string;
+      position: number;
+      assigned_to?: string;
+      assigned_to_name?: string;
+      assigned_role?: string;
+      evidence_required?: boolean;
+    }) => {
+      const { data, error } = await db
+        .from("tasks")
+        .insert(task)
+        .select()
+        .single();
+      if (error) { console.error("createTask error:", error); throw error; }
+      return data as Task;
+    },
+    onSuccess: (data: Task) => qc.invalidateQueries({ queryKey: ["tasks", data.milestone_id] }),
+  });
+}
+
+export function useUpdateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      milestoneId,
+      ...updates
+    }: {
+      id: string;
+      milestoneId: string;
+      status?: string;
+      name?: string;
+      description?: string;
+      position?: number;
+      assigned_to?: string;
+      assigned_to_name?: string;
+      assigned_role?: string;
+      evidence_required?: boolean;
+      completed_at?: string;
+      completed_by?: string;
+    }) => {
+      const { data, error } = await db
+        .from("tasks")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) { console.error("updateTask error:", error); throw error; }
+      return { ...(data as Task), milestoneId };
+    },
+    onSuccess: (data: Task & { milestoneId: string }) =>
+      qc.invalidateQueries({ queryKey: ["tasks", data.milestoneId] }),
+  });
+}
+
+// ─── Project changes ───
+
+export function useCreateChange() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (change: {
+      project_id: string;
+      entity_type: string;
+      entity_id?: string;
+      entity_name?: string;
+      change_type: string;
+      changed_by?: string;
+      changed_by_name?: string;
+      old_value?: Record<string, unknown>;
+      new_value?: Record<string, unknown>;
+      note?: string;
+    }) => {
+      const { data, error } = await db
+        .from("project_changes")
+        .insert(change)
+        .select()
+        .single();
+      if (error) { console.error("createChange error:", error); throw error; }
+      return data as ProjectChange;
+    },
+    onSuccess: (data: ProjectChange) =>
+      qc.invalidateQueries({ queryKey: ["project-changes", data.project_id] }),
+  });
+}
+
+export function useProjectChanges(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ["project-changes", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("project_changes")
+        .select("*")
+        .eq("project_id", projectId!)
+        .order("created_at", { ascending: false });
+      if (error) { console.error("useProjectChanges error:", error); throw error; }
+      return data as ProjectChange[];
+    },
+  });
+}
+
+export function useTaskChanges(taskId: string | undefined) {
+  return useQuery({
+    queryKey: ["task-changes", taskId],
+    enabled: !!taskId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("project_changes")
+        .select("*")
+        .eq("entity_id", taskId!)
+        .order("created_at", { ascending: false });
+      if (error) { console.error("useTaskChanges error:", error); throw error; }
+      return data as ProjectChange[];
+    },
+  });
+}
+
+// ─── Milestones update (for inline edit) ───
+
+export function useUpdateMilestone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      projectId,
+      ...updates
+    }: {
+      id: string;
+      projectId: string;
+      name?: string;
+      due_date?: string;
+      payment_value?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from("milestones")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) { console.error("updateMilestone error:", error); throw error; }
+      return { ...data, projectId };
+    },
+    onSuccess: (data) => qc.invalidateQueries({ queryKey: ["milestones", data.projectId] }),
+  });
+}
 
 // ─── Auth helper ───
 

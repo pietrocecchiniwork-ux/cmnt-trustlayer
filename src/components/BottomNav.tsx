@@ -6,7 +6,7 @@ const pmLinks = [
   { label: "milestones", path: "/project/milestones" },
   { label: "evidence", path: "/project/evidence" },
   { label: "payments", path: "/project/payments" },
-  { label: "team", path: "/project/team" },
+  { label: "activity", path: "/project/activity" },
 ];
 
 const contractorLinks = [

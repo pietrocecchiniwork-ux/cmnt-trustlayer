@@ -1,7 +1,17 @@
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useMilestones, useEvidence, useUpdateMilestoneStatus } from "@/hooks/useSupabaseProject";
+import {
+  useMilestones,
+  useEvidence,
+  useUpdateMilestoneStatus,
+  useUpdateMilestone,
+  useTasks,
+  useCreateTask,
+  useCreateChange,
+  useCurrentUser,
+} from "@/hooks/useSupabaseProject";
 import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -22,59 +32,207 @@ const numberColor: Record<string, string> = {
   complete: "text-success",
 };
 
+function TaskCircle({ status }: { status: string }) {
+  if (status === "complete")
+    return <span className="w-4 h-4 rounded-full bg-success flex-shrink-0" />;
+  if (status === "in_progress")
+    return <span className="w-4 h-4 rounded-full bg-accent flex-shrink-0" />;
+  return <span className="w-4 h-4 rounded-full border border-muted-foreground flex-shrink-0" />;
+}
+
 export default function MilestoneDetailPage() {
   const { milestoneId } = useParams();
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
   const { data: evidenceItems = [] } = useEvidence(milestoneId);
+  const { data: tasks = [] } = useTasks(milestoneId);
+  const { data: currentUser } = useCurrentUser();
   const { role } = useRole();
+
   const updateStatus = useUpdateMilestoneStatus();
+  const updateMilestone = useUpdateMilestone();
+  const createTask = useCreateTask();
+  const createChange = useCreateChange();
+
+  const seededRef = useRef(false);
+
+  // ─── Edit state ───
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editPayment, setEditPayment] = useState("");
 
   const milestone = milestones.find((m) => m.id === milestoneId);
+
+  // ─── Auto-seed tasks from checklist ───
+  useEffect(() => {
+    if (seededRef.current) return;
+    if (!milestone || !milestoneId) return;
+    if (tasks.length > 0) { seededRef.current = true; return; }
+
+    const checklist: string[] = Array.isArray(milestone.checklist)
+      ? (milestone.checklist as string[])
+      : [];
+    if (checklist.length === 0) return;
+
+    seededRef.current = true;
+    checklist.forEach((item, i) => {
+      createTask.mutate(
+        { milestone_id: milestoneId, name: item, position: i + 1, evidence_required: true },
+        {
+          onSuccess: (task) => {
+            if (currentProjectId) {
+              createChange.mutate({
+                project_id: currentProjectId,
+                entity_type: "task",
+                entity_id: task.id,
+                entity_name: task.name,
+                change_type: "created",
+                changed_by: currentUser?.id,
+                changed_by_name: currentUser?.email ?? undefined,
+              });
+            }
+          },
+        }
+      );
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [milestone, milestoneId, tasks.length]);
+
   if (!milestone) return null;
 
   const config = statusConfig[milestone.status];
   const numColor = numberColor[milestone.status];
-
-  // Parse checklist from milestone
-  const checklist: string[] = Array.isArray(milestone.checklist) ? milestone.checklist as string[] : [];
-  const requiredCount = checklist.length || 1;
+  const checklist: string[] = Array.isArray(milestone.checklist)
+    ? (milestone.checklist as string[])
+    : [];
+  const requiredCount = tasks.length || checklist.length || 1;
   const completedCount = evidenceItems.length;
-  const nextItemIndex = completedCount;
-  const nextItemName = checklist[nextItemIndex] ?? null;
+  const nextItemName = checklist[completedCount] ?? null;
+
+  // ─── Inline edit handlers ───
+  const startEdit = () => {
+    setEditName(milestone.name);
+    setEditDate(milestone.due_date ?? "");
+    setEditPayment(String(milestone.payment_value ?? ""));
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!currentProjectId) return;
+    const oldValues: Record<string, unknown> = {};
+    const newValues: Record<string, unknown> = {};
+
+    if (editName !== milestone.name) {
+      oldValues.name = milestone.name; newValues.name = editName;
+    }
+    if (editDate !== (milestone.due_date ?? "")) {
+      oldValues.due_date = milestone.due_date; newValues.due_date = editDate;
+    }
+    const newPayment = editPayment ? Number(editPayment) : null;
+    if (newPayment !== milestone.payment_value) {
+      oldValues.payment_value = milestone.payment_value; newValues.payment_value = newPayment;
+    }
+
+    try {
+      await updateMilestone.mutateAsync({
+        id: milestone.id,
+        projectId: currentProjectId,
+        ...(editName !== milestone.name && { name: editName }),
+        ...(editDate !== (milestone.due_date ?? "") && { due_date: editDate }),
+        ...(newPayment !== milestone.payment_value && { payment_value: newPayment ?? undefined }),
+      });
+
+      const isDateShift = oldValues.due_date !== undefined;
+      await createChange.mutateAsync({
+        project_id: currentProjectId,
+        entity_type: "milestone",
+        entity_id: milestone.id,
+        entity_name: milestone.name,
+        change_type: isDateShift ? "shifted" : "updated",
+        changed_by: currentUser?.id,
+        changed_by_name: currentUser?.email ?? undefined,
+        old_value: Object.keys(oldValues).length ? oldValues : undefined,
+        new_value: Object.keys(newValues).length ? newValues : undefined,
+      });
+
+      toast.success("milestone updated");
+      setEditing(false);
+    } catch {
+      toast.error("failed to save changes");
+    }
+  };
 
   const handleApprove = async () => {
     try {
-      await updateStatus.mutateAsync({
-        id: milestone.id,
-        status: "complete",
-        projectId: currentProjectId!,
-      });
+      await updateStatus.mutateAsync({ id: milestone.id, status: "complete", projectId: currentProjectId! });
+      if (currentProjectId) {
+        await createChange.mutateAsync({
+          project_id: currentProjectId,
+          entity_type: "milestone",
+          entity_id: milestone.id,
+          entity_name: milestone.name,
+          change_type: "approved",
+          changed_by: currentUser?.id,
+          changed_by_name: currentUser?.email ?? undefined,
+        });
+      }
       toast.success("Milestone approved");
       navigate(-1);
-    } catch (err) {
-      console.error("Approve failed:", err);
+    } catch {
       toast.error("Failed to approve milestone");
     }
   };
 
   const handleReject = async () => {
     try {
-      await updateStatus.mutateAsync({
-        id: milestone.id,
-        status: "in_progress",
-        projectId: currentProjectId!,
-      });
+      await updateStatus.mutateAsync({ id: milestone.id, status: "in_progress", projectId: currentProjectId! });
+      if (currentProjectId) {
+        await createChange.mutateAsync({
+          project_id: currentProjectId,
+          entity_type: "milestone",
+          entity_id: milestone.id,
+          entity_name: milestone.name,
+          change_type: "rejected",
+          changed_by: currentUser?.id,
+          changed_by_name: currentUser?.email ?? undefined,
+        });
+      }
       toast.success("Milestone rejected — sent back to in progress");
       navigate(-1);
-    } catch (err) {
-      console.error("Reject failed:", err);
+    } catch {
       toast.error("Failed to reject milestone");
     }
   };
 
-  // Contractor view
+  // ─── Tasks section (shared across roles) ───
+  const tasksSection = tasks.length > 0 && (
+    <>
+      <div className="divider mt-6" />
+      <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">tasks</p>
+      <div className="space-y-0">
+        {tasks.map((task) => (
+          <button
+            key={task.id}
+            onClick={() => navigate(`/project/task/${task.id}`)}
+            className="w-full flex items-center gap-3 py-3 border-b border-border/40 last:border-0 text-left"
+          >
+            <TaskCircle status={task.status} />
+            <div className="flex-1 min-w-0">
+              <p className="font-sans text-[15px] text-foreground leading-snug">{task.name}</p>
+              <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                {task.assigned_to_name ?? "unassigned"}
+              </p>
+            </div>
+            <span className="font-mono text-[13px] text-muted-foreground">→</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  // ─── Contractor view ───
   if (role === "contractor" && milestone.status !== "complete" && milestone.status !== "in_review") {
     return (
       <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
@@ -85,8 +243,9 @@ export default function MilestoneDetailPage() {
         <h1 className="font-sans text-[22px] leading-tight mt-3 text-foreground">{milestone.name}</h1>
         <p className="font-mono text-[13px] text-muted-foreground mt-2">{milestone.due_date ?? "no date"}</p>
 
-        {/* Checklist progress */}
-        {checklist.length > 0 && (
+        {tasksSection}
+
+        {tasks.length === 0 && checklist.length > 0 && (
           <>
             <div className="divider mt-6" />
             <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">
@@ -105,7 +264,7 @@ export default function MilestoneDetailPage() {
           </>
         )}
 
-        <div className="divider" />
+        <div className="divider mt-6" />
         <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">submitted evidence ({completedCount})</p>
         <div className="flex-1 space-y-3">
           {evidenceItems.map((e) => (
@@ -128,11 +287,15 @@ export default function MilestoneDetailPage() {
         {completedCount < requiredCount && (
           <div className="pt-4">
             {nextItemName && (
-              <p className="font-mono text-[12px] text-muted-foreground mb-3">
-                next: {nextItemName}
-              </p>
+              <p className="font-mono text-[12px] text-muted-foreground mb-3">next: {nextItemName}</p>
             )}
-            <Button variant="dark" size="full" onClick={() => navigate(`/project/camera?milestoneId=${milestone.id}&item=${encodeURIComponent(nextItemName ?? "")}`)}>
+            <Button
+              variant="dark"
+              size="full"
+              onClick={() =>
+                navigate(`/project/camera?milestoneId=${milestone.id}&item=${encodeURIComponent(nextItemName ?? "")}`)
+              }
+            >
               <span className="font-sans text-[16px]">take photo</span>
             </Button>
           </div>
@@ -145,7 +308,7 @@ export default function MilestoneDetailPage() {
     );
   }
 
-  // PM view
+  // ─── PM view ───
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <div className="flex-1 px-6 pt-12 pb-6">
@@ -154,37 +317,73 @@ export default function MilestoneDetailPage() {
         <p className={`font-mono text-[96px] leading-none tracking-tight ${numColor}`}>
           {String(milestone.position).padStart(2, "0")}
         </p>
-        <h1 className="font-sans text-[22px] leading-tight mt-3 text-foreground">{milestone.name}</h1>
 
-        <div className="flex items-center gap-4 mt-3">
-          <span className="font-mono text-[13px] text-muted-foreground">{milestone.due_date ?? "no date"}</span>
-          <span className="font-mono text-[13px] text-muted-foreground">£{Number(milestone.payment_value ?? 0).toLocaleString()}</span>
-        </div>
-
-        <div className="flex items-center gap-2 mt-4">
-          <span className={`w-1.5 h-1.5 rounded-full ${config.dotClass}`} />
-          <span className="font-mono text-[12px] text-muted-foreground">{config.label}</span>
-        </div>
-
-        {/* Checklist section */}
-        {checklist.length > 0 && (
+        {editing ? (
+          <div className="mt-3 space-y-3">
+            <input
+              className="w-full bg-secondary border border-border rounded px-3 py-2 font-sans text-[15px] text-foreground"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="milestone name"
+            />
+            <div className="flex gap-3">
+              <input
+                className="flex-1 bg-secondary border border-border rounded px-3 py-2 font-mono text-[13px] text-foreground"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                placeholder="due date (yyyy-mm-dd)"
+              />
+              <input
+                className="w-32 bg-secondary border border-border rounded px-3 py-2 font-mono text-[13px] text-foreground"
+                value={editPayment}
+                onChange={(e) => setEditPayment(e.target.value)}
+                placeholder="£ value"
+                type="number"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={saveEdit}
+                disabled={updateMilestone.isPending}
+                className="font-mono text-[12px] text-foreground border border-foreground rounded px-4 py-1.5"
+              >
+                save
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                className="font-mono text-[12px] text-muted-foreground"
+              >
+                cancel
+              </button>
+            </div>
+          </div>
+        ) : (
           <>
-            <div className="divider mt-6" />
-            <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">
-              checklist — {completedCount} / {requiredCount}
-            </p>
-            <div className="space-y-2 mb-4">
-              {checklist.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i < completedCount ? "bg-success" : "bg-border"}`} />
-                  <span className={`font-sans text-[13px] ${i < completedCount ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                    {item}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-baseline gap-3 mt-3">
+              <h1 className="font-sans text-[22px] leading-tight text-foreground">{milestone.name}</h1>
+              {role === "pm" && (
+                <button
+                  onClick={startEdit}
+                  className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  edit
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4 mt-3">
+              <span className="font-mono text-[13px] text-muted-foreground">{milestone.due_date ?? "no date"}</span>
+              <span className="font-mono text-[13px] text-muted-foreground">£{Number(milestone.payment_value ?? 0).toLocaleString()}</span>
+            </div>
+
+            <div className="flex items-center gap-2 mt-4">
+              <span className={`w-1.5 h-1.5 rounded-full ${config.dotClass}`} />
+              <span className="font-mono text-[12px] text-muted-foreground">{config.label}</span>
             </div>
           </>
         )}
+
+        {tasksSection}
 
         <div className="divider mt-6" />
         <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">evidence ({completedCount})</p>
