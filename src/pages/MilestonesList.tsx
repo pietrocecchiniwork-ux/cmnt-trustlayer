@@ -13,32 +13,48 @@ export default function MilestonesList() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
+      <div className="flex items-center justify-center min-h-screen screen-dark">
+        <p className="font-mono text-[13px] opacity-40 animate-pulse">loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
-      <h1 className="font-sans text-[22px] text-foreground mb-6">
-        {role === "contractor" ? "my tasks" : "milestones"}
-      </h1>
-
-      <div className="flex-1 space-y-0">
-        {milestones.map((m) => (
-          <MilestoneFlipCard key={m.id} milestone={m} />
-        ))}
-        {milestones.length === 0 && (
-          <p className="font-sans text-[14px] text-muted-foreground mt-4">no milestones yet</p>
-        )}
+    <div className="flex flex-col min-h-screen screen-dark">
+      {/* Header */}
+      <div className="px-6 pt-10 pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <span className="font-mono text-[14px] opacity-40">←</span>
+          <span className="font-mono text-[16px] opacity-40">—</span>
+        </div>
+        <p className="font-mono text-[28px] tracking-tight">
+          {role === "contractor" ? "my tasks" : "milestones"}
+        </p>
+        <p className="font-mono text-[12px] opacity-40 mt-1">
+          {milestones.length} items · {milestones.filter(m => m.status === "complete").length} complete
+        </p>
       </div>
 
-      {role === "pm" && (
-        <Button variant="dark" size="full" className="mt-4" onClick={() => navigate("/manual-milestone")}>
-          <span className="font-sans text-[16px]">add milestone</span>
-        </Button>
-      )}
+      {/* Milestone list */}
+      <div className="flex-1 px-6 pb-6">
+        <div className="space-y-0">
+          {milestones.map((m) => (
+            <MilestoneFlipCard key={m.id} milestone={m} />
+          ))}
+          {milestones.length === 0 && (
+            <p className="font-mono text-[13px] opacity-40 mt-4">no milestones yet</p>
+          )}
+        </div>
+
+        {role === "pm" && (
+          <button
+            onClick={() => navigate("/manual-milestone")}
+            className="w-full mt-6 py-4 border border-surface-dark-foreground/20 font-mono text-[13px] text-surface-dark-foreground/60 hover:text-surface-dark-foreground hover:border-surface-dark-foreground/40 transition-colors"
+          >
+            + add milestone
+          </button>
+        )}
+      </div>
     </div>
   );
 }

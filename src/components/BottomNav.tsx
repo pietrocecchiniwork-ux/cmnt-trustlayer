@@ -25,21 +25,24 @@ export function BottomNav() {
   const links = role === "pm" ? pmLinks : contractorLinks;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40">
-      <div className="max-w-md mx-auto flex justify-around py-3 px-6">
-        {links.map((link) => (
-          <button
-            key={link.path}
-            onClick={() => navigate(link.path)}
-            className={`font-mono text-[10px] transition-colors ${
-              location.pathname === link.path
-                ? "text-accent"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {link.label}
-          </button>
-        ))}
+    <nav className="fixed bottom-0 left-0 right-0 bg-background z-40">
+      <div className="max-w-md mx-auto flex justify-around py-4 px-6">
+        {links.map((link) => {
+          const isActive = location.pathname === link.path;
+          return (
+            <button
+              key={link.path}
+              onClick={() => navigate(link.path)}
+              className={`font-mono text-[11px] transition-all pb-0.5 ${
+                isActive
+                  ? "text-foreground border-b border-foreground"
+                  : "text-foreground/40 hover:text-foreground/70"
+              }`}
+            >
+              {link.label}
+            </button>
+          );
+        })}
       </div>
     </nav>
   );
