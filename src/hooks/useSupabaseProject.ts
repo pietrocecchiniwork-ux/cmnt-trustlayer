@@ -238,12 +238,23 @@ export function useAddProjectMember() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (member: TablesInsert<"project_members">) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Session expired — please log in again");
+
       const { data, error } = await supabase
         .from("project_members")
         .insert(member)
         .select()
         .single();
-      if (error) { console.error("addProjectMember error:", error); throw error; }
+
+      if (error) {
+        console.error("addProjectMember error:", error);
+        if (error.message?.includes("row-level security")) {
+          throw new Error("You can only invite members to a project where you are active.");
+        }
+        throw new Error(error.message || "Failed to add project member");
+      }
+
       return data;
     },
     onSuccess: (data) => qc.invalidateQueries({ queryKey: ["project-members", data.project_id] }),
