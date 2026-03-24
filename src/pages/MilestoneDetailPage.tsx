@@ -566,7 +566,7 @@ export default function MilestoneDetailPage() {
             </button>
           </div>
         )}
-        {!qaPrompt && (milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
+        {!qaPrompt && role === "pm" && (milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
           <>
             <Button variant="approve" size="full" onClick={handleApprove} disabled={updateStatus.isPending}>
               <span className="font-sans text-[16px]">{t("milestone.approve")}</span>

@@ -203,8 +203,8 @@ export default function CreateProject() {
               <p className="font-mono text-[10px] text-muted-foreground mb-3 tracking-widest uppercase">
                 your project code
               </p>
-              <p className="font-mono text-[32px] text-foreground tracking-wider leading-none">
-                {createdProject.project_code ?? "…"}
+              <p className="font-mono text-[18px] text-foreground tracking-wider leading-none break-all">
+                {createdProject.id}
               </p>
               <button
                 onClick={handleCopyCode}

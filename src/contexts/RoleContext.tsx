@@ -13,9 +13,24 @@ const RoleContext = createContext<RoleContextType>({ role: "pm", setRole: () => 
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { currentProjectId } = useProjectContext();
-  const [role, setRole] = useState<UserRole>("pm");
+  const [role, setRoleState] = useState<UserRole>(() => {
+    const override = sessionStorage.getItem("dev_role_override");
+    return override ? (override as UserRole) : "pm";
+  });
+
+  const setRole = (newRole: UserRole) => {
+    sessionStorage.setItem("dev_role_override", newRole);
+    setRoleState(newRole);
+  };
 
   useEffect(() => {
+    // If there's a dev override, use it and skip DB lookup
+    const override = sessionStorage.getItem("dev_role_override");
+    if (override) {
+      setRoleState(override as UserRole);
+      return;
+    }
+
     if (!currentProjectId) return;
 
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -27,7 +42,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         .eq("user_id", user.id)
         .single()
         .then(({ data }) => {
-          if (data?.role) setRole(data.role as UserRole);
+          if (data?.role) setRoleState(data.role as UserRole);
         });
     });
   }, [currentProjectId]);
