@@ -251,6 +251,59 @@ export type Database = {
           },
         ]
       }
+      project_changes: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          changed_by_name: string | null
+          created_at: string
+          entity_id: string | null
+          entity_name: string | null
+          entity_type: string
+          id: string
+          new_value: Json | null
+          note: string | null
+          old_value: Json | null
+          project_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_type: string
+          id?: string
+          new_value?: Json | null
+          note?: string | null
+          old_value?: Json | null
+          project_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_type?: string
+          id?: string
+          new_value?: Json | null
+          note?: string | null
+          old_value?: Json | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_changes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_members: {
         Row: {
           id: string
@@ -330,6 +383,78 @@ export type Database = {
           total_budget?: number | null
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_role: string | null
+          assigned_to: string | null
+          assigned_to_name: string | null
+          budget: number | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          depends_on: string | null
+          description: string | null
+          due_date: string | null
+          evidence_required: boolean
+          id: string
+          milestone_id: string
+          name: string
+          position: number
+          status: string
+        }
+        Insert: {
+          assigned_role?: string | null
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          budget?: number | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          depends_on?: string | null
+          description?: string | null
+          due_date?: string | null
+          evidence_required?: boolean
+          id?: string
+          milestone_id: string
+          name: string
+          position?: number
+          status?: string
+        }
+        Update: {
+          assigned_role?: string | null
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          budget?: number | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          depends_on?: string | null
+          description?: string | null
+          due_date?: string | null
+          evidence_required?: boolean
+          id?: string
+          milestone_id?: string
+          name?: string
+          position?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_depends_on_fkey"
+            columns: ["depends_on"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
