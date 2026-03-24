@@ -9,42 +9,69 @@ interface RoleContextType {
   setRole: (role: UserRole) => void;
 }
 
-const RoleContext = createContext<RoleContextType>({ role: "pm", setRole: () => {} });
+const RoleContext = createContext<RoleContextType>({ role: "client", setRole: () => {} });
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { currentProjectId } = useProjectContext();
-  const [role, setRoleState] = useState<UserRole>(() => {
-    const override = sessionStorage.getItem("dev_role_override");
-    return override ? (override as UserRole) : "pm";
-  });
+  const [role, setRoleState] = useState<UserRole>("client");
+  const [overrideKey, setOverrideKey] = useState<string | null>(null);
 
   const setRole = (newRole: UserRole) => {
-    sessionStorage.setItem("dev_role_override", newRole);
+    if (overrideKey) sessionStorage.setItem(overrideKey, newRole);
     setRoleState(newRole);
   };
 
   useEffect(() => {
-    // If there's a dev override, use it and skip DB lookup
-    const override = sessionStorage.getItem("dev_role_override");
-    if (override) {
-      setRoleState(override as UserRole);
-      return;
-    }
+    let cancelled = false;
 
-    if (!currentProjectId) return;
+    const resolveRole = async () => {
+      if (!currentProjectId) {
+        setRoleState("client");
+        setOverrideKey(null);
+        return;
+      }
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) {
+        setRoleState("client");
+        setOverrideKey(null);
+        return;
+      }
+
+      const key = `dev_role_override:${user.id}:${currentProjectId}`;
+      setOverrideKey(key);
+
+      const override = sessionStorage.getItem(key);
+      if (override) {
+        setRoleState(override as UserRole);
+        return;
+      }
+
+      const { data, error } = await supabase
         .from("project_members")
         .select("role")
         .eq("project_id", currentProjectId)
         .eq("user_id", user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setRoleState(data.role as UserRole);
-        });
-    });
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Role lookup failed:", error);
+        setRoleState("client");
+        return;
+      }
+
+      setRoleState((data?.role as UserRole) ?? "client");
+    };
+
+    void resolveRole();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentProjectId]);
 
   return (
