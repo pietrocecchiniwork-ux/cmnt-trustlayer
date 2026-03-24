@@ -134,14 +134,13 @@ export default function EvidenceConfirm() {
         photoUrl = await uploadEvidencePhoto(blob, "evidence.jpg");
       }
 
-      await submitEvidence.mutateAsync({
+      const fullPayload = {
         milestone_id: milestoneId,
         submitted_by: user.id,
         photo_url: photoUrl,
         note: note || null,
         channel: "app" as const,
         ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
-        // LCM data layer fields
         file_hash: fileHash,
         file_size_bytes: fileSizeBytes,
         verification_level: 1,
@@ -153,7 +152,28 @@ export default function EvidenceConfirm() {
         evidence_code: evidenceCode,
         gps_lat: coords?.lat ?? null,
         gps_lng: coords?.lng ?? null,
-      });
+      };
+
+      try {
+        await submitEvidence.mutateAsync(fullPayload);
+      } catch (lcmErr: unknown) {
+        // If LCM columns don't exist yet (42703 = undefined_column), fall back to base fields
+        const code = (lcmErr as { code?: string })?.code;
+        if (code === "42703") {
+          console.warn("LCM columns missing, falling back to base evidence insert");
+          await submitEvidence.mutateAsync({
+            milestone_id: milestoneId,
+            submitted_by: user.id,
+            photo_url: photoUrl,
+            note: note || null,
+            channel: "app" as const,
+            ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
+            evidence_code: evidenceCode,
+          });
+        } else {
+          throw lcmErr;
+        }
+      }
 
       sessionStorage.removeItem("capturedPhoto");
       sessionStorage.removeItem("capturedPhotoBase64");

@@ -354,7 +354,7 @@ export default function MilestoneDetailPage() {
   );
 
   // ─── Contractor view ───
-  if (role === "contractor" && milestone.status !== "complete" && milestone.status !== "in_review") {
+  if ((role === "contractor" || role === "trade") && milestone.status !== "complete" && milestone.status !== "in_review") {
     const allTasksDone = tasks.length > 0 && tasks.every(t => t.status === "complete");
 
     return (

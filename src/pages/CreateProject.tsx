@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCreateProject } from "@/hooks/useSupabaseProject";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export default function CreateProject() {
@@ -19,7 +20,7 @@ export default function CreateProject() {
     paymentMode: false,
     milestoneMethod: "" as "" | "upload" | "template" | "manual",
   });
-  const [createdProject, setCreatedProject] = useState<{ id: string } | null>(null);
+  const [createdProject, setCreatedProject] = useState<{ id: string; project_code: string | null } | null>(null);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -36,7 +37,13 @@ export default function CreateProject() {
         total_budget: formData.totalBudget ? Number(formData.totalBudget) : null,
       });
       setCurrentProjectId(result.id);
-      setCreatedProject({ id: result.id });
+      // Fetch the full record to get the project_code set by the DB trigger
+      const { data: full } = await supabase
+        .from("projects")
+        .select("id, project_code")
+        .eq("id", result.id)
+        .single();
+      setCreatedProject({ id: result.id, project_code: full?.project_code ?? null });
       setStep(4);
     } catch (err) {
       console.error("Create project failed:", err);
@@ -57,9 +64,10 @@ export default function CreateProject() {
   };
 
   const handleCopyCode = async () => {
-    if (!createdProject?.id) return;
+    const code = createdProject?.project_code;
+    if (!code) return;
     try {
-      await navigator.clipboard.writeText(createdProject.id);
+      await navigator.clipboard.writeText(code);
       toast.success("code copied");
     } catch {
       toast.error("failed to copy");
@@ -202,7 +210,7 @@ export default function CreateProject() {
                 your project code
               </p>
               <p className="font-mono text-[32px] text-foreground tracking-wider leading-none">
-                {createdProject.id.slice(0, 8).toUpperCase()}
+                {createdProject.project_code ?? "…"}
               </p>
               <button
                 onClick={handleCopyCode}

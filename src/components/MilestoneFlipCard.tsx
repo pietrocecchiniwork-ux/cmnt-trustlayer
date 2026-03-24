@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/contexts/RoleContext";
-import { useEvidence, useUpdateMilestoneStatus, useProjectMembers } from "@/hooks/useSupabaseProject";
+import { useEvidence, useUpdateMilestoneStatus, useProjectMembers, useCreateChange, useCurrentUser } from "@/hooks/useSupabaseProject";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -96,6 +96,8 @@ function CardBack({
 }) {
   const navigate = useNavigate();
   const updateStatus = useUpdateMilestoneStatus();
+  const createChange = useCreateChange();
+  const { data: currentUser } = useCurrentUser();
   const { data: evidence = [] } = useEvidence(m.id);
   const { data: members = [] } = useProjectMembers(projectId ?? undefined);
   const [reason, setReason] = useState("");
@@ -195,7 +197,7 @@ function CardBack({
         </p>
       );
     }
-    // PM — approve / reject
+    // PM — reject only here; full approve (with QA prompt) is in MilestoneDetailPage
     if (rejectMode) {
       return (
         <div className="space-y-3 pr-6">
@@ -212,14 +214,30 @@ function CardBack({
             style={{ backgroundColor: "hsl(22, 65%, 47%)" }}
             disabled={!reason.trim() || updateStatus.isPending}
             onClick={async () => {
-              await updateStatus.mutateAsync({
-                id: m.id,
-                status: "in_progress",
-                projectId: m.project_id,
-              });
-              toast.success("milestone rejected");
-              setRejectMode(false);
-              setReason("");
+              try {
+                await updateStatus.mutateAsync({
+                  id: m.id,
+                  status: "in_progress",
+                  projectId: m.project_id,
+                });
+                if (projectId) {
+                  await createChange.mutateAsync({
+                    project_id: projectId,
+                    entity_type: "milestone",
+                    entity_id: m.id,
+                    entity_name: m.name,
+                    change_type: "rejected",
+                    changed_by: currentUser?.id,
+                    changed_by_name: currentUser?.email ?? undefined,
+                    new_value: { reason: reason.trim() },
+                  });
+                }
+                toast.success("milestone rejected");
+                setRejectMode(false);
+                setReason("");
+              } catch {
+                toast.error("failed to reject");
+              }
             }}
           >
             confirm reject
@@ -231,19 +249,11 @@ function CardBack({
       <div className="flex gap-3 pr-6">
         <Button
           size="full"
-          className="font-sans text-[14px] text-white flex-1"
-          style={{ backgroundColor: "hsl(150, 33%, 36%)" }}
-          disabled={updateStatus.isPending}
-          onClick={async () => {
-            await updateStatus.mutateAsync({
-              id: m.id,
-              status: "complete",
-              projectId: m.project_id,
-            });
-            toast.success("milestone approved");
-          }}
+          className="font-sans text-[14px] text-foreground flex-1"
+          variant="outline"
+          onClick={() => navigate(`/project/milestone/${m.id}`)}
         >
-          approve
+          view milestone
         </Button>
         <Button
           size="full"

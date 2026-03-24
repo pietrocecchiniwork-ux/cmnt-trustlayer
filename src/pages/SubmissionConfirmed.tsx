@@ -19,14 +19,18 @@ export default function SubmissionConfirmed() {
     freshCountParam !== null ? parseInt(freshCountParam, 10) : null
   );
   const [requiredCount, setRequiredCount] = useState<number>(1);
-  const [checklist, setChecklist] = useState<string[]>([]);
-  const [milestoneName, setMilestoneName] = useState("");
+  const [nextTaskName, setNextTaskName] = useState<string | null>(null);
+  const [nextTaskId, setNextTaskId] = useState<string | null>(null);
   const [milestoneStatus, setMilestoneStatus] = useState("");
   const [autoUpdated, setAutoUpdated] = useState(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
 
   useEffect(() => {
     if (!milestoneId) return;
 
+    // Fresh evidence count
     supabase
       .from("evidence")
       .select("id", { count: "exact", head: true })
@@ -36,25 +40,34 @@ export default function SubmissionConfirmed() {
         setEvidenceCount(count ?? 0);
       });
 
+    // Milestone status
     supabase
       .from("milestones")
-      .select("name, status, checklist")
+      .select("status")
       .eq("id", milestoneId)
       .single()
       .then(({ data, error }) => {
-        if (error) console.error("Fresh milestone fetch error:", error);
-        if (data) {
-          setMilestoneName(data.name);
-          setMilestoneStatus(data.status);
-          const cl: string[] = Array.isArray(data.checklist) ? data.checklist as string[] : [];
-          setChecklist(cl);
-          setRequiredCount(cl.length || 1);
-        }
+        if (error) console.error("Milestone fetch error:", error);
+        if (data) setMilestoneStatus(data.status);
+      });
+
+    // Task count as requiredCount; next incomplete task for prompt
+    db
+      .from("tasks")
+      .select("id, name, status, position")
+      .eq("milestone_id", milestoneId)
+      .order("position", { ascending: true })
+      .then(({ data: tasks, error }: { data: { id: string; name: string; status: string; position: number }[] | null; error: unknown }) => {
+        if (error) { console.error("Tasks fetch error:", error); return; }
+        const all = tasks ?? [];
+        setRequiredCount(all.length || 1);
+        const next = all.find((t) => t.status !== "complete") ?? null;
+        setNextTaskName(next?.name ?? null);
+        setNextTaskId(next?.id ?? null);
       });
   }, [milestoneId]);
 
   const allSubmitted = evidenceCount !== null && evidenceCount >= requiredCount;
-  const nextItemName = evidenceCount !== null ? checklist[evidenceCount] ?? null : null;
 
   useEffect(() => {
     if (
@@ -103,8 +116,8 @@ export default function SubmissionConfirmed() {
       ) : (
         <div>
           <p className="font-mono text-[10px] text-muted-foreground mb-2">still needed</p>
-          {nextItemName ? (
-            <p className="font-sans text-[14px] text-foreground">{nextItemName}</p>
+          {nextTaskName ? (
+            <p className="font-sans text-[14px] text-foreground">{nextTaskName}</p>
           ) : (
             <p className="font-sans text-[14px] text-foreground">
               {requiredCount - evidenceCount} more item{requiredCount - evidenceCount !== 1 ? "s" : ""}
@@ -118,11 +131,15 @@ export default function SubmissionConfirmed() {
         className="fixed bottom-16 left-0 right-0 px-6 bg-background space-y-3"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
       >
-        {!allSubmitted && milestoneId && (
+        {!allSubmitted && milestoneId && nextTaskId && (
           <Button
             variant="dark"
             size="full"
-            onClick={() => navigate(`/project/camera?milestoneId=${milestoneId}&item=${encodeURIComponent(nextItemName ?? "")}`)}
+            onClick={() =>
+              navigate(
+                `/project/camera?milestoneId=${milestoneId}&item=${encodeURIComponent(nextTaskName ?? "")}&taskId=${nextTaskId}`
+              )
+            }
           >
             <span className="font-sans text-[16px]">submit next item</span>
           </Button>

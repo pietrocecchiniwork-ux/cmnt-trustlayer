@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectContext } from "./DemoProjectContext";
 
-export type UserRole = "pm" | "contractor" | "client";
+export type UserRole = "pm" | "contractor" | "trade" | "client";
 
 interface RoleContextType {
   role: UserRole;

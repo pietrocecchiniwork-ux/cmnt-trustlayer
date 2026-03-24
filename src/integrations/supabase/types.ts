@@ -52,33 +52,69 @@ export type Database = {
       evidence: {
         Row: {
           ai_tags: Json | null
+          ai_tags_original: Json | null
           channel: Database["public"]["Enums"]["evidence_channel"]
+          evidence_code: string | null
+          file_hash: string | null
+          file_size_bytes: number | null
+          gps_lat: number | null
+          gps_lng: number | null
+          human_override: boolean
           id: string
+          label_dimensions_captured: number
           milestone_id: string
           note: string | null
           photo_url: string | null
+          quality_assessment: string | null
           submitted_at: string
           submitted_by: string | null
+          task_id: string | null
+          training_eligible: boolean
+          verification_level: number
         }
         Insert: {
           ai_tags?: Json | null
+          ai_tags_original?: Json | null
           channel?: Database["public"]["Enums"]["evidence_channel"]
+          evidence_code?: string | null
+          file_hash?: string | null
+          file_size_bytes?: number | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          human_override?: boolean
           id?: string
+          label_dimensions_captured?: number
           milestone_id: string
           note?: string | null
           photo_url?: string | null
+          quality_assessment?: string | null
           submitted_at?: string
           submitted_by?: string | null
+          task_id?: string | null
+          training_eligible?: boolean
+          verification_level?: number
         }
         Update: {
           ai_tags?: Json | null
+          ai_tags_original?: Json | null
           channel?: Database["public"]["Enums"]["evidence_channel"]
+          evidence_code?: string | null
+          file_hash?: string | null
+          file_size_bytes?: number | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          human_override?: boolean
           id?: string
+          label_dimensions_captured?: number
           milestone_id?: string
           note?: string | null
           photo_url?: string | null
+          quality_assessment?: string | null
           submitted_at?: string
           submitted_by?: string | null
+          task_id?: string | null
+          training_eligible?: boolean
+          verification_level?: number
         }
         Relationships: [
           {

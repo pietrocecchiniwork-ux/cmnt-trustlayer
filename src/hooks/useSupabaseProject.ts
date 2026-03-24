@@ -169,20 +169,8 @@ export function useProjectEvidence(projectId: string | undefined) {
 export function useSubmitEvidence() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (evidence: TablesInsert<"evidence"> & {
-      file_hash?: string | null;
-      file_size_bytes?: number | null;
-      verification_level?: number;
-      training_eligible?: boolean;
-      label_dimensions_captured?: number;
-      ai_tags_original?: Record<string, unknown> | null;
-      human_override?: boolean;
-      task_id?: string | null;
-      evidence_code?: string;
-      gps_lat?: number | null;
-      gps_lng?: number | null;
-    }) => {
-      const { data, error } = await db
+    mutationFn: async (evidence: TablesInsert<"evidence">) => {
+      const { data, error } = await supabase
         .from("evidence")
         .insert(evidence)
         .select()
@@ -190,7 +178,7 @@ export function useSubmitEvidence() {
       if (error) { console.error("submitEvidence error:", error); throw error; }
       return data;
     },
-    onSuccess: (data: { milestone_id: string }) => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["evidence", data.milestone_id] });
       qc.invalidateQueries({ queryKey: ["project-evidence"] });
     },
@@ -211,16 +199,16 @@ export function useUpdateEvidence() {
       label_dimensions_captured?: number;
       verification_level?: number;
     }) => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("evidence")
         .update(updates)
         .eq("id", id)
         .select()
         .single();
       if (error) { console.error("updateEvidence error:", error); throw error; }
-      return { ...(data as Record<string, unknown>), milestoneId };
+      return { ...data, milestoneId };
     },
-    onSuccess: (data: { milestoneId: string }) => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["evidence", data.milestoneId] });
       qc.invalidateQueries({ queryKey: ["project-evidence"] });
     },
