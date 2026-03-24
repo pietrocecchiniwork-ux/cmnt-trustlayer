@@ -20,9 +20,21 @@ export default function Home() {
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) navigate("/auth");
-      else setAuthed(true);
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+      // Auto-claim any pending invitations for this email
+      if (user.email) {
+        await supabase.rpc("claim_invitations_for_user", {
+          _user_id: user.id,
+          _email: user.email,
+        }).then(({ error }) => {
+          if (error) console.error("Auto-claim invitations failed:", error);
+        });
+      }
+      setAuthed(true);
     });
   }, [navigate]);
 
