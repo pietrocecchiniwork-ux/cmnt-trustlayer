@@ -113,7 +113,7 @@ export default function JoinProject() {
               placeholder="CMT-XXXXXX"
               value={code}
               onChange={(e) => {
-                setCode(e.target.value.toUpperCase());
+                setCode(e.target.value);
                 setNotFound(false);
               }}
               className="underline-input font-mono tracking-widest text-[18px]"
