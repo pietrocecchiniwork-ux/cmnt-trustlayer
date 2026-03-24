@@ -12,6 +12,7 @@ interface InlineTeamMember {
   name: string;
   role: Role;
   phone: string;
+  email: string;
 }
 
 export default function CreateProject() {
