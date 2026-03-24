@@ -80,6 +80,18 @@ export default function TeamScreen() {
     }
   };
 
+  const handleCopyInvite = async (m: typeof members[0]) => {
+    const code = project?.project_code ?? "";
+    const projectName = project?.name ?? "your project";
+    const msg = `Hi ${m.name}, you've been added to ${projectName} on Cemento. Your role: ${m.role}. Join here: cmnt-trustlayer.lovable.app/join — use code ${code}`;
+    try {
+      await navigator.clipboard.writeText(msg);
+      toast.success("invite message copied");
+    } catch {
+      toast.error("failed to copy");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
       <h1 className="font-sans text-[22px] text-foreground mb-6">team</h1>
