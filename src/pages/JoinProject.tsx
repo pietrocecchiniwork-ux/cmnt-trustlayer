@@ -34,14 +34,17 @@ export default function JoinProject() {
         .eq("project_code", trimmed.toUpperCase())
         .single();
       if (error || !data) {
-        // Fall back to lookup by UUID id
-        const res = await supabase
-          .from("projects")
-          .select("id, name, project_code")
-          .eq("id", trimmed.toLowerCase())
-          .single();
-        data = res.data;
-        error = res.error;
+        // Fall back to lookup by UUID id only if input looks like a UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(trimmed)) {
+          const res = await supabase
+            .from("projects")
+            .select("id, name, project_code")
+            .eq("id", trimmed)
+            .single();
+          data = res.data;
+          error = res.error;
+        }
       }
       if (error || !data) {
         setNotFound(true);
