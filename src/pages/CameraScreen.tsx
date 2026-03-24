@@ -19,6 +19,8 @@ export default function CameraScreen() {
       sessionStorage.setItem("capturedPhotoBase64", base64);
       sessionStorage.setItem("evidenceMilestoneId", milestoneId);
       sessionStorage.setItem("evidenceTaskId", taskId);
+      sessionStorage.setItem("evidenceMilestoneName", itemName || "");
+      sessionStorage.setItem("evidenceTaskName", searchParams.get("taskName") ?? "");
       navigate("/project/evidence-confirm");
     };
     reader.readAsDataURL(file);

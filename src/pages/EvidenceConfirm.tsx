@@ -73,6 +73,8 @@ export default function EvidenceConfirm() {
     const base64 = sessionStorage.getItem("capturedPhotoBase64");
     const mId = sessionStorage.getItem("evidenceMilestoneId");
     const tId = sessionStorage.getItem("evidenceTaskId");
+    const mName = sessionStorage.getItem("evidenceMilestoneName") ?? "";
+    const tName = sessionStorage.getItem("evidenceTaskName") ?? "";
     setPhotoDataUrl(photo);
     setPhotoBase64(base64);
     setMilestoneId(mId ?? "");
@@ -81,7 +83,7 @@ export default function EvidenceConfirm() {
     if (base64) {
       setTagging(true);
       supabase.functions.invoke("tag-evidence", {
-        body: { image_base64: base64 },
+        body: { image_base64: base64, milestone_name: mName, task_name: tName },
       }).then(({ data, error }) => {
         setTagging(false);
         if (error) {
