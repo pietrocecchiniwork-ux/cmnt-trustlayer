@@ -13,6 +13,7 @@ interface AiTags {
   completion_stage: string;
   condition_flag: string;
   building_element: string;
+  ai_summary?: string;
 }
 
 const tagOptions: Record<keyof AiTags, string[]> = {
