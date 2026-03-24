@@ -13,6 +13,7 @@ interface AiTags {
   completion_stage: string;
   condition_flag: string;
   building_element: string;
+  quality_score?: number;
   ai_summary?: string;
 }
 
@@ -201,7 +202,7 @@ export default function EvidenceConfirm() {
     }
   };
 
-  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary") : [];
+  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary" && k !== "quality_score") : [];
 
   return (
     <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
@@ -231,7 +232,7 @@ export default function EvidenceConfirm() {
 
       {correcting && editedTags ? (
         <div className="mb-4 space-y-2">
-          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && tagOptions[k]).map((key) => (
+          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && k !== "quality_score" && tagOptions[k]).map((key) => (
             <div key={key} className="flex items-center gap-2">
               <span className="font-mono text-[10px] text-muted-foreground w-36 flex-shrink-0">
                 {key.replace(/_/g, " ")}
@@ -272,6 +273,30 @@ export default function EvidenceConfirm() {
           {tagging && (
             <span className="font-mono text-[11px] text-muted-foreground animate-pulse">analysing...</span>
           )}
+        </div>
+      )}
+
+      {aiTags?.quality_score != null && (
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex gap-[3px]">
+            {Array.from({ length: 10 }, (_, i) => (
+              <div
+                key={i}
+                className={`w-[18px] h-[6px] rounded-[1px] transition-colors ${
+                  i < aiTags.quality_score!
+                    ? aiTags.quality_score! >= 7
+                      ? "bg-accent"
+                      : aiTags.quality_score! >= 4
+                        ? "bg-yellow-500"
+                        : "bg-destructive"
+                    : "bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {aiTags.quality_score}/10
+          </span>
         </div>
       )}
 
