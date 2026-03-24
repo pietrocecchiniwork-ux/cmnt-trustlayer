@@ -9,6 +9,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -17,10 +18,12 @@ export default function Auth() {
   }, [navigate]);
 
   const handleGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
+    setGoogleError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + '/project/dashboard' },
     });
+    if (error) setGoogleError(error.message);
   };
 
   const handleEmailOtp = async () => {
@@ -51,6 +54,10 @@ export default function Auth() {
           >
             continue with google
           </button>
+
+          {googleError && (
+            <p className="font-mono text-[11px] text-destructive mt-2 w-full">{googleError}</p>
+          )}
 
           <div className="relative w-full my-6">
             <div className="absolute inset-0 flex items-center">
