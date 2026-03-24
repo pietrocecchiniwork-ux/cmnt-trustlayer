@@ -20,7 +20,7 @@ export default function CreateProject() {
     paymentMode: false,
     milestoneMethod: "" as "" | "upload" | "template" | "manual",
   });
-  const [createdProject, setCreatedProject] = useState<{ id: string; project_code: string | null } | null>(null);
+  const [createdProject, setCreatedProject] = useState<{ id: string } | null>(null);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
