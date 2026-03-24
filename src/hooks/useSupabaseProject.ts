@@ -253,7 +253,7 @@ export function useAddProjectMember() {
 export function useUpdateProjectMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; project_id: string; role?: string; name?: string; phone_number?: string | null; status?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; project_id: string; role?: "pm" | "contractor" | "trade" | "client"; name?: string; phone_number?: string | null; status?: "invited" | "confirmed" | "active" }) => {
       const { data, error } = await supabase
         .from("project_members")
         .update(updates)
