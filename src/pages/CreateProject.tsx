@@ -15,6 +15,10 @@ interface InlineTeamMember {
   email: string;
 }
 
+function buildInviteMessage(name: string, projectName: string, role: string, code: string): string {
+  return `Hi ${name}, you've been added to ${projectName} on Cemento. Your role: ${role}. Join here: cmnt-trustlayer.lovable.app/join — use code ${code}`;
+}
+
 export default function CreateProject() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -35,6 +39,8 @@ export default function CreateProject() {
     { name: "", role: "contractor", phone: "", email: "" },
   ]);
   const [savingTeam, setSavingTeam] = useState(false);
+  const [savedMembers, setSavedMembers] = useState<InlineTeamMember[]>([]);
+  const [showInviteMessages, setShowInviteMessages] = useState(false);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -84,12 +90,23 @@ export default function CreateProject() {
         });
       }
       toast.success(`${validMembers.length} member(s) added`);
-      setStep(4);
+      setSavedMembers(validMembers);
+      setShowInviteMessages(true);
     } catch (err) {
       console.error("Add team failed:", err);
       toast.error("Failed to add team members");
     } finally {
       setSavingTeam(false);
+    }
+  };
+
+  const handleCopyInvite = async (m: InlineTeamMember) => {
+    const msg = buildInviteMessage(m.name, formData.name, m.role, createdProject?.code ?? "");
+    try {
+      await navigator.clipboard.writeText(msg);
+      toast.success("invite message copied");
+    } catch {
+      toast.error("failed to copy");
     }
   };
 
@@ -190,47 +207,19 @@ export default function CreateProject() {
           <>
             <h1 className="font-sans text-[22px] text-foreground mb-8">dates &amp; budget</h1>
             <div className="space-y-6">
-              <input
-                type="date"
-                placeholder="start date"
-                value={formData.startDate}
-                onChange={(e) => updateField("startDate", e.target.value)}
-                className="underline-input"
-              />
-              <input
-                type="date"
-                placeholder="end date"
-                value={formData.endDate}
-                onChange={(e) => updateField("endDate", e.target.value)}
-                className="underline-input"
-              />
-              <input
-                type="number"
-                placeholder="total budget (£)"
-                value={formData.totalBudget}
-                onChange={(e) => updateField("totalBudget", e.target.value)}
-                className="underline-input"
-              />
+              <input type="date" placeholder="start date" value={formData.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="underline-input" />
+              <input type="date" placeholder="end date" value={formData.endDate} onChange={(e) => updateField("endDate", e.target.value)} className="underline-input" />
+              <input type="number" placeholder="total budget (£)" value={formData.totalBudget} onChange={(e) => updateField("totalBudget", e.target.value)} className="underline-input" />
               <div className="flex items-center justify-between py-4">
                 <div className="flex-1 pr-4">
-                  <p className="font-sans text-[16px] text-foreground">
-                    release payments on milestone completion
-                  </p>
-                  <p className="font-mono text-[12px] text-muted-foreground mt-1">
-                    certificates generated automatically
-                  </p>
+                  <p className="font-sans text-[16px] text-foreground">release payments on milestone completion</p>
+                  <p className="font-mono text-[12px] text-muted-foreground mt-1">certificates generated automatically</p>
                 </div>
                 <button
                   onClick={() => updateField("paymentMode", !formData.paymentMode)}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${
-                    formData.paymentMode ? "bg-accent" : "bg-muted"
-                  }`}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${formData.paymentMode ? "bg-accent" : "bg-muted"}`}
                 >
-                  <span
-                    className={`absolute top-0.5 w-5 h-5 bg-background rounded-full transition-transform ${
-                      formData.paymentMode ? "translate-x-6" : "translate-x-0.5"
-                    }`}
-                  />
+                  <span className={`absolute top-0.5 w-5 h-5 bg-background rounded-full transition-transform ${formData.paymentMode ? "translate-x-6" : "translate-x-0.5"}`} />
                 </button>
               </div>
             </div>
@@ -243,85 +232,64 @@ export default function CreateProject() {
             <h1 className="font-sans text-[22px] text-foreground mb-2">add your team</h1>
 
             <div className="flex flex-col items-center py-6 border border-border mb-8">
-              <p className="font-mono text-[10px] text-muted-foreground mb-2 tracking-widest uppercase">
-                your project code
-              </p>
-              <p className="font-mono text-[18px] text-foreground tracking-wider leading-none break-all">
-                {createdProject.code || "generating…"}
-              </p>
-              <button
-                onClick={handleCopyCode}
-                className="mt-3 font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5"
-              >
-                copy code
-              </button>
-              <p className="font-mono text-[11px] text-muted-foreground mt-2">
-                share this code with your team
-              </p>
+              <p className="font-mono text-[10px] text-muted-foreground mb-2 tracking-widest uppercase">your project code</p>
+              <p className="font-mono text-[18px] text-foreground tracking-wider leading-none break-all">{createdProject.code || "generating…"}</p>
+              <button onClick={handleCopyCode} className="mt-3 font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5">copy code</button>
+              <p className="font-mono text-[11px] text-muted-foreground mt-2">share this code with your team</p>
             </div>
 
-            <div className="space-y-6">
-              {teamMembers.map((member, idx) => (
-                <div key={idx} className="space-y-3 pb-4 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <p className="font-mono text-[11px] text-muted-foreground tracking-widest uppercase">
-                      member {idx + 1}
-                    </p>
-                    {teamMembers.length > 1 && (
-                      <button
-                        onClick={() => removeTeamRow(idx)}
-                        className="font-mono text-[11px] text-destructive"
-                      >
-                        remove
-                      </button>
-                    )}
+            {showInviteMessages ? (
+              <div className="space-y-4">
+                <p className="font-sans text-[14px] text-muted-foreground mb-4">
+                  copy and send each invite message to your team
+                </p>
+                {savedMembers.map((m, i) => (
+                  <div key={i} className="border border-border p-4 space-y-3">
+                    <div>
+                      <p className="font-sans text-[14px] text-foreground">{m.name}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground">{m.role} · {m.email || m.phone}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded">
+                      <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+                        {buildInviteMessage(m.name, formData.name, m.role, createdProject.code)}
+                      </p>
+                    </div>
+                    <button onClick={() => handleCopyInvite(m)} className="font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5">
+                      copy invite message
+                    </button>
                   </div>
-                  <input
-                    type="text"
-                    placeholder="name"
-                    value={member.name}
-                    onChange={(e) => updateTeamMember(idx, "name", e.target.value)}
-                    className="underline-input"
-                  />
-                  <input
-                    type="email"
-                    placeholder="email"
-                    value={member.email}
-                    onChange={(e) => updateTeamMember(idx, "email", e.target.value)}
-                    className="underline-input"
-                  />
-                  <div className="flex border-b border-border">
-                    {roles.map((r) => (
-                      <button
-                        key={r.key}
-                        onClick={() => updateTeamMember(idx, "role", r.key)}
-                        className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${
-                          member.role === r.key
-                            ? "text-accent border-b-2 border-accent"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {r.label}
-                      </button>
-                    ))}
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {teamMembers.map((member, idx) => (
+                  <div key={idx} className="space-y-3 pb-4 border-b border-border">
+                    <div className="flex items-center justify-between">
+                      <p className="font-mono text-[11px] text-muted-foreground tracking-widest uppercase">member {idx + 1}</p>
+                      {teamMembers.length > 1 && (
+                        <button onClick={() => removeTeamRow(idx)} className="font-mono text-[11px] text-destructive">remove</button>
+                      )}
+                    </div>
+                    <input type="text" placeholder="name" value={member.name} onChange={(e) => updateTeamMember(idx, "name", e.target.value)} className="underline-input" />
+                    <input type="email" placeholder="email" value={member.email} onChange={(e) => updateTeamMember(idx, "email", e.target.value)} className="underline-input" />
+                    <div className="flex border-b border-border">
+                      {roles.map((r) => (
+                        <button
+                          key={r.key}
+                          onClick={() => updateTeamMember(idx, "role", r.key)}
+                          className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${member.role === r.key ? "text-accent border-b-2 border-accent" : "text-muted-foreground"}`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                    <input type="tel" placeholder="phone (optional)" value={member.phone} onChange={(e) => updateTeamMember(idx, "phone", e.target.value)} className="underline-input" />
                   </div>
-                  <input
-                    type="tel"
-                    placeholder="phone (optional)"
-                    value={member.phone}
-                    onChange={(e) => updateTeamMember(idx, "phone", e.target.value)}
-                    className="underline-input"
-                  />
-                </div>
-              ))}
+                ))}
 
-              <button
-                onClick={addTeamRow}
-                className="font-mono text-[13px] text-accent border-b border-accent/40 pb-0.5"
-              >
-                + add member
-              </button>
-            </div>
+                <button onClick={addTeamRow} className="font-mono text-[13px] text-accent border-b border-accent/40 pb-0.5">+ add member</button>
+              </div>
+            )}
           </>
         )}
 
@@ -329,9 +297,7 @@ export default function CreateProject() {
         {step === 4 && (
           <>
             <h1 className="font-sans text-[22px] text-foreground mb-2">milestone setup</h1>
-            <p className="font-sans text-[14px] text-muted-foreground mb-8">
-              how do you want to add milestones?
-            </p>
+            <p className="font-sans text-[14px] text-muted-foreground mb-8">how do you want to add milestones?</p>
             <div className="space-y-3">
               {([
                 { key: "upload" as const, label: "upload contract", desc: "extract milestones from a PDF or document" },
@@ -341,11 +307,7 @@ export default function CreateProject() {
                 <button
                   key={opt.key}
                   onClick={() => updateField("milestoneMethod", opt.key)}
-                  className={`w-full text-left p-4 border transition-colors ${
-                    formData.milestoneMethod === opt.key
-                      ? "border-foreground bg-foreground/5"
-                      : "border-border"
-                  }`}
+                  className={`w-full text-left p-4 border transition-colors ${formData.milestoneMethod === opt.key ? "border-foreground bg-foreground/5" : "border-border"}`}
                 >
                   <p className="font-sans text-[16px] text-foreground">{opt.label}</p>
                   <p className="font-mono text-[12px] text-muted-foreground mt-1">{opt.desc}</p>
@@ -358,47 +320,33 @@ export default function CreateProject() {
 
       {/* BOTTOM BUTTONS */}
       {step === 1 && (
-        <Button
-          variant="dark"
-          size="full"
-          disabled={!canAdvance()}
-          onClick={() => setStep(2)}
-        >
+        <Button variant="dark" size="full" disabled={!canAdvance()} onClick={() => setStep(2)}>
           <span className="font-sans text-[16px]">next</span>
         </Button>
       )}
 
       {step === 2 && (
-        <Button
-          variant="dark"
-          size="full"
-          disabled={createProject.isPending}
-          onClick={handleCreate}
-        >
-          <span className="font-sans text-[16px]">
-            {createProject.isPending ? "creating..." : "create project"}
-          </span>
+        <Button variant="dark" size="full" disabled={createProject.isPending} onClick={handleCreate}>
+          <span className="font-sans text-[16px]">{createProject.isPending ? "creating..." : "create project"}</span>
         </Button>
       )}
 
       {step === 3 && (
         <div className="space-y-3">
-          <Button
-            variant="dark"
-            size="full"
-            disabled={savingTeam}
-            onClick={handleSaveTeam}
-          >
-            <span className="font-sans text-[16px]">
-              {savingTeam ? "saving..." : "save & continue"}
-            </span>
-          </Button>
-          <button
-            onClick={() => setStep(4)}
-            className="w-full font-mono text-[13px] text-muted-foreground text-center py-2"
-          >
-            skip for now
-          </button>
+          {showInviteMessages ? (
+            <Button variant="dark" size="full" onClick={() => setStep(4)}>
+              <span className="font-sans text-[16px]">continue to milestones</span>
+            </Button>
+          ) : (
+            <>
+              <Button variant="dark" size="full" disabled={savingTeam} onClick={handleSaveTeam}>
+                <span className="font-sans text-[16px]">{savingTeam ? "saving..." : "save & continue"}</span>
+              </Button>
+              <button onClick={() => setStep(4)} className="w-full font-mono text-[13px] text-muted-foreground text-center py-2">
+                skip for now
+              </button>
+            </>
+          )}
         </div>
       )}
 
