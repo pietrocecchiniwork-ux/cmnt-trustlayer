@@ -6,6 +6,7 @@ import { useRealtimeMilestones, useRealtimeEvidence } from "@/hooks/useRealtimeS
 import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 const statusDotClass: Record<string, string> = {
   pending: "bg-muted-foreground",
@@ -30,6 +31,18 @@ export default function PMDashboard() {
   const { data: milestones = [], isLoading } = useMilestones(currentProjectId ?? undefined);
   useRealtimeMilestones(currentProjectId ?? undefined);
   useRealtimeEvidence(currentProjectId ?? undefined);
+
+  const [isAnon, setIsAnon] = useState(false);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.is_anonymous) setIsAnon(true);
+    });
+  }, []);
+
+  const handleExitDemo = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
 
   // Fetch project details
   const { data: project } = useQuery({
@@ -72,7 +85,17 @@ export default function PMDashboard() {
   return (
     <div className="flex flex-col min-h-screen">
       <div className="bg-background px-6 pt-12 pb-6">
-        <p className="font-mono text-[12px] text-muted-foreground uppercase tracking-wider">{project.name}</p>
+        <div className="flex items-center justify-between">
+          <p className="font-mono text-[12px] text-muted-foreground uppercase tracking-wider">{project.name}</p>
+          {isAnon && (
+            <button
+              onClick={handleExitDemo}
+              className="font-mono text-[11px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+            >
+              exit demo
+            </button>
+          )}
+        </div>
 
         <div className="flex items-baseline gap-3 mt-4">
           <span className="font-mono text-[80px] leading-none tracking-tight text-foreground">{completed}</span>
