@@ -57,5 +57,6 @@ export default function MilestonesList() {
         )}
       </div>
     </div>
+    </div>
   );
 }
