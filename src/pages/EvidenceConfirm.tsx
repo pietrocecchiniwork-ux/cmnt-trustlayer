@@ -13,9 +13,10 @@ interface AiTags {
   completion_stage: string;
   condition_flag: string;
   building_element: string;
+  ai_summary?: string;
 }
 
-const tagOptions: Record<keyof AiTags, string[]> = {
+const tagOptions: Partial<Record<keyof AiTags, string[]>> = {
   work_type: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
   trade_category: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
   location_in_building: ["basement", "ground_floor", "first_floor", "second_floor", "roof", "exterior", "kitchen", "bathroom", "living_room", "bedroom", "hallway", "garage"],
@@ -73,6 +74,8 @@ export default function EvidenceConfirm() {
     const base64 = sessionStorage.getItem("capturedPhotoBase64");
     const mId = sessionStorage.getItem("evidenceMilestoneId");
     const tId = sessionStorage.getItem("evidenceTaskId");
+    const mName = sessionStorage.getItem("evidenceMilestoneName") ?? "";
+    const tName = sessionStorage.getItem("evidenceTaskName") ?? "";
     setPhotoDataUrl(photo);
     setPhotoBase64(base64);
     setMilestoneId(mId ?? "");
@@ -81,7 +84,7 @@ export default function EvidenceConfirm() {
     if (base64) {
       setTagging(true);
       supabase.functions.invoke("tag-evidence", {
-        body: { image_base64: base64 },
+        body: { image_base64: base64, milestone_name: mName, task_name: tName },
       }).then(({ data, error }) => {
         setTagging(false);
         if (error) {
@@ -198,7 +201,7 @@ export default function EvidenceConfirm() {
     }
   };
 
-  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]) : [];
+  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary") : [];
 
   return (
     <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
@@ -228,7 +231,7 @@ export default function EvidenceConfirm() {
 
       {correcting && editedTags ? (
         <div className="mb-4 space-y-2">
-          {(Object.keys(editedTags) as (keyof AiTags)[]).map((key) => (
+          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && tagOptions[k]).map((key) => (
             <div key={key} className="flex items-center gap-2">
               <span className="font-mono text-[10px] text-muted-foreground w-36 flex-shrink-0">
                 {key.replace(/_/g, " ")}
@@ -238,7 +241,7 @@ export default function EvidenceConfirm() {
                 value={editedTags[key]}
                 onChange={(e) => setEditedTags({ ...editedTags, [key]: e.target.value })}
               >
-                {tagOptions[key].map((opt) => (
+                {tagOptions[key]!.map((opt) => (
                   <option key={opt} value={opt}>{opt.replace(/_/g, " ")}</option>
                 ))}
               </select>
@@ -270,6 +273,12 @@ export default function EvidenceConfirm() {
             <span className="font-mono text-[11px] text-muted-foreground animate-pulse">analysing...</span>
           )}
         </div>
+      )}
+
+      {aiTags?.ai_summary && (
+        <p className="font-mono text-[11px] text-muted-foreground italic mb-4 leading-relaxed">
+          {aiTags.ai_summary}
+        </p>
       )}
 
       {coords && (
