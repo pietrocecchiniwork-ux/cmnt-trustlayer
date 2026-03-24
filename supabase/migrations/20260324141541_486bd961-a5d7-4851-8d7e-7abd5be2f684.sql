@@ -1,0 +1,1 @@
+UPDATE projects SET project_code = 'CMT-' || upper(substring(md5(random()::text) from 1 for 5)) WHERE project_code IS NULL;

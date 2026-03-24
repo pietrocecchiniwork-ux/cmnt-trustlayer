@@ -13,9 +13,10 @@ export default function TeamScreen() {
   const { role } = useRole();
 
   const handleCopyCode = async () => {
-    if (!currentProjectId) return;
+    const code = project?.project_code || currentProjectId;
+    if (!code) return;
     try {
-      await navigator.clipboard.writeText(currentProjectId);
+      await navigator.clipboard.writeText(code);
       toast.success("code copied");
     } catch {
       toast.error("failed to copy");
@@ -57,7 +58,7 @@ export default function TeamScreen() {
               project code
             </p>
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[14px] text-foreground break-all">{currentProjectId}</p>
+              <p className="font-mono text-[14px] text-foreground break-all">{project?.project_code || currentProjectId}</p>
               <button
                 onClick={handleCopyCode}
                 className="font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5"
