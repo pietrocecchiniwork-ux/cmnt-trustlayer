@@ -32,7 +32,7 @@ export default function CreateProject() {
   });
   const [createdProject, setCreatedProject] = useState<{ id: string; code: string } | null>(null);
   const [teamMembers, setTeamMembers] = useState<InlineTeamMember[]>([
-    { name: "", role: "contractor", phone: "" },
+    { name: "", role: "contractor", phone: "", email: "" },
   ]);
   const [savingTeam, setSavingTeam] = useState(false);
 
