@@ -9,7 +9,9 @@ type Role = "pm" | "contractor" | "trade" | "client";
 
 interface TeamMember {
   name: string;
+  email: string;
   phone: string;
+  company: string;
   role: Role;
 }
 
@@ -21,15 +23,23 @@ export default function InviteTeam() {
   const addMember = useAddProjectMember();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
   const [role, setRole] = useState<Role>("contractor");
   const [sending, setSending] = useState(false);
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    setMembers([...members, { name, phone, role }]);
+    if (!email.trim() && !phone.trim()) {
+      toast.error("Please provide email or phone number");
+      return;
+    }
+    setMembers([...members, { name, email, phone, company, role }]);
     setName("");
+    setEmail("");
     setPhone("");
+    setCompany("");
   };
 
   const handleSendInvites = async () => {
@@ -64,8 +74,10 @@ export default function InviteTeam() {
       <h1 className="font-sans text-[22px] text-foreground mb-8">invite team</h1>
 
       <div className="space-y-4 mb-6">
-        <input type="text" placeholder="name" value={name} onChange={(e) => setName(e.target.value)} className="underline-input" />
+        <input type="text" placeholder="name *" value={name} onChange={(e) => setName(e.target.value)} className="underline-input" />
+        <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} className="underline-input" />
         <input type="tel" placeholder="phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="underline-input" />
+        <input type="text" placeholder="company (optional)" value={company} onChange={(e) => setCompany(e.target.value)} className="underline-input" />
         <div className="flex border-b border-border">
           {roles.map((r) => (
             <button key={r} onClick={() => setRole(r)} className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${role === r ? "text-accent border-b-2 border-accent" : "text-muted-foreground"}`}>
@@ -81,8 +93,14 @@ export default function InviteTeam() {
       <div className="flex-1">
         {members.map((m, i) => (
           <div key={i} className="flex items-center justify-between py-3 border-b border-border">
-            <span className="font-sans text-[14px] text-foreground">{m.name}</span>
-            <span className="font-mono text-[11px] text-muted-foreground">{m.role}</span>
+            <div>
+              <span className="font-sans text-[14px] text-foreground">{m.name}</span>
+              {m.company && <span className="font-mono text-[11px] text-muted-foreground ml-2">· {m.company}</span>}
+            </div>
+            <div className="text-right">
+              <span className="font-mono text-[11px] text-muted-foreground">{m.role}</span>
+              <p className="font-mono text-[10px] text-muted-foreground">{m.email || m.phone}</p>
+            </div>
           </div>
         ))}
       </div>
