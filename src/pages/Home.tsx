@@ -63,14 +63,24 @@ export default function Home() {
       return;
     }
 
-    const selectedProject = projects.find((project) => project.id === currentProjectId) ?? projects[0];
+    // Only auto-redirect if there's exactly 1 project
+    if (projects.length === 1) {
+      const proj = projects[0];
+      if (proj.id !== currentProjectId) {
+        setCurrentProjectId(proj.id);
+      }
+      navigate("/project/dashboard");
+      return;
+    }
+
+    // Multiple projects: ensure a valid project is selected but stay on the list
+    const selectedProject = projects.find((p) => p.id === currentProjectId) ?? projects[0];
     if (selectedProject && selectedProject.id !== currentProjectId) {
       setCurrentProjectId(selectedProject.id);
     }
-    navigate("/project/dashboard");
   }, [isLoading, authed, projects, currentProjectId, setCurrentProjectId, navigate]);
 
-  if (authed === null || (authed && !isLoading)) return null;
+  if (authed === null || isLoading) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
