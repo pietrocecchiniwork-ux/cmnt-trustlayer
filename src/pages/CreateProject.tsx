@@ -57,9 +57,9 @@ export default function CreateProject() {
   };
 
   const handleCopyCode = async () => {
-    if (!createdProject?.project_code) return;
+    if (!createdProject?.id) return;
     try {
-      await navigator.clipboard.writeText(createdProject.project_code);
+      await navigator.clipboard.writeText(createdProject.id);
       toast.success("code copied");
     } catch {
       toast.error("failed to copy");
