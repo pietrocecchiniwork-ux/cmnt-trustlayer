@@ -201,7 +201,7 @@ export default function EvidenceConfirm() {
     }
   };
 
-  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]) : [];
+  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary") : [];
 
   return (
     <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
