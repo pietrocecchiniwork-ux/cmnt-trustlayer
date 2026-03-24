@@ -16,7 +16,7 @@ interface AiTags {
   ai_summary?: string;
 }
 
-const tagOptions: Record<keyof AiTags, string[]> = {
+const tagOptions: Partial<Record<keyof AiTags, string[]>> = {
   work_type: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
   trade_category: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
   location_in_building: ["basement", "ground_floor", "first_floor", "second_floor", "roof", "exterior", "kitchen", "bathroom", "living_room", "bedroom", "hallway", "garage"],
