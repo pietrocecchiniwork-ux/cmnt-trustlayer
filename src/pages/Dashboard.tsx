@@ -6,6 +6,7 @@ import { useRealtimeMilestones, useRealtimeEvidence } from "@/hooks/useRealtimeS
 import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 const statusDotClass: Record<string, string> = {
   pending: "bg-muted-foreground",
