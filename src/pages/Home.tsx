@@ -43,7 +43,13 @@ export default function Home() {
     }
   };
 
-  if (authed === null) return null;
+  useEffect(() => {
+    if (!isLoading && authed && projects.length === 0) {
+      navigate("/onboarding");
+    }
+  }, [isLoading, authed, projects.length, navigate]);
+
+  if (authed === null || (!isLoading && authed && projects.length === 0)) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">

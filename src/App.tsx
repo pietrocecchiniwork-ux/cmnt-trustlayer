@@ -8,6 +8,8 @@ import { DemoProjectProvider } from "@/contexts/DemoProjectContext";
 import { AppLayout } from "@/components/AppLayout";
 
 import Home from "./pages/Home";
+import Onboarding from "./pages/Onboarding";
+import Demo from "./pages/Demo";
 import Auth from "./pages/Auth";
 import CreateProject from "./pages/CreateProject";
 import InviteTeam from "./pages/InviteTeam";
@@ -44,6 +46,8 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<Home />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/demo" element={<Demo />} />
               <Route path="/create-project" element={<CreateProject />} />
               <Route path="/invite-team" element={<InviteTeam />} />
               <Route path="/milestone-setup" element={<MilestoneSetup />} />

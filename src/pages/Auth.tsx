@@ -12,7 +12,6 @@ export default function Auth() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [demoLoading, setDemoLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -28,30 +27,6 @@ export default function Auth() {
     if (result?.error) setGoogleError(result.error.message);
   };
 
-  const handleDemo = async () => {
-    setDemoLoading(true);
-    try {
-      // Sign in anonymously
-      const { data: { user }, error: authError } = await supabase.auth.signInAnonymously();
-      if (authError || !user) {
-        console.error("Anon auth error:", authError);
-        toast.error("Could not start demo");
-        setDemoLoading(false);
-        return;
-      }
-
-      // Seed demo project via edge function
-      const { data, error } = await supabase.functions.invoke("seed-demo-project");
-      if (error) throw error;
-
-      navigate("/project/dashboard");
-    } catch (err) {
-      console.error("Demo seed error:", err);
-      toast.error("Failed to load demo");
-      setDemoLoading(false);
-    }
-  };
-
   const handleEmailOtp = async () => {
     if (!email.trim()) return;
     setLoading(true);
@@ -63,14 +38,6 @@ export default function Auth() {
     if (!error) setSent(true);
     else console.error("Email OTP error:", error);
   };
-
-  if (demoLoading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background items-center justify-center">
-        <p className="font-mono text-[12px] text-muted-foreground animate-pulse">setting up demo...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-24 pb-6 items-center">
@@ -109,12 +76,6 @@ export default function Auth() {
                 className="font-mono text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
               >
                 continue with email
-              </button>
-              <button
-                onClick={handleDemo}
-                className="font-mono text-[12px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors mt-4"
-              >
-                explore demo
               </button>
             </>
           )}
