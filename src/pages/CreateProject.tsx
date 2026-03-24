@@ -37,13 +37,7 @@ export default function CreateProject() {
         total_budget: formData.totalBudget ? Number(formData.totalBudget) : null,
       });
       setCurrentProjectId(result.id);
-      // Fetch the full record to get the project_code set by the DB trigger
-      const { data: full } = await supabase
-        .from("projects")
-        .select("id, project_code")
-        .eq("id", result.id)
-        .single();
-      setCreatedProject({ id: result.id, project_code: full?.project_code ?? null });
+      setCreatedProject({ id: result.id });
       setStep(4);
     } catch (err) {
       console.error("Create project failed:", err);
