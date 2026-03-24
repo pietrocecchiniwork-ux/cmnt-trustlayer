@@ -167,6 +167,12 @@ export default function TeamScreen() {
                   {canManageTeam && (
                     <>
                       <button
+                        onClick={() => handleCopyInvite(m)}
+                        className="font-mono text-[11px] text-accent"
+                      >
+                        invite
+                      </button>
+                      <button
                         onClick={() => startEdit(m)}
                         className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
                       >
