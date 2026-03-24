@@ -30,9 +30,13 @@ export default function EvidenceList() {
       {/* Evidence items */}
       <div className="flex-1 px-6 pb-6">
         {evidence.map((e) => {
-          const tags = e.ai_tags && typeof e.ai_tags === "object"
-            ? Object.values(e.ai_tags as Record<string, string>)
-            : [];
+          const tagsObj = e.ai_tags && typeof e.ai_tags === "object" ? (e.ai_tags as Record<string, unknown>) : {};
+          const qualityScore = typeof tagsObj.quality_score === "number" ? tagsObj.quality_score : null;
+          const aiSummary = typeof tagsObj.ai_summary === "string" ? tagsObj.ai_summary : null;
+          const displayTags = Object.entries(tagsObj)
+            .filter(([k]) => k !== "quality_score" && k !== "ai_summary")
+            .map(([, v]) => String(v));
+
           return (
             <div key={e.id} className="flex items-start gap-4 py-4 border-b border-foreground/10">
               {e.photo_url ? (
@@ -47,18 +51,44 @@ export default function EvidenceList() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-mono text-[12px] text-foreground">{e.milestone_name}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-mono text-[12px] text-foreground truncate">{e.milestone_name}</p>
+                  {qualityScore != null && (
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div className="flex gap-[2px]">
+                        {Array.from({ length: 10 }, (_, i) => (
+                          <div
+                            key={i}
+                            className={`w-[10px] h-[4px] rounded-[1px] ${
+                              i < qualityScore
+                                ? qualityScore >= 7
+                                  ? "bg-accent"
+                                  : qualityScore >= 4
+                                    ? "bg-yellow-500"
+                                    : "bg-destructive"
+                                : "bg-muted"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="font-mono text-[10px] text-foreground/40">{qualityScore}</span>
+                    </div>
+                  )}
+                </div>
                 <p className="font-mono text-[10px] text-foreground/40 mt-0.5">
                   {format(new Date(e.submitted_at), "dd MMM yyyy · HH:mm")}
                 </p>
+                {aiSummary && (
+                  <p className="font-mono text-[10px] text-foreground/50 italic mt-1 leading-relaxed">{aiSummary}</p>
+                )}
                 {e.note && <p className="font-mono text-[12px] text-foreground/70 mt-1">{e.note}</p>}
                 <div className="flex flex-wrap gap-3 mt-1.5">
-                  {tags.map((tag, j) => (
+                  {displayTags.map((tag, j) => (
                     <span
                       key={j}
                       className="font-mono text-[10px] text-foreground/50 border-b border-foreground/20 pb-0.5"
                     >
-                      {String(tag).replace(/_/g, " ")}
+                      {tag.replace(/_/g, " ")}
                     </span>
                   ))}
                 </div>
