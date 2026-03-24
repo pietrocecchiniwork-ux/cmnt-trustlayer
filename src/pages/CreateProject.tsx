@@ -19,7 +19,7 @@ export default function CreateProject() {
     paymentMode: false,
     milestoneMethod: "" as "" | "upload" | "template" | "manual",
   });
-  const [createdProject, setCreatedProject] = useState<{ id: string; project_code: string | null } | null>(null);
+  const [createdProject, setCreatedProject] = useState<{ id: string } | null>(null);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -36,7 +36,7 @@ export default function CreateProject() {
         total_budget: formData.totalBudget ? Number(formData.totalBudget) : null,
       });
       setCurrentProjectId(result.id);
-      setCreatedProject({ id: result.id, project_code: result.project_code });
+      setCreatedProject({ id: result.id });
       setStep(4);
     } catch (err) {
       console.error("Create project failed:", err);
@@ -57,9 +57,9 @@ export default function CreateProject() {
   };
 
   const handleCopyCode = async () => {
-    if (!createdProject?.project_code) return;
+    if (!createdProject?.id) return;
     try {
-      await navigator.clipboard.writeText(createdProject.project_code);
+      await navigator.clipboard.writeText(createdProject.id);
       toast.success("code copied");
     } catch {
       toast.error("failed to copy");
@@ -202,7 +202,7 @@ export default function CreateProject() {
                 your project code
               </p>
               <p className="font-mono text-[32px] text-foreground tracking-wider leading-none">
-                {createdProject.project_code ?? "—"}
+                {createdProject.id.slice(0, 8).toUpperCase()}
               </p>
               <button
                 onClick={handleCopyCode}

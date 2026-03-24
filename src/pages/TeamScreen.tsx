@@ -13,9 +13,9 @@ export default function TeamScreen() {
   const { role } = useRole();
 
   const handleCopyCode = async () => {
-    if (!project?.project_code) return;
+    if (!project?.id) return;
     try {
-      await navigator.clipboard.writeText(project.project_code);
+      await navigator.clipboard.writeText(project.id);
       toast.success("code copied");
     } catch {
       toast.error("failed to copy");
@@ -51,13 +51,13 @@ export default function TeamScreen() {
           <span className="font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5">whatsapp bot</span>
         </button>
 
-        {role === "pm" && project?.project_code && (
+        {role === "pm" && project?.id && (
           <div className="mt-10">
             <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">
               project code
             </p>
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[22px] text-foreground">{project.project_code}</p>
+              <p className="font-mono text-[14px] text-foreground break-all">{project.id}</p>
               <button
                 onClick={handleCopyCode}
                 className="font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5"
