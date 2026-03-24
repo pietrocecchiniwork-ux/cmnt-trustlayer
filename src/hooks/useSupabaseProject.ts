@@ -250,6 +250,38 @@ export function useAddProjectMember() {
   });
 }
 
+export function useUpdateProjectMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; project_id: string; role?: "pm" | "contractor" | "trade" | "client"; name?: string; phone_number?: string | null; status?: "invited" | "confirmed" | "active" }) => {
+      const { data, error } = await supabase
+        .from("project_members")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) { console.error("updateProjectMember error:", error); throw error; }
+      return data;
+    },
+    onSuccess: (data) => qc.invalidateQueries({ queryKey: ["project-members", data.project_id] }),
+  });
+}
+
+export function useDeleteProjectMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, project_id }: { id: string; project_id: string }) => {
+      const { error } = await supabase
+        .from("project_members")
+        .delete()
+        .eq("id", id);
+      if (error) { console.error("deleteProjectMember error:", error); throw error; }
+      return { project_id };
+    },
+    onSuccess: (data) => qc.invalidateQueries({ queryKey: ["project-members", data.project_id] }),
+  });
+}
+
 // ─── Payments ───
 
 export function usePaymentCertificates(projectId: string | undefined) {

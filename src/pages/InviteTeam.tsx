@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useAddProjectMember, useProject } from "@/hooks/useSupabaseProject";
+import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -12,24 +13,29 @@ interface TeamMember {
   name: string;
   email: string;
   phone: string;
-  company: string;
   role: Role;
 }
-
-const roles: Role[] = ["pm", "contractor", "trade", "client"];
 
 export default function InviteTeam() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { data: project } = useProject(currentProjectId ?? undefined);
+  const { role: currentUserRole } = useRole();
   const addMember = useAddProjectMember();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [company, setCompany] = useState("");
-  const [role, setRole] = useState<Role>("contractor");
+  const [role, setRole] = useState<Role>(currentUserRole === "contractor" ? "trade" : "contractor");
   const [sending, setSending] = useState(false);
+
+  // PM can add any role, contractor can only add trade
+  const availableRoles: Role[] =
+    currentUserRole === "pm"
+      ? ["pm", "contractor", "trade", "client"]
+      : currentUserRole === "contractor"
+      ? ["trade"]
+      : [];
 
   const handleAdd = () => {
     if (!name.trim()) return;
@@ -37,11 +43,10 @@ export default function InviteTeam() {
       toast.error("Please provide email or phone number");
       return;
     }
-    setMembers([...members, { name, email, phone, company, role }]);
+    setMembers([...members, { name, email, phone, role }]);
     setName("");
     setEmail("");
     setPhone("");
-    setCompany("");
   };
 
   const handleSendInvites = async () => {
@@ -83,19 +88,14 @@ export default function InviteTeam() {
         }
       }
 
-      const membersWithEmail = members.filter((member) => member.email.trim().length > 0).length;
       if (savedCount === 0) {
         toast.error("No invites were saved");
-      } else if (membersWithEmail > 0 && !inviteCode) {
-        toast.warning(`${savedCount} invite(s) saved, but email delivery is unavailable because project code is missing`);
-      } else if (emailErrors > 0) {
-        toast.warning(`${savedCount} invite(s) saved · ${emailedCount} email(s) sent · ${emailErrors} failed`);
       } else if (emailedCount > 0) {
         toast.success(`${savedCount} invite(s) saved · ${emailedCount} email(s) sent`);
       } else {
         toast.success(`${savedCount} invite(s) saved`);
       }
-      navigate("/milestone-setup");
+      navigate(-1);
     } catch (err) {
       console.error("Send invites failed:", err);
       const message = err instanceof Error ? err.message : "Failed to send invites";
@@ -105,23 +105,35 @@ export default function InviteTeam() {
     }
   };
 
+  if (availableRoles.length === 0) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">← back</button>
+        <p className="font-sans text-[14px] text-muted-foreground">you don't have permission to add team members</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">← back</button>
-      <h1 className="font-sans text-[22px] text-foreground mb-8">invite team</h1>
+      <h1 className="font-sans text-[22px] text-foreground mb-8">
+        {currentUserRole === "contractor" ? "add trade" : "invite team"}
+      </h1>
 
       <div className="space-y-4 mb-6">
         <input type="text" placeholder="name *" value={name} onChange={(e) => setName(e.target.value)} className="underline-input" />
         <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} className="underline-input" />
         <input type="tel" placeholder="phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="underline-input" />
-        <input type="text" placeholder="company (optional)" value={company} onChange={(e) => setCompany(e.target.value)} className="underline-input" />
-        <div className="flex border-b border-border">
-          {roles.map((r) => (
-            <button key={r} onClick={() => setRole(r)} className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${role === r ? "text-accent border-b-2 border-accent" : "text-muted-foreground"}`}>
-              {r}
-            </button>
-          ))}
-        </div>
+        {availableRoles.length > 1 && (
+          <div className="flex border-b border-border">
+            {availableRoles.map((r) => (
+              <button key={r} onClick={() => setRole(r)} className={`flex-1 py-3 font-mono text-[12px] text-center transition-colors ${role === r ? "text-accent border-b-2 border-accent" : "text-muted-foreground"}`}>
+                {r}
+              </button>
+            ))}
+          </div>
+        )}
         <Button variant="outline" size="default" onClick={handleAdd} className="w-full mt-2">
           <span className="font-sans text-[14px]">add member</span>
         </Button>
@@ -132,7 +144,6 @@ export default function InviteTeam() {
           <div key={i} className="flex items-center justify-between py-3 border-b border-border">
             <div>
               <span className="font-sans text-[14px] text-foreground">{m.name}</span>
-              {m.company && <span className="font-mono text-[11px] text-muted-foreground ml-2">· {m.company}</span>}
             </div>
             <div className="text-right">
               <span className="font-mono text-[11px] text-muted-foreground">{m.role}</span>
