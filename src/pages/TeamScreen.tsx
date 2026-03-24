@@ -51,7 +51,7 @@ export default function TeamScreen() {
           <span className="font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5">whatsapp bot</span>
         </button>
 
-        {role === "pm" && project?.project_code && (
+        {role === "pm" && project?.id && (
           <div className="mt-10">
             <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">
               project code
