@@ -48,7 +48,7 @@ export function useCreateProject() {
         .select()
         .single();
       if (error) { console.error("createProject error:", error); throw error; }
-      // Auto-add creator as PM member
+      // Auto-add creator as PM member — this MUST succeed or milestone RLS will block inserts
       const { error: memberErr } = await supabase
         .from("project_members")
         .insert({
@@ -59,7 +59,10 @@ export function useCreateProject() {
           status: "active" as const,
           joined_at: new Date().toISOString(),
         });
-      if (memberErr) console.error("auto-add PM member error:", memberErr);
+      if (memberErr) {
+        console.error("auto-add PM member error:", memberErr);
+        throw new Error(`Project created but failed to add you as PM: ${memberErr.message}`);
+      }
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
