@@ -66,6 +66,7 @@ export default function InviteTeam() {
           project_id: currentProjectId,
           name: m.name,
           phone_number: m.phone || null,
+          email: m.email.trim().toLowerCase() || null,
           role: m.role,
           status: "invited" as const,
         });

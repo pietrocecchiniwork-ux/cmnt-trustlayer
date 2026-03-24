@@ -355,6 +355,7 @@ export type Database = {
       }
       project_members: {
         Row: {
+          email: string | null
           id: string
           invite_token: string | null
           joined_at: string | null
@@ -366,6 +367,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          email?: string | null
           id?: string
           invite_token?: string | null
           joined_at?: string | null
@@ -377,6 +379,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          email?: string | null
           id?: string
           invite_token?: string | null
           joined_at?: string | null
@@ -573,6 +576,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_invitations_for_user: {
+        Args: { _email: string; _user_id: string }
+        Returns: undefined
+      }
       get_project_role: {
         Args: { _project_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
