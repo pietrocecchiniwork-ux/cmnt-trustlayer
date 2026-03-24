@@ -117,7 +117,7 @@ export default function CreateProject() {
   };
 
   const addTeamRow = () => {
-    setTeamMembers([...teamMembers, { name: "", role: "contractor", phone: "" }]);
+    setTeamMembers([...teamMembers, { name: "", role: "contractor", phone: "", email: "" }]);
   };
 
   const updateTeamMember = (index: number, field: keyof InlineTeamMember, value: string) => {
