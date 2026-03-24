@@ -132,18 +132,23 @@ export default function MilestoneDetailPage() {
         ...(newPayment !== milestone.payment_value && { payment_value: newPayment ?? undefined }),
       });
 
-      const isDateShift = oldValues.due_date !== undefined;
-      await createChange.mutateAsync({
-        project_id: currentProjectId,
-        entity_type: "milestone",
-        entity_id: milestone.id,
-        entity_name: milestone.name,
-        change_type: isDateShift ? "shifted" : "updated",
-        changed_by: currentUser?.id,
-        changed_by_name: currentUser?.email ?? undefined,
-        old_value: Object.keys(oldValues).length ? oldValues : undefined,
-        new_value: Object.keys(newValues).length ? newValues : undefined,
-      });
+      // Change log is best-effort — table may not exist yet
+      try {
+        const isDateShift = oldValues.due_date !== undefined;
+        await createChange.mutateAsync({
+          project_id: currentProjectId,
+          entity_type: "milestone",
+          entity_id: milestone.id,
+          entity_name: milestone.name,
+          change_type: isDateShift ? "shifted" : "updated",
+          changed_by: currentUser?.id,
+          changed_by_name: currentUser?.email ?? undefined,
+          old_value: Object.keys(oldValues).length ? oldValues : undefined,
+          new_value: Object.keys(newValues).length ? newValues : undefined,
+        });
+      } catch (changeErr) {
+        console.warn("[saveEdit] change log failed:", changeErr);
+      }
 
       toast.success(t("milestone.edit") + " saved");
       setEditing(false);
