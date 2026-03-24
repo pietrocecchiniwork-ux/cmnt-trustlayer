@@ -31,9 +31,12 @@ function TopBar() {
 
 export function AppLayout() {
   return (
-    <div className="min-h-screen">
+    <div className="h-screen overflow-hidden">
       <TopBar />
-      <Outlet />
+      {/* Single scrollable region — pb-16 clears the fixed BottomNav (≈64px) */}
+      <div className="h-full overflow-y-auto pb-16">
+        <Outlet />
+      </div>
       <BottomNav />
       <RoleSwitcher />
     </div>

@@ -300,7 +300,7 @@ export default function MilestoneDetailPage() {
   // ─── Contractor view ───
   if (role === "contractor" && milestone.status !== "complete" && milestone.status !== "in_review") {
     return (
-      <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+      <div className="flex flex-col bg-background px-6 pt-12 pb-40">
         <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-4">← back</button>
         <p className={`font-mono text-[96px] leading-none tracking-tight ${numColor}`}>
           {String(milestone.position).padStart(2, "0")}
@@ -349,8 +349,16 @@ export default function MilestoneDetailPage() {
           ))}
         </div>
 
+        {completedCount >= requiredCount && (
+          <p className="font-mono text-[12px] text-success mt-4">✓ all evidence submitted — awaiting PM review</p>
+        )}
+
+        {/* Fixed take photo button above bottom nav */}
         {completedCount < requiredCount && (
-          <div className="pt-4">
+          <div
+            className="fixed bottom-16 left-0 right-0 px-6 bg-background"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
+          >
             {nextItemName && (
               <p className="font-mono text-[12px] text-muted-foreground mb-3">next: {nextItemName}</p>
             )}
@@ -365,18 +373,14 @@ export default function MilestoneDetailPage() {
             </Button>
           </div>
         )}
-
-        {completedCount >= requiredCount && (
-          <p className="font-mono text-[12px] text-success mt-4">✓ all evidence submitted — awaiting PM review</p>
-        )}
       </div>
     );
   }
 
   // ─── PM view ───
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="flex-1 px-6 pt-12 pb-6">
+    <div className="flex flex-col bg-background">
+      <div className="px-6 pt-12 pb-40">
         <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-4">← back</button>
 
         <p className={`font-mono text-[96px] leading-none tracking-tight ${numColor}`}>
@@ -482,32 +486,32 @@ export default function MilestoneDetailPage() {
         </div>
       </div>
 
-      {(milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
-        <div className="px-6 pb-6 space-y-3">
-          <Button variant="approve" size="full" onClick={handleApprove} disabled={updateStatus.isPending}>
-            <span className="font-sans text-[16px]">approve</span>
-          </Button>
-          <Button variant="reject" size="full" onClick={handleReject} disabled={updateStatus.isPending}>
-            <span className="font-sans text-[16px]">reject</span>
-          </Button>
-        </div>
-      )}
-
-      {milestone.status === "overdue" && (
-        <div className="px-6 pb-6">
+      {/* Fixed action buttons above bottom nav */}
+      <div
+        className="fixed bottom-16 left-0 right-0 px-6 bg-background space-y-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
+      >
+        {(milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
+          <>
+            <Button variant="approve" size="full" onClick={handleApprove} disabled={updateStatus.isPending}>
+              <span className="font-sans text-[16px]">approve</span>
+            </Button>
+            <Button variant="reject" size="full" onClick={handleReject} disabled={updateStatus.isPending}>
+              <span className="font-sans text-[16px]">reject</span>
+            </Button>
+          </>
+        )}
+        {milestone.status === "overdue" && (
           <Button variant="destructive" size="full" onClick={() => navigate("/project/cascade-review")}>
             <span className="font-sans text-[16px]">review cascade</span>
           </Button>
-        </div>
-      )}
-
-      {milestone.status === "complete" && (
-        <div className="px-6 pb-6">
+        )}
+        {milestone.status === "complete" && (
           <Button variant="dark" size="full" onClick={() => navigate(`/project/payment-certificate/${milestone.id}`)}>
             <span className="font-sans text-[16px]">view payment certificate</span>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

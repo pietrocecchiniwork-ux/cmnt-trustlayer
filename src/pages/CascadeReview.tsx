@@ -77,7 +77,7 @@ export default function CascadeReview() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-full">
         <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
       </div>
     );
@@ -85,7 +85,7 @@ export default function CascadeReview() {
 
   if (!overdueMilestone) {
     return (
-      <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+      <div className="flex flex-col h-full bg-background px-6 pt-12 pb-6">
         <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">
           ← back
         </button>
@@ -95,7 +95,7 @@ export default function CascadeReview() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+    <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">
         ← back
       </button>
@@ -108,7 +108,6 @@ export default function CascadeReview() {
 
       <div className="divider mt-6 mb-6" />
 
-      {/* Affected milestones table */}
       <div className="space-y-0">
         <div className="flex items-center py-2 border-b border-border">
           <span className="flex-1 font-mono text-[10px] text-muted-foreground">milestone</span>
@@ -140,7 +139,7 @@ export default function CascadeReview() {
         ))}
       </div>
 
-      <div className="flex-1 mt-6">
+      <div className="mt-6">
         <input
           type="text"
           placeholder="reason for delay — required"
@@ -150,16 +149,22 @@ export default function CascadeReview() {
         />
       </div>
 
-      <Button
-        variant="dark"
-        size="full"
-        disabled={!reason.trim() || saving}
-        onClick={handleApprove}
+      {/* Fixed approve button above bottom nav */}
+      <div
+        className="fixed bottom-16 left-0 right-0 px-6 bg-background"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
       >
-        <span className="font-sans text-[16px]">
-          {saving ? "updating..." : "approve revised dates"}
-        </span>
-      </Button>
+        <Button
+          variant="dark"
+          size="full"
+          disabled={!reason.trim() || saving}
+          onClick={handleApprove}
+        >
+          <span className="font-sans text-[16px]">
+            {saving ? "updating..." : "approve revised dates"}
+          </span>
+        </Button>
+      </div>
     </div>
   );
 }

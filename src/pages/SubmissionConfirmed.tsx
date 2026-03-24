@@ -24,11 +24,9 @@ export default function SubmissionConfirmed() {
   const [milestoneStatus, setMilestoneStatus] = useState("");
   const [autoUpdated, setAutoUpdated] = useState(false);
 
-  // Fresh DB queries on mount — no cache
   useEffect(() => {
     if (!milestoneId) return;
 
-    // 1. Fresh evidence count
     supabase
       .from("evidence")
       .select("id", { count: "exact", head: true })
@@ -38,7 +36,6 @@ export default function SubmissionConfirmed() {
         setEvidenceCount(count ?? 0);
       });
 
-    // 2. Fresh milestone record for checklist + status
     supabase
       .from("milestones")
       .select("name, status, checklist")
@@ -59,7 +56,6 @@ export default function SubmissionConfirmed() {
   const allSubmitted = evidenceCount !== null && evidenceCount >= requiredCount;
   const nextItemName = evidenceCount !== null ? checklist[evidenceCount] ?? null : null;
 
-  // Auto-update milestone to in_review when all evidence is submitted
   useEffect(() => {
     if (
       allSubmitted &&
@@ -79,14 +75,14 @@ export default function SubmissionConfirmed() {
 
   if (evidenceCount === null) {
     return (
-      <div className="flex flex-col min-h-screen bg-background px-6 items-center justify-center">
+      <div className="flex flex-col h-full bg-background px-6 items-center justify-center">
         <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 items-center justify-center text-center">
+    <div className="flex flex-col h-full bg-background px-6 items-center justify-center text-center pb-40">
       <p className="font-mono text-[96px] leading-none tracking-tight text-success">
         {evidenceCount}
       </p>
@@ -117,7 +113,11 @@ export default function SubmissionConfirmed() {
         </div>
       )}
 
-      <div className="w-full mt-auto pb-6 space-y-3">
+      {/* Fixed action buttons above bottom nav */}
+      <div
+        className="fixed bottom-16 left-0 right-0 px-6 bg-background space-y-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
+      >
         {!allSubmitted && milestoneId && (
           <Button
             variant="dark"

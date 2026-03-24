@@ -51,7 +51,6 @@ export default function EvidenceConfirm() {
     setPhotoBase64(base64);
     setMilestoneId(mId ?? "");
 
-    // Call tag-evidence edge function
     if (base64) {
       setTagging(true);
       supabase.functions.invoke("tag-evidence", {
@@ -61,13 +60,11 @@ export default function EvidenceConfirm() {
         if (error) {
           console.error("tag-evidence error:", error);
         } else {
-          console.log("AI tags:", data);
           setAiTags(data as AiTags);
         }
       });
     }
 
-    // Request geolocation — never blocks submission
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -86,13 +83,12 @@ export default function EvidenceConfirm() {
     try {
       let photoUrl: string | null = null;
 
-      // Upload photo to storage
       if (photoDataUrl) {
         const blob = await fetch(photoDataUrl).then(r => r.blob());
         photoUrl = await uploadEvidencePhoto(blob, "evidence.jpg");
       }
 
-      const result = await submitEvidence.mutateAsync({
+      await submitEvidence.mutateAsync({
         milestone_id: milestoneId,
         submitted_by: user.id,
         photo_url: photoUrl,
@@ -101,19 +97,16 @@ export default function EvidenceConfirm() {
         ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
       });
 
-      // Clear session
       sessionStorage.removeItem("capturedPhoto");
       sessionStorage.removeItem("capturedPhotoBase64");
       sessionStorage.removeItem("evidenceMilestoneId");
 
-      // Fetch fresh count AFTER insert has resolved
       const { count: freshCount, error: countErr } = await supabase
         .from("evidence")
         .select("id", { count: "exact", head: true })
         .eq("milestone_id", milestoneId);
       if (countErr) console.error("Fresh count error:", countErr);
 
-      // Invalidate caches for other screens
       queryClient.invalidateQueries({ queryKey: ["evidence", milestoneId] });
       queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
 
@@ -130,7 +123,7 @@ export default function EvidenceConfirm() {
   const tagEntries = aiTags ? Object.entries(aiTags) : [];
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+    <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">← back</button>
 
       {photoDataUrl ? (
@@ -169,11 +162,15 @@ export default function EvidenceConfirm() {
         className="underline-input mb-6"
       />
 
-      <div className="flex-1" />
-
-      <Button variant="dark" size="full" onClick={handleSubmit} disabled={submitting || !milestoneId}>
-        <span className="font-sans text-[16px]">{submitting ? "submitting..." : "submit"}</span>
-      </Button>
+      {/* Fixed submit button above bottom nav */}
+      <div
+        className="fixed bottom-16 left-0 right-0 px-6 bg-background"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
+      >
+        <Button variant="dark" size="full" onClick={handleSubmit} disabled={submitting || !milestoneId}>
+          <span className="font-sans text-[16px]">{submitting ? "submitting..." : "submit"}</span>
+        </Button>
+      </div>
     </div>
   );
 }

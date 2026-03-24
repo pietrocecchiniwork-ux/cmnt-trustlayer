@@ -23,7 +23,7 @@ export default function CameraScreen() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-surface-dark px-6 pt-12 pb-6 items-center">
+    <div className="flex flex-col h-full bg-surface-dark px-6 pt-12 pb-32 items-center">
       <div className="w-full flex items-center justify-between mb-4">
         <p className="font-mono text-[12px] text-surface-dark-foreground">capture evidence</p>
         <button onClick={() => navigate(-1)} className="font-mono text-[18px] text-surface-dark-foreground">✕</button>
@@ -39,7 +39,6 @@ export default function CameraScreen() {
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-surface-dark-foreground" />
           <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-surface-dark-foreground" />
           <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-surface-dark-foreground" />
-
           <div className="absolute inset-8 flex flex-col items-center justify-center gap-2">
             <p className="font-mono text-[11px] text-surface-dark-muted">tap shutter to select photo</p>
           </div>
@@ -55,12 +54,18 @@ export default function CameraScreen() {
         onChange={handleCapture}
       />
 
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="w-16 h-16 rounded-full border-2 border-surface-dark-foreground flex items-center justify-center mt-8"
+      {/* Fixed shutter button above bottom nav */}
+      <div
+        className="fixed bottom-16 left-0 right-0 flex justify-center pb-4"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
       >
-        <span className="w-12 h-12 rounded-full bg-surface-dark-foreground" />
-      </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-16 h-16 rounded-full border-2 border-surface-dark-foreground flex items-center justify-center"
+        >
+          <span className="w-12 h-12 rounded-full bg-surface-dark-foreground" />
+        </button>
+      </div>
     </div>
   );
 }

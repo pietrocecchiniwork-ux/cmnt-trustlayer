@@ -151,7 +151,7 @@ export default function TaskDetail() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-8">
+    <div className="flex flex-col bg-background px-6 pt-12 pb-40">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-6">← back</button>
 
       {/* ─── Task name ─── */}
@@ -239,25 +239,25 @@ export default function TaskDetail() {
 
       <div className="divider mt-6" />
 
-      {/* ─── Actions ─── */}
-      <div className="mt-6 space-y-3">
-        {/* Assigned contractor: submit evidence if not complete */}
-        {isAssignedUser && task.status !== "complete" && (
-          <Button
-            variant="dark"
-            size="full"
-            onClick={() =>
-              navigate(
-                `/project/camera?milestoneId=${task.milestone_id}&item=${encodeURIComponent(task.name)}&taskId=${task.id}`
-              )
-            }
-          >
-            <span className="font-sans text-[16px]">submit evidence</span>
-          </Button>
-        )}
-
-        {/* Status progression */}
-        {(isPM || isAssignedUser) && task.status !== "complete" && (
+      {/* ─── Fixed action buttons above bottom nav ─── */}
+      {(isAssignedUser || isPM) && task.status !== "complete" && (
+        <div
+          className="fixed bottom-16 left-0 right-0 px-6 bg-background space-y-3"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
+        >
+          {isAssignedUser && (
+            <Button
+              variant="dark"
+              size="full"
+              onClick={() =>
+                navigate(
+                  `/project/camera?milestoneId=${task.milestone_id}&item=${encodeURIComponent(task.name)}&taskId=${task.id}`
+                )
+              }
+            >
+              <span className="font-sans text-[16px]">submit evidence</span>
+            </Button>
+          )}
           <div className="flex gap-2">
             {task.status === "pending" && (
               <button
@@ -276,8 +276,8 @@ export default function TaskDetail() {
               </button>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ─── Activity log ─── */}
       {changes.length > 0 && (
