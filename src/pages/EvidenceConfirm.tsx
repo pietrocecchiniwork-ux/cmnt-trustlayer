@@ -118,7 +118,7 @@ export default function EvidenceConfirm() {
       queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
 
       toast.success("Evidence submitted");
-      navigate(`/project/submission-confirmed?milestoneId=${milestoneId}&freshCount=${freshCount ?? 0}&evidenceCode=${encodeURIComponent(result?.evidence_code ?? evidenceCode)}`);
+      navigate(`/project/submission-confirmed?milestoneId=${milestoneId}&freshCount=${freshCount ?? 0}&evidenceCode=${encodeURIComponent(evidenceCode)}`);
     } catch (err) {
       console.error("Submit evidence failed:", err);
       toast.error("Failed to submit evidence");

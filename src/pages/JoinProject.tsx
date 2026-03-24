@@ -30,7 +30,7 @@ export default function JoinProject() {
       const { data, error } = await supabase
         .from("projects")
         .select("id, name")
-        .eq("project_code", trimmed)
+        .eq("id", trimmed)
         .single();
       if (error || !data) {
         setNotFound(true);

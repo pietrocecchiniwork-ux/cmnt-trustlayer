@@ -36,7 +36,7 @@ export default function CreateProject() {
         total_budget: formData.totalBudget ? Number(formData.totalBudget) : null,
       });
       setCurrentProjectId(result.id);
-      setCreatedProject({ id: result.id, project_code: result.project_code });
+      setCreatedProject({ id: result.id });
       setStep(4);
     } catch (err) {
       console.error("Create project failed:", err);

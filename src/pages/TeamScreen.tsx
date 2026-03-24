@@ -57,7 +57,7 @@ export default function TeamScreen() {
               project code
             </p>
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[22px] text-foreground">{project.project_code}</p>
+              <p className="font-mono text-[14px] text-foreground break-all">{project.id}</p>
               <button
                 onClick={handleCopyCode}
                 className="font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5"
