@@ -115,7 +115,7 @@ export function BurgerMenu() {
             </button>
             {projects.length > 1 && (
               <button
-                onClick={() => go("/home")}
+                onClick={() => go("/")}
                 className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors"
               >
                 {t("project.switch_project")}
