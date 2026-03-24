@@ -403,6 +403,7 @@ export type Database = {
       projects: {
         Row: {
           address: string | null
+          cancelled_at: string | null
           created_at: string
           created_by: string | null
           end_date: string | null
@@ -415,6 +416,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          cancelled_at?: string | null
           created_at?: string
           created_by?: string | null
           end_date?: string | null
@@ -427,6 +429,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          cancelled_at?: string | null
           created_at?: string
           created_by?: string | null
           end_date?: string | null

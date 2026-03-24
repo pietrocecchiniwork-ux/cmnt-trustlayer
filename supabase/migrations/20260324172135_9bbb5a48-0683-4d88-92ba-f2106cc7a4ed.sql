@@ -1,0 +1,1 @@
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS cancelled_at timestamptz DEFAULT NULL;
