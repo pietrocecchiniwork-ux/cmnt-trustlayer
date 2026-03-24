@@ -42,9 +42,10 @@ export default function TemplateSelect() {
       }
       toast.success(`${selectedTemplate.milestones.length} milestones created`);
       navigate("/project/dashboard");
-    } catch (err) {
-      console.error("Template load failed:", err);
-      toast.error("Failed to create milestones");
+    } catch (err: any) {
+      const msg = err?.message || err?.toString() || "Unknown error";
+      console.error("Template load failed:", msg, err);
+      toast.error(`Failed to create milestones: ${msg}`);
     } finally {
       setLoading(false);
     }
