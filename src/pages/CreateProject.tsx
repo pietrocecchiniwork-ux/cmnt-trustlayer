@@ -58,7 +58,7 @@ export default function CreateProject() {
   };
 
   const handleCopyCode = async () => {
-    const code = createdProject?.project_code;
+    const code = createdProject?.id;
     if (!code) return;
     try {
       await navigator.clipboard.writeText(code);
