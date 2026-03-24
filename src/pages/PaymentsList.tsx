@@ -80,6 +80,7 @@ export default function PaymentsList() {
           <span className="font-mono text-[12px] text-surface-dark-foreground border-b border-surface-dark-foreground pb-0.5">expenses</span>
         </div>
       </div>
+      </div>
     </div>
   );
 }

@@ -70,6 +70,7 @@ export default function EvidenceList() {
           <p className="font-mono text-[13px] text-foreground/40 mt-4">no evidence submitted yet</p>
         )}
       </div>
+      </div>
     </div>
   );
 }
