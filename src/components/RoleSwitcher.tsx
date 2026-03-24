@@ -4,6 +4,7 @@ import { useRole, UserRole } from "@/contexts/RoleContext";
 const roles: { value: UserRole; label: string }[] = [
   { value: "pm", label: "pm" },
   { value: "contractor", label: "contractor" },
+  { value: "trade", label: "trade" },
   { value: "client", label: "client" },
 ];
 

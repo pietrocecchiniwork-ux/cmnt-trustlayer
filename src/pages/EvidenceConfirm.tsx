@@ -149,7 +149,7 @@ export default function EvidenceConfirm() {
         ai_tags_original: tagsEdited && aiTagsOriginal ? JSON.parse(JSON.stringify(aiTagsOriginal)) : null,
         human_override: tagsEdited,
         task_id: taskId || null,
-        evidence_code: evidenceCode,
+        
         gps_lat: coords?.lat ?? null,
         gps_lng: coords?.lng ?? null,
       };
@@ -168,7 +168,6 @@ export default function EvidenceConfirm() {
             note: note || null,
             channel: "app" as const,
             ai_tags: aiTags ? JSON.parse(JSON.stringify(aiTags)) : {},
-            evidence_code: evidenceCode,
           });
         } else {
           throw lcmErr;

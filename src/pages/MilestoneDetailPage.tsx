@@ -132,18 +132,23 @@ export default function MilestoneDetailPage() {
         ...(newPayment !== milestone.payment_value && { payment_value: newPayment ?? undefined }),
       });
 
-      const isDateShift = oldValues.due_date !== undefined;
-      await createChange.mutateAsync({
-        project_id: currentProjectId,
-        entity_type: "milestone",
-        entity_id: milestone.id,
-        entity_name: milestone.name,
-        change_type: isDateShift ? "shifted" : "updated",
-        changed_by: currentUser?.id,
-        changed_by_name: currentUser?.email ?? undefined,
-        old_value: Object.keys(oldValues).length ? oldValues : undefined,
-        new_value: Object.keys(newValues).length ? newValues : undefined,
-      });
+      // Change log is best-effort — table may not exist yet
+      try {
+        const isDateShift = oldValues.due_date !== undefined;
+        await createChange.mutateAsync({
+          project_id: currentProjectId,
+          entity_type: "milestone",
+          entity_id: milestone.id,
+          entity_name: milestone.name,
+          change_type: isDateShift ? "shifted" : "updated",
+          changed_by: currentUser?.id,
+          changed_by_name: currentUser?.email ?? undefined,
+          old_value: Object.keys(oldValues).length ? oldValues : undefined,
+          new_value: Object.keys(newValues).length ? newValues : undefined,
+        });
+      } catch (changeErr) {
+        console.warn("[saveEdit] change log failed:", changeErr);
+      }
 
       toast.success(t("milestone.edit") + " saved");
       setEditing(false);
@@ -159,33 +164,42 @@ export default function MilestoneDetailPage() {
   const confirmApprove = async (assessment: string) => {
     setQaPrompt(false);
     try {
-      console.log("[confirmApprove] step 1: updating evidence items", evidenceItems.length);
-      await Promise.all(
-        evidenceItems.map((e) =>
-          updateEvidence.mutateAsync({
-            id: e.id,
-            milestoneId: milestone.id,
-            quality_assessment: assessment,
-            label_dimensions_captured: 2,
-            verification_level: 3,
-          })
-        )
-      );
+      // Evidence update is best-effort — never blocks approval
+      try {
+        console.log("[confirmApprove] step 1: updating evidence items", evidenceItems.length);
+        await Promise.all(
+          evidenceItems.map((e) =>
+            updateEvidence.mutateAsync({
+              id: e.id,
+              milestoneId: milestone.id,
+            })
+          )
+        );
+      } catch (evidenceErr) {
+        console.warn("[confirmApprove] evidence update failed (continuing anyway):", evidenceErr);
+      }
+
       console.log("[confirmApprove] step 2: updating milestone status to complete");
       await updateStatus.mutateAsync({ id: milestone.id, status: "complete", projectId: currentProjectId! });
-      console.log("[confirmApprove] step 3: creating change log");
-      if (currentProjectId) {
-        await createChange.mutateAsync({
-          project_id: currentProjectId,
-          entity_type: "milestone",
-          entity_id: milestone.id,
-          entity_name: milestone.name,
-          change_type: "approved",
-          changed_by: currentUser?.id,
-          changed_by_name: currentUser?.email ?? undefined,
-          new_value: { quality_assessment: assessment },
-        });
+
+      // Change log is also best-effort
+      try {
+        if (currentProjectId) {
+          await createChange.mutateAsync({
+            project_id: currentProjectId,
+            entity_type: "milestone",
+            entity_id: milestone.id,
+            entity_name: milestone.name,
+            change_type: "approved",
+            changed_by: currentUser?.id,
+            changed_by_name: currentUser?.email ?? undefined,
+            new_value: { quality_assessment: assessment },
+          });
+        }
+      } catch (changeErr) {
+        console.warn("[confirmApprove] change log failed (continuing anyway):", changeErr);
       }
+
       console.log("[confirmApprove] done");
       toast.success(t("milestone.approved"));
       navigate(-1);
@@ -552,7 +566,7 @@ export default function MilestoneDetailPage() {
             </button>
           </div>
         )}
-        {!qaPrompt && (milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
+        {!qaPrompt && role === "pm" && (milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
           <>
             <Button variant="approve" size="full" onClick={handleApprove} disabled={updateStatus.isPending}>
               <span className="font-sans text-[16px]">{t("milestone.approve")}</span>

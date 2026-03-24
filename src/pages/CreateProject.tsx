@@ -20,7 +20,7 @@ export default function CreateProject() {
     paymentMode: false,
     milestoneMethod: "" as "" | "upload" | "template" | "manual",
   });
-  const [createdProject, setCreatedProject] = useState<{ id: string; project_code: string | null } | null>(null);
+  const [createdProject, setCreatedProject] = useState<{ id: string } | null>(null);
 
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -37,13 +37,7 @@ export default function CreateProject() {
         total_budget: formData.totalBudget ? Number(formData.totalBudget) : null,
       });
       setCurrentProjectId(result.id);
-      // Fetch the full record to get the project_code set by the DB trigger
-      const { data: full } = await supabase
-        .from("projects")
-        .select("id, project_code")
-        .eq("id", result.id)
-        .single();
-      setCreatedProject({ id: result.id, project_code: full?.project_code ?? null });
+      setCreatedProject({ id: result.id });
       setStep(4);
     } catch (err) {
       console.error("Create project failed:", err);
@@ -64,7 +58,7 @@ export default function CreateProject() {
   };
 
   const handleCopyCode = async () => {
-    const code = createdProject?.project_code;
+    const code = createdProject?.id;
     if (!code) return;
     try {
       await navigator.clipboard.writeText(code);
@@ -209,8 +203,8 @@ export default function CreateProject() {
               <p className="font-mono text-[10px] text-muted-foreground mb-3 tracking-widest uppercase">
                 your project code
               </p>
-              <p className="font-mono text-[32px] text-foreground tracking-wider leading-none">
-                {createdProject.project_code ?? "…"}
+              <p className="font-mono text-[18px] text-foreground tracking-wider leading-none break-all">
+                {createdProject.id}
               </p>
               <button
                 onClick={handleCopyCode}

@@ -76,8 +76,15 @@ export default function Auth() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setPasswordLoading(false);
-      if (error) setPasswordError(error.message);
-      else navigate("/");
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          setPasswordError("Invalid email or password. If your account was created by an admin, check that your email is confirmed.");
+        } else if (error.message.includes("Email not confirmed")) {
+          setPasswordError("Please confirm your email address before signing in.");
+        } else {
+          setPasswordError(error.message);
+        }
+      } else navigate("/");
     }
   };
 

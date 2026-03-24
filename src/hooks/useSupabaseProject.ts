@@ -195,13 +195,12 @@ export function useUpdateEvidence() {
     }: {
       id: string;
       milestoneId: string;
-      quality_assessment?: string;
-      label_dimensions_captured?: number;
-      verification_level?: number;
+      note?: string;
+      ai_tags?: Record<string, unknown>;
     }) => {
       const { data, error } = await supabase
         .from("evidence")
-        .update(updates)
+        .update(updates as Record<string, unknown>)
         .eq("id", id)
         .select()
         .single();
