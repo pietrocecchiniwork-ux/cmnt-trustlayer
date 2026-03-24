@@ -13,6 +13,7 @@ interface AiTags {
   completion_stage: string;
   condition_flag: string;
   building_element: string;
+  quality_score?: number;
   ai_summary?: string;
 }
 

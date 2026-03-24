@@ -46,6 +46,7 @@ Analyse this construction photo carefully. Return a JSON object with exactly the
 - completion_stage: one of [not_started, early, mid, first_fix, second_fix, finishing, complete, snagging]
 - condition_flag: one of [good, acceptable, concern, defect]
 - building_element: one of [foundations, walls, floor, ceiling, roof, pipework, wiring, joists, plasterwork, fixtures, windows, doors, insulation]
+- quality_score: integer 1-10 rating how well this photo matches the milestone/task context (10 = perfect match showing exactly the expected work complete, 1 = completely unrelated). If no context was provided, rate the photo quality and clarity instead.
 - ai_summary: a short one-sentence description of what you see in the photo and whether it appears to match the milestone/task context
 
 Return ONLY the JSON object, no other text.`;
