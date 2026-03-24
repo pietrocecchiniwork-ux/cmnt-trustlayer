@@ -276,6 +276,30 @@ export default function EvidenceConfirm() {
         </div>
       )}
 
+      {aiTags?.quality_score != null && (
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex gap-[3px]">
+            {Array.from({ length: 10 }, (_, i) => (
+              <div
+                key={i}
+                className={`w-[18px] h-[6px] rounded-[1px] transition-colors ${
+                  i < aiTags.quality_score!
+                    ? aiTags.quality_score! >= 7
+                      ? "bg-accent"
+                      : aiTags.quality_score! >= 4
+                        ? "bg-yellow-500"
+                        : "bg-destructive"
+                    : "bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {aiTags.quality_score}/10
+          </span>
+        </div>
+      )}
+
       {aiTags?.ai_summary && (
         <p className="font-mono text-[11px] text-muted-foreground italic mb-4 leading-relaxed">
           {aiTags.ai_summary}
