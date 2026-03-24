@@ -287,10 +287,17 @@ function StepProject() {
 
 export default function Demo() {
   const [step, setStep] = useState(0);
+  const navigate = useNavigate();
   const next = () => setStep((s) => s + 1);
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+      <button
+        onClick={() => navigate("/auth")}
+        className="font-mono text-[11px] text-muted-foreground text-left mb-4 self-start"
+      >
+        ← exit
+      </button>
       <ProgressDots current={step} total={6} />
       <div className="flex flex-col flex-1">
         {step === 0 && <StepMilestone onNext={next} />}
