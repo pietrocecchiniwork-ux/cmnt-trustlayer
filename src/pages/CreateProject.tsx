@@ -202,7 +202,7 @@ export default function CreateProject() {
                 your project code
               </p>
               <p className="font-mono text-[32px] text-foreground tracking-wider leading-none">
-                {createdProject.project_code ?? "—"}
+                {createdProject.id.slice(0, 8).toUpperCase()}
               </p>
               <button
                 onClick={handleCopyCode}
