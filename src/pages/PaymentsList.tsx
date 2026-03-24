@@ -17,7 +17,8 @@ export default function PaymentsList() {
     .reduce((sum, m) => sum + Number(m.payment_value ?? 0), 0);
 
   return (
-    <div className="flex flex-col min-h-screen screen-dark">
+    <div className="min-h-screen screen-dark">
+     <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
       {/* Header */}
       <div className="px-6 pt-10">
         <div className="flex items-center justify-between mb-6">
