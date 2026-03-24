@@ -5,8 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { toast } from "sonner";
 
-type Role = "contractor" | "trade" | "client";
-
 export default function JoinProject() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -17,10 +15,8 @@ export default function JoinProject() {
   const [looking, setLooking] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [found, setFound] = useState<{ id: string; name: string } | null>(null);
-
-  const [memberName, setMemberName] = useState("");
-  const [role, setRole] = useState<Role | "">("");
   const [joining, setJoining] = useState(false);
+  const [noInvite, setNoInvite] = useState(false);
 
   const lookupProject = async (inputCode: string) => {
     const trimmed = inputCode.trim().toUpperCase();
@@ -29,6 +25,7 @@ export default function JoinProject() {
     setLooking(true);
     setNotFound(false);
     setFound(null);
+    setNoInvite(false);
 
     try {
       const { data, error } = await supabase.rpc("lookup_project_by_code", {
@@ -61,16 +58,20 @@ export default function JoinProject() {
   };
 
   const handleJoin = async () => {
-    if (!found || !memberName.trim() || !role) return;
+    if (!found) return;
     setJoining(true);
+    setNoInvite(false);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         navigate("/auth");
         return;
       }
 
-      const { data: existingMembership, error: existingError } = await supabase
+      // Check if already an active member
+      const { data: existingActive } = await supabase
         .from("project_members")
         .select("id")
         .eq("project_id", found.id)
@@ -78,26 +79,43 @@ export default function JoinProject() {
         .eq("status", "active")
         .maybeSingle();
 
-      if (existingError) throw existingError;
-
-      if (existingMembership) {
+      if (existingActive) {
         setCurrentProjectId(found.id);
         toast.success(`already joined ${found.name}`);
         navigate("/project/dashboard");
         return;
       }
 
-      const { error } = await supabase.from("project_members").insert({
-        project_id: found.id,
-        user_id: user.id,
-        name: memberName.trim(),
-        role: role as Role,
-        status: "active" as const,
-        joined_at: new Date().toISOString(),
-      });
+      // Look for an existing invite (status = 'invited', no user_id yet)
+      // Match by user email against invite — we match by checking all invited members
+      // and claiming one that hasn't been claimed yet
+      const { data: invites } = await supabase
+        .from("project_members")
+        .select("id, name, role")
+        .eq("project_id", found.id)
+        .eq("status", "invited")
+        .is("user_id", null);
+
+      if (!invites || invites.length === 0) {
+        setNoInvite(true);
+        return;
+      }
+
+      // Claim the first available invite
+      const invite = invites[0];
+      const { error } = await supabase
+        .from("project_members")
+        .update({
+          user_id: user.id,
+          status: "active" as const,
+          joined_at: new Date().toISOString(),
+        })
+        .eq("id", invite.id);
+
       if (error) throw error;
+
       setCurrentProjectId(found.id);
-      toast.success(`joined ${found.name}`);
+      toast.success(`joined ${found.name} as ${invite.role}`);
       navigate("/project/dashboard");
     } catch (err) {
       console.error("Join project error:", err);
@@ -107,12 +125,6 @@ export default function JoinProject() {
       setJoining(false);
     }
   };
-
-  const roles: { key: Role; label: string }[] = [
-    { key: "contractor", label: "contractor" },
-    { key: "trade", label: "trade" },
-    { key: "client", label: "client" },
-  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
@@ -156,37 +168,17 @@ export default function JoinProject() {
         {found && (
           <>
             <h1 className="font-sans text-[22px] text-foreground mb-1">{found.name}</h1>
-            <p className="font-mono text-[12px] text-muted-foreground mb-8">{code.trim().toUpperCase()}</p>
-
-            <div className="space-y-6">
-              <input
-                type="text"
-                placeholder="your name"
-                value={memberName}
-                onChange={(e) => setMemberName(e.target.value)}
-                className="underline-input"
-                autoFocus
-              />
-
-              <div className="space-y-2">
-                <p className="font-mono text-[11px] text-muted-foreground tracking-widest uppercase">your role</p>
-                <div className="space-y-2">
-                  {roles.map((r) => (
-                    <button
-                      key={r.key}
-                      onClick={() => setRole(r.key)}
-                      className={`w-full text-left px-4 py-3 border transition-colors ${
-                        role === r.key
-                          ? "border-foreground bg-foreground/5"
-                          : "border-border"
-                      }`}
-                    >
-                      <span className="font-sans text-[15px] text-foreground">{r.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <p className="font-mono text-[12px] text-muted-foreground mb-8">
+              {code.trim().toUpperCase()}
+            </p>
+            <p className="font-sans text-[14px] text-muted-foreground">
+              tap join to claim your invitation. your project manager must have added you to the team first.
+            </p>
+            {noInvite && (
+              <p className="font-mono text-[12px] text-destructive mt-4">
+                no pending invitation found — ask your project manager to add you to the team first
+              </p>
+            )}
           </>
         )}
       </div>
@@ -198,7 +190,9 @@ export default function JoinProject() {
           disabled={code.trim().length === 0 || looking}
           onClick={handleLookup}
         >
-          <span className="font-sans text-[16px]">{looking ? "looking up..." : "find project"}</span>
+          <span className="font-sans text-[16px]">
+            {looking ? "looking up..." : "find project"}
+          </span>
         </Button>
       )}
 
@@ -206,10 +200,12 @@ export default function JoinProject() {
         <Button
           variant="dark"
           size="full"
-          disabled={!memberName.trim() || !role || joining}
+          disabled={joining}
           onClick={handleJoin}
         >
-          <span className="font-sans text-[16px]">{joining ? "joining..." : "join project"}</span>
+          <span className="font-sans text-[16px]">
+            {joining ? "joining..." : "join project"}
+          </span>
         </Button>
       )}
     </div>
