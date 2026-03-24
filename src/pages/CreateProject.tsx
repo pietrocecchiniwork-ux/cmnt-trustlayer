@@ -79,7 +79,7 @@ export default function CreateProject() {
           name: m.name.trim(),
           role: m.role,
           phone_number: m.phone.trim() || null,
-          email: null,
+          email: m.email.trim().toLowerCase() || null,
           status: "invited" as const,
         });
       }
