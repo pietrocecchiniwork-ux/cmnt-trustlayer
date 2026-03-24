@@ -271,10 +271,14 @@ export function useDeleteProjectMember() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, project_id }: { id: string; project_id: string }) => {
+      // Verify we have an active session before deleting
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Session expired — please log in again");
       const { error } = await supabase
         .from("project_members")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("project_id", project_id);
       if (error) { console.error("deleteProjectMember error:", error); throw error; }
       return { project_id };
     },
