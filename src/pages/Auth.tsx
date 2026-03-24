@@ -40,13 +40,6 @@ export default function Auth() {
     else console.error("Email OTP error:", error);
   };
 
-  if (demoLoading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background items-center justify-center">
-        <p className="font-mono text-[12px] text-muted-foreground">setting up demo...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-24 pb-6 items-center">
