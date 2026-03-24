@@ -79,12 +79,6 @@ export default function Auth() {
               >
                 continue with email
               </button>
-              <button
-                onClick={handleDemo}
-                className="font-mono text-[12px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors mt-4"
-              >
-                explore demo
-              </button>
             </>
           )}
         </div>
