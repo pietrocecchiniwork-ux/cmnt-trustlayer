@@ -27,29 +27,15 @@ export default function JoinProject() {
     setNotFound(false);
     setFound(null);
     try {
-      // Try project_code first, then fall back to id
-      let { data, error } = await supabase
-        .from("projects")
-        .select("id, name, project_code")
-        .eq("project_code", trimmed.toUpperCase())
-        .single();
-      if (error || !data) {
-        // Fall back to lookup by UUID id only if input looks like a UUID
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (uuidRegex.test(trimmed)) {
-          const res = await supabase
-            .from("projects")
-            .select("id, name, project_code")
-            .eq("id", trimmed)
-            .single();
-          data = res.data;
-          error = res.error;
-        }
-      }
-      if (error || !data) {
+      // Use security definer RPC to lookup by project_code (bypasses RLS)
+      const { data, error } = await supabase.rpc("lookup_project_by_code", {
+        _code: trimmed.toUpperCase(),
+      });
+      if (error || !data || (Array.isArray(data) && data.length === 0)) {
         setNotFound(true);
       } else {
-        setFound({ id: data.id, name: data.name });
+        const project = Array.isArray(data) ? data[0] : data;
+        setFound({ id: project.id, name: project.name });
       }
     } catch {
       setNotFound(true);
