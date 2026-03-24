@@ -210,7 +210,7 @@ export default function CreateProject() {
                 your project code
               </p>
               <p className="font-mono text-[18px] text-foreground tracking-wider leading-none break-all">
-                {createdProject.id}
+                {createdProject.code}
               </p>
               <button
                 onClick={handleCopyCode}

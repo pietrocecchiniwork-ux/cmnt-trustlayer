@@ -21,17 +21,28 @@ export default function JoinProject() {
   const [joining, setJoining] = useState(false);
 
   const handleLookup = async () => {
-    const trimmed = code.trim().toUpperCase();
+    const trimmed = code.trim();
     if (!trimmed) return;
     setLooking(true);
     setNotFound(false);
     setFound(null);
     try {
-      const { data, error } = await supabase
+      // Try project_code first, then fall back to id
+      let { data, error } = await supabase
         .from("projects")
-        .select("id, name")
-        .eq("id", trimmed)
+        .select("id, name, project_code")
+        .eq("project_code", trimmed.toUpperCase())
         .single();
+      if (error || !data) {
+        // Fall back to lookup by UUID id
+        const res = await supabase
+          .from("projects")
+          .select("id, name, project_code")
+          .eq("id", trimmed.toLowerCase())
+          .single();
+        data = res.data;
+        error = res.error;
+      }
       if (error || !data) {
         setNotFound(true);
       } else {
