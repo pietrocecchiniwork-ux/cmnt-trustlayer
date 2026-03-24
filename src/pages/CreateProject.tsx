@@ -43,7 +43,7 @@ export default function CreateProject() {
         .select("project_code")
         .eq("id", result.id)
         .single();
-      setCreatedProject({ id: result.id, code: proj?.project_code || result.id });
+      setCreatedProject({ id: result.id, code: proj?.project_code ?? "" });
       setStep(4);
     } catch (err) {
       console.error("Create project failed:", err);
@@ -65,7 +65,10 @@ export default function CreateProject() {
 
   const handleCopyCode = async () => {
     const c = createdProject?.code;
-    if (!c) return;
+    if (!c) {
+      toast.error("code unavailable");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(c);
       toast.success("code copied");
@@ -210,7 +213,7 @@ export default function CreateProject() {
                 your project code
               </p>
               <p className="font-mono text-[18px] text-foreground tracking-wider leading-none break-all">
-                {createdProject.code}
+                {createdProject.code || "code generating…"}
               </p>
               <button
                 onClick={handleCopyCode}
