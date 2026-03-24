@@ -13,8 +13,11 @@ export default function TeamScreen() {
   const { role } = useRole();
 
   const handleCopyCode = async () => {
-    const code = project?.project_code || currentProjectId;
-    if (!code) return;
+    const code = project?.project_code;
+    if (!code) {
+      toast.error("project code unavailable");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(code);
       toast.success("code copied");
@@ -58,7 +61,7 @@ export default function TeamScreen() {
               project code
             </p>
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[14px] text-foreground break-all">{project?.project_code || currentProjectId}</p>
+              <p className="font-mono text-[14px] text-foreground break-all">{project?.project_code ?? "not generated yet"}</p>
               <button
                 onClick={handleCopyCode}
                 className="font-mono text-[12px] text-accent border-b border-accent/40 pb-0.5"
