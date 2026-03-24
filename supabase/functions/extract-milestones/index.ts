@@ -2,10 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const CLAUDE_PROMPT =
+const PROMPT =
   "You are analysing a UK construction document. Extract every milestone, stage, or work package. Return ONLY a valid JSON array where each object has: name (string max 60 chars), due_date (ISO date or null), payment_value (number or null), trade (string or null), description (string one sentence). No explanation. No markdown.";
 
 const IMAGE_TYPES = ["jpg", "jpeg", "png"];
@@ -21,12 +21,12 @@ function base64ToText(base64: string): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }), {
+    return new Response(JSON.stringify({ error: "AI not configured" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
 
   const isImage = IMAGE_TYPES.includes(file_type.toLowerCase());
 
-  let claudeMessages: unknown[];
+  let messages: unknown[];
 
   if (isImage) {
     const mediaTypeMap: Record<string, string> = {
@@ -62,70 +62,73 @@ Deno.serve(async (req: Request) => {
     };
     const mediaType = mediaTypeMap[file_type.toLowerCase()] ?? "image/jpeg";
 
-    claudeMessages = [
+    messages = [
       {
         role: "user",
         content: [
           {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: mediaType,
-              data: file_base64,
-            },
+            type: "image_url",
+            image_url: { url: `data:${mediaType};base64,${file_base64}` },
           },
-          {
-            type: "text",
-            text: CLAUDE_PROMPT,
-          },
+          { type: "text", text: PROMPT },
         ],
       },
     ];
   } else {
-    // pdf or docx — decode base64 to text
     const text = base64ToText(file_base64);
-    claudeMessages = [
+    messages = [
       {
         role: "user",
-        content: `${CLAUDE_PROMPT}\n\nDocument content:\n${text}`,
+        content: `${PROMPT}\n\nDocument content:\n${text}`,
       },
     ];
   }
 
-  const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+  const gatewayRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5-20250514",
-      max_tokens: 2048,
-      messages: claudeMessages,
+      model: "google/gemini-2.5-flash",
+      messages,
     }),
   });
 
-  if (!claudeRes.ok) {
-    const err = await claudeRes.text();
-    console.error("Claude API error:", err);
-    return new Response(JSON.stringify({ error: "Claude API error", detail: err }), {
+  if (!gatewayRes.ok) {
+    const err = await gatewayRes.text();
+    console.error("AI gateway error:", gatewayRes.status, err);
+
+    if (gatewayRes.status === 429) {
+      return new Response(JSON.stringify({ error: "Rate limited, please try again shortly." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (gatewayRes.status === 402) {
+      return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+        status: 402,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "AI error", detail: err }), {
       status: 502,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const claudeData = await claudeRes.json();
-  const rawText: string = claudeData?.content?.[0]?.text ?? "";
+  const data = await gatewayRes.json();
+  const rawText: string = data.choices?.[0]?.message?.content ?? "";
 
   let milestones: unknown[] = [];
   try {
-    // Strip any accidental markdown fences
     const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
     milestones = JSON.parse(cleaned);
     if (!Array.isArray(milestones)) milestones = [];
   } catch (e) {
-    console.error("Failed to parse Claude response:", rawText, e);
+    console.error("Failed to parse AI response:", rawText, e);
     milestones = [];
   }
 
