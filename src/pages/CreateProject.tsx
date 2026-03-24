@@ -283,6 +283,13 @@ export default function CreateProject() {
                     onChange={(e) => updateTeamMember(idx, "name", e.target.value)}
                     className="underline-input"
                   />
+                  <input
+                    type="email"
+                    placeholder="email"
+                    value={member.email}
+                    onChange={(e) => updateTeamMember(idx, "email", e.target.value)}
+                    className="underline-input"
+                  />
                   <div className="flex border-b border-border">
                     {roles.map((r) => (
                       <button
