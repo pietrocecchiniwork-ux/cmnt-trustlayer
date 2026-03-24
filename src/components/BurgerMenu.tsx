@@ -108,7 +108,7 @@ export function BurgerMenu() {
               {t("menu.projects")}
             </p>
             <button
-              onClick={() => go("/project/new")}
+              onClick={() => go("/create-project")}
               className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors"
             >
               {t("project.new_project")}
