@@ -5,6 +5,7 @@ import { useProjectChanges, useCurrentUser, useProjectMembers } from "@/hooks/us
 import type { ProjectChange } from "@/hooks/useSupabaseProject";
 import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
 
 const entityDot: Record<string, string> = {
@@ -83,55 +84,82 @@ export default function ProjectActivity() {
   const { data: members = [] } = useProjectMembers(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
 
-  // Debug: log project ID on mount
+  // Fetch all tasks across all milestones for this project (for assignment-based filtering)
+  const { data: allProjectTasks = [] } = useQuery({
+    queryKey: ["all-project-tasks", currentProjectId],
+    enabled: !!currentProjectId && (role === "contractor" || role === "trade"),
+    queryFn: async () => {
+      const { data: milestones } = await supabase
+        .from("milestones")
+        .select("id")
+        .eq("project_id", currentProjectId!);
+      if (!milestones?.length) return [];
+      const milestoneIds = milestones.map(m => m.id);
+      const { data: tasks } = await (supabase as any)
+        .from("tasks")
+        .select("id, assigned_to")
+        .in("milestone_id", milestoneIds);
+      return (tasks ?? []) as { id: string; assigned_to: string | null }[];
+    },
+  });
+
   useEffect(() => {
-    console.log("[ProjectActivity] currentProjectId on mount:", currentProjectId);
-    // If still null after 2 seconds, treat as no-data (avoid infinite loading)
     const t = setTimeout(() => {
-      if (!currentProjectId) {
-        console.warn("[ProjectActivity] currentProjectId still null after 2s — showing empty state");
-        setTimedOut(true);
-      }
+      if (!currentProjectId) setTimedOut(true);
     }, 2000);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Direct RLS check: query project_changes and log any error
-  useEffect(() => {
-    if (!currentProjectId) return;
-    supabase
-      .from("project_changes" as never)
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", currentProjectId)
-      .then(({ count, error }) => {
-        if (error) console.error("[ProjectActivity] RLS check error:", error);
-        else console.log("[ProjectActivity] project_changes count:", count);
-      });
   }, [currentProjectId]);
 
-  // Role-based filtering:
-  // PM/client → see all activity
-  // contractor → see own + trade members' activity
-  // trade → see only own activity
   const filteredChanges = useMemo(() => {
     if (!user) return [];
+
+    // PM and client: see everything
     if (role === "pm" || role === "client") return changes;
 
+    const userId = user.id;
+
     if (role === "contractor") {
-      // Get user IDs of trade members in this project
-      const tradeUserIds = new Set(
-        members.filter(m => m.role === "trade").map(m => m.user_id).filter(Boolean)
+      // Get user IDs of contractor + trade members
+      const teamUserIds = new Set(
+        members
+          .filter(m => m.role === "contractor" || m.role === "trade")
+          .map(m => m.user_id)
+          .filter(Boolean)
       );
-      tradeUserIds.add(user.id); // include own
-      return changes.filter(c => c.changed_by && tradeUserIds.has(c.changed_by));
+      teamUserIds.add(userId);
+
+      // Get task IDs assigned to contractor/trade users
+      const teamTaskIds = new Set(
+        allProjectTasks
+          .filter(t => t.assigned_to && teamUserIds.has(t.assigned_to))
+          .map(t => t.id)
+      );
+
+      return changes.filter(c => {
+        // Own changes
+        if (c.changed_by === userId) return true;
+        // All milestone changes
+        if (c.entity_type === "milestone") return true;
+        // Task changes for team tasks
+        if (c.entity_type === "task" && c.entity_id && teamTaskIds.has(c.entity_id)) return true;
+        return false;
+      });
     }
 
-    // trade: only own activity
-    return changes.filter(c => c.changed_by === user.id);
-  }, [changes, role, user, members]);
+    // Trade: only own activity + tasks assigned to them
+    const myTaskIds = new Set(
+      allProjectTasks
+        .filter(t => t.assigned_to === userId)
+        .map(t => t.id)
+    );
 
-  // Query is disabled when projectId is null — treat as empty, not loading
+    return changes.filter(c => {
+      if (c.changed_by === userId) return true;
+      if (c.entity_type === "task" && c.entity_id && myTaskIds.has(c.entity_id)) return true;
+      return false;
+    });
+  }, [changes, role, user, members, allProjectTasks]);
+
   const showLoading = (isLoading && !!currentProjectId) && !timedOut;
   const showEmpty = (!showLoading && filteredChanges.length === 0) || (!currentProjectId && timedOut);
 
