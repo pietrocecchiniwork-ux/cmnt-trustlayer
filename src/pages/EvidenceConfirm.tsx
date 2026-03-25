@@ -147,7 +147,6 @@ export default function EvidenceConfirm() {
 
   const doSubmit = async () => {
     if (!state?.milestoneId || !user) return;
-    }
     setSubmitting(true);
     try {
       // Upload all photos and submit one evidence record per photo
