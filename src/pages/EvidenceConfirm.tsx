@@ -319,6 +319,21 @@ export default function EvidenceConfirm() {
         </div>
       )}
 
+      {aiTags?.context_match && (
+        <div className="mb-3">
+          <span className={`font-mono text-[11px] px-2 py-0.5 rounded ${
+            aiTags.context_match === "exact_match" ? "bg-success/20 text-success" :
+            aiTags.context_match === "related" ? "bg-accent/20 text-accent" :
+            aiTags.context_match === "partial" ? "bg-yellow-500/20 text-yellow-600" :
+            "bg-destructive/20 text-destructive"
+          }`}>
+            {aiTags.context_match === "exact_match" ? "✓ matches task" :
+             aiTags.context_match === "related" ? "~ related to task" :
+             aiTags.context_match === "partial" ? "⚠ partial match" :
+             "✕ doesn't match task"}
+          </span>
+        </div>
+
       {aiTags?.ai_summary && (
         <p className="font-mono text-[11px] text-muted-foreground italic mb-4 leading-relaxed">
           {aiTags.ai_summary}
