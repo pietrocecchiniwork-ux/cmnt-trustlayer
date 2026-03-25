@@ -125,52 +125,52 @@ export default function ProjectActivity() {
   const filteredChanges = useMemo(() => {
     if (!user) return [];
 
-    // PM and client: see everything
-    if (role === "pm" || role === "client") return changes;
+    // PM / contractor (main contractor) — see everything
+    if (role === "pm" || role === "contractor") return changes;
 
-    const userId = user.id;
-
-    if (role === "contractor") {
-      // Get user IDs of contractor + trade members
-      const teamUserIds = new Set(
-        members
-          .filter(m => m.role === "contractor" || m.role === "trade")
-          .map(m => m.user_id)
-          .filter(Boolean)
+    // Client — only approvals and payment releases
+    if (role === "client") {
+      return changes.filter(c =>
+        c.change_type === "approved" || c.change_type === "released"
       );
-      teamUserIds.add(userId);
-
-      // Get task IDs assigned to contractor/trade users
-      const teamTaskIds = new Set(
-        allProjectTasks
-          .filter(t => t.assigned_to && teamUserIds.has(t.assigned_to))
-          .map(t => t.id)
-      );
-
-      return changes.filter(c => {
-        // Own changes
-        if (c.changed_by === userId) return true;
-        // All milestone changes
-        if (c.entity_type === "milestone") return true;
-        // Task changes for team tasks
-        if (c.entity_type === "task" && c.entity_id && teamTaskIds.has(c.entity_id)) return true;
-        return false;
-      });
     }
 
-    // Trade: only own activity + tasks assigned to them
+    // Trade — see changes on milestones/tasks they are assigned to
+    const userId = user.id;
+    const myMilestoneIds = new Set(myMilestoneAssignments);
+
+    // Also include milestones where user has an assigned task
+    const myTaskMilestoneIds = new Set(
+      allProjectTasks
+        .filter(t => t.assigned_to === userId)
+        .map(t => t.milestone_id)
+    );
     const myTaskIds = new Set(
       allProjectTasks
         .filter(t => t.assigned_to === userId)
         .map(t => t.id)
     );
 
+    // All task IDs on milestones the trade is connected to (to see sibling activity)
+    const connectedMilestoneIds = new Set([...myMilestoneIds, ...myTaskMilestoneIds]);
+    const connectedTaskIds = new Set(
+      allProjectTasks
+        .filter(t => connectedMilestoneIds.has(t.milestone_id))
+        .map(t => t.id)
+    );
+
     return changes.filter(c => {
+      // Own changes always visible
       if (c.changed_by === userId) return true;
-      if (c.entity_type === "task" && c.entity_id && myTaskIds.has(c.entity_id)) return true;
+      // Milestone changes on connected milestones
+      if (c.entity_type === "milestone" && c.entity_id && connectedMilestoneIds.has(c.entity_id)) return true;
+      // Task changes on connected milestones
+      if (c.entity_type === "task" && c.entity_id && connectedTaskIds.has(c.entity_id)) return true;
+      // Evidence on connected milestones
+      if (c.entity_type === "evidence" && c.entity_id && connectedMilestoneIds.has(c.entity_id)) return true;
       return false;
     });
-  }, [changes, role, user, members, allProjectTasks]);
+  }, [changes, role, user, myMilestoneAssignments, allProjectTasks]);
 
   const showLoading = (isLoading && !!currentProjectId) && !timedOut;
   const showEmpty = (!showLoading && filteredChanges.length === 0) || (!currentProjectId && timedOut);
