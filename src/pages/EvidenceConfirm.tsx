@@ -346,12 +346,35 @@ export default function EvidenceConfirm() {
         className="fixed bottom-16 left-0 right-0 px-6 bg-background"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
       >
-        <Button variant="dark" size="full" onClick={handleSubmit} disabled={submitting || !state.milestoneId}>
+        <Button variant="dark" size="full" onClick={handleSubmitClick} disabled={submitting || !state.milestoneId}>
           <span className="font-sans text-[16px]">
             {submitting ? "submitting..." : `submit ${state.photos.length} photo${state.photos.length !== 1 ? "s" : ""}`}
           </span>
         </Button>
       </div>
+
+      <AlertDialog open={showWarning} onOpenChange={setShowWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-mono text-[14px]">⚠ AI flagged potential issues</AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-[12px] space-y-2">
+              {aiTags?.condition_flag === "fail" && (
+                <span className="block text-destructive">• Condition flagged as <strong>fail</strong></span>
+              )}
+              {aiTags?.milestone_match === false && (
+                <span className="block text-destructive">• Photo doesn't appear to match this milestone</span>
+              )}
+              <span className="block mt-2 text-muted-foreground">Are you sure you want to submit this evidence?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-mono text-[12px]">go back</AlertDialogCancel>
+            <AlertDialogAction onClick={doSubmit} className="font-mono text-[12px] bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              submit anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
