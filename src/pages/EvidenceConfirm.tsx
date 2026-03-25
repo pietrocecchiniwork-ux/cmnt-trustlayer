@@ -77,6 +77,12 @@ export default function EvidenceConfirm() {
     const tId = sessionStorage.getItem("evidenceTaskId");
     const mName = sessionStorage.getItem("evidenceMilestoneName") ?? "";
     const tName = sessionStorage.getItem("evidenceTaskName") ?? "";
+    const pName = sessionStorage.getItem("evidenceProjectName") ?? "";
+    const mDesc = sessionStorage.getItem("evidenceMilestoneDescription") ?? "";
+    const tDesc = sessionStorage.getItem("evidenceTaskDescription") ?? "";
+    let allTasksParsed: { name: string; status: string }[] = [];
+    try { allTasksParsed = JSON.parse(sessionStorage.getItem("evidenceAllTasks") ?? "[]"); } catch {}
+
     setPhotoDataUrl(photo);
     setPhotoBase64(base64);
     setMilestoneId(mId ?? "");
@@ -85,7 +91,15 @@ export default function EvidenceConfirm() {
     if (base64) {
       setTagging(true);
       supabase.functions.invoke("tag-evidence", {
-        body: { image_base64: base64, milestone_name: mName, task_name: tName },
+        body: {
+          image_base64: base64,
+          milestone_name: mName,
+          task_name: tName,
+          project_name: pName,
+          milestone_description: mDesc,
+          task_description: tDesc,
+          all_tasks: allTasksParsed,
+        },
       }).then(({ data, error }) => {
         setTagging(false);
         if (error) {
