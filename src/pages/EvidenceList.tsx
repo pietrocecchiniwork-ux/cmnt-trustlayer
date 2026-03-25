@@ -31,10 +31,11 @@ export default function EvidenceList() {
       <div className="flex-1 px-6 pb-6">
         {evidence.map((e) => {
           const tagsObj = e.ai_tags && typeof e.ai_tags === "object" ? (e.ai_tags as Record<string, unknown>) : {};
-          const qualityScore = typeof tagsObj.quality_score === "number" ? tagsObj.quality_score : null;
-          const aiSummary = typeof tagsObj.ai_summary === "string" ? tagsObj.ai_summary : null;
+          const milestoneMatch = typeof tagsObj.milestone_match === "boolean" ? tagsObj.milestone_match : null;
+          const conditionFlag = typeof tagsObj.condition_flag === "string" ? tagsObj.condition_flag : null;
+          const aiComment = typeof tagsObj.ai_comment === "string" ? tagsObj.ai_comment : null;
           const displayTags = Object.entries(tagsObj)
-            .filter(([k]) => k !== "quality_score" && k !== "ai_summary")
+            .filter(([k]) => k !== "milestone_match" && k !== "ai_comment" && k !== "condition_flag")
             .map(([, v]) => String(v));
 
           return (
