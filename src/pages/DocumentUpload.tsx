@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useCreateMilestone, useMilestones, useProjectMembers } from "@/hooks/useSupabaseProject";
+import { useCreateMilestone, useCreateChange, useCurrentUser, useMilestones, useProjectMembers } from "@/hooks/useSupabaseProject";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -27,12 +27,10 @@ interface EditableRow {
 function bestMemberMatch(trade: string | null, members: Tables<"project_members">[]): string {
   if (!trade || members.length === 0) return "";
   const t = trade.toLowerCase();
-  // Name-first: member whose name contains the trade word
   const byName = members.find(
     (m) => m.name.toLowerCase().includes(t) || t.includes(m.name.toLowerCase().split(" ")[0])
   );
   if (byName) return byName.id;
-  // Role fallback: trades map to "trade" or "contractor" roles
   const byRole = members.find((m) => m.role === "trade" || m.role === "contractor");
   return byRole?.id ?? "";
 }
@@ -41,12 +39,16 @@ export default function DocumentUpload() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const createMilestone = useCreateMilestone();
+  const createChange = useCreateChange();
+  const { data: currentUser } = useCurrentUser();
   const { data: existingMilestones = [] } = useMilestones(currentProjectId ?? undefined);
   const { data: members = [] } = useProjectMembers(currentProjectId ?? undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<"upload" | "loading" | "extracted" | "error">("upload");
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const assignableMembers = members.filter((m) => m.user_id !== null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,7 +116,8 @@ export default function DocumentUpload() {
     ]);
   };
 
-  const canConfirm = rows.length > 0 && rows.every((r) => r.name.trim() !== "" && r.due_date !== "");
+  // Every row must have a name, due date, AND an assignee
+  const canConfirm = rows.length > 0 && rows.every((r) => r.name.trim() !== "" && r.due_date !== "" && r.assigned_member_id !== "");
 
   const handleConfirm = async () => {
     if (!currentProjectId) {
@@ -125,14 +128,40 @@ export default function DocumentUpload() {
     try {
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-        await createMilestone.mutateAsync({
+        const member = assignableMembers.find((m) => m.id === r.assigned_member_id);
+        const newMilestone = await createMilestone.mutateAsync({
           project_id: currentProjectId,
           name: r.name,
           due_date: r.due_date || null,
           payment_value: r.payment_value !== "" ? Number(r.payment_value) : null,
           position: existingMilestones.length + i + 1,
           created_from: "extracted" as const,
+          ...(member?.user_id && {
+            assigned_to: member.user_id,
+            assigned_to_name: member.name,
+          }),
         });
+
+        // Log change
+        try {
+          await createChange.mutateAsync({
+            project_id: currentProjectId,
+            entity_type: "milestone",
+            entity_id: newMilestone.id,
+            entity_name: r.name,
+            change_type: "created",
+            changed_by: currentUser?.id,
+            changed_by_name: currentUser?.email ?? undefined,
+            new_value: {
+              name: r.name,
+              due_date: r.due_date || null,
+              payment_value: r.payment_value !== "" ? Number(r.payment_value) : null,
+              assigned_to_name: member?.name ?? null,
+            },
+          });
+        } catch (e) {
+          console.warn("Change log failed:", e);
+        }
       }
       toast.success("Milestones added");
       navigate("/project/dashboard");
@@ -190,7 +219,7 @@ export default function DocumentUpload() {
               <span className="font-mono text-[10px] text-muted-foreground">milestone</span>
               <span className="font-mono text-[10px] text-muted-foreground">£ amount</span>
               <span className="font-mono text-[10px] text-muted-foreground">due date</span>
-              <span className="font-mono text-[10px] text-muted-foreground">assignee</span>
+              <span className="font-mono text-[10px] text-muted-foreground">assignee <span className="text-destructive">*</span></span>
               <span />
             </div>
 
@@ -199,7 +228,6 @@ export default function DocumentUpload() {
                 key={i}
                 className="grid grid-cols-[1fr_80px_100px_110px_24px] gap-2 items-center py-3 border-b border-border"
               >
-                {/* Name */}
                 <input
                   type="text"
                   value={r.name}
@@ -207,8 +235,6 @@ export default function DocumentUpload() {
                   placeholder="milestone name"
                   className={inputCls}
                 />
-
-                {/* Payment value */}
                 <input
                   type="number"
                   value={r.payment_value}
@@ -216,30 +242,26 @@ export default function DocumentUpload() {
                   placeholder="0"
                   className={monoInputCls}
                 />
-
-                {/* Due date */}
                 <input
                   type="date"
                   value={r.due_date}
                   onChange={(e) => updateRow(i, { due_date: e.target.value })}
                   className={monoInputCls}
                 />
-
-                {/* Assignee */}
                 <select
                   value={r.assigned_member_id}
                   onChange={(e) => updateRow(i, { assigned_member_id: e.target.value })}
-                  className="bg-transparent border-0 border-b border-border outline-none font-mono text-[11px] text-muted-foreground w-full"
+                  className={`bg-transparent border-0 border-b outline-none font-mono text-[11px] w-full ${
+                    r.assigned_member_id ? "text-foreground border-border" : "text-destructive border-destructive/40"
+                  }`}
                 >
-                  <option value="">unassigned</option>
-                  {members.map((m) => (
+                  <option value="">— required —</option>
+                  {assignableMembers.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
                     </option>
                   ))}
                 </select>
-
-                {/* Remove */}
                 <button
                   onClick={() => removeRow(i)}
                   className="font-mono text-[11px] text-muted-foreground hover:text-foreground text-right"

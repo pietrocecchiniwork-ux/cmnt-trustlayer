@@ -90,16 +90,16 @@ export function useMilestones(projectId: string | undefined) {
 export function useCreateMilestone() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (milestone: TablesInsert<"milestones">) => {
-      const { data, error } = await supabase
+    mutationFn: async (milestone: TablesInsert<"milestones"> & { assigned_to?: string; assigned_to_name?: string }) => {
+      const { data, error } = await db
         .from("milestones")
         .insert(milestone)
         .select()
         .single();
       if (error) { console.error("createMilestone error:", error); throw error; }
-      return data;
+      return data as Tables<"milestones"> & { assigned_to?: string; assigned_to_name?: string };
     },
-    onSuccess: (data) => qc.invalidateQueries({ queryKey: ["milestones", data.project_id] }),
+    onSuccess: (data: any) => qc.invalidateQueries({ queryKey: ["milestones", data.project_id] }),
   });
 }
 
@@ -551,8 +551,10 @@ export function useUpdateMilestone() {
       name?: string;
       due_date?: string;
       payment_value?: number;
+      assigned_to?: string | null;
+      assigned_to_name?: string | null;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("milestones")
         .update(updates)
         .eq("id", id)

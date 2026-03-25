@@ -31,12 +31,14 @@ export function BottomNav() {
     ],
     contractor: [
       { key: "navigation.dashboard", path: "/project/dashboard" },
+      { key: "navigation.my_work", path: "/project/milestones" },
       { key: "navigation.evidence", path: "/project/evidence" },
       { key: "navigation.activity", path: "/project/activity" },
       { key: "navigation.team", path: "/project/team" },
     ],
     trade: [
       { key: "navigation.dashboard", path: "/project/dashboard" },
+      { key: "navigation.my_work", path: "/project/milestones" },
       { key: "navigation.evidence", path: "/project/evidence" },
       { key: "navigation.activity", path: "/project/activity" },
     ],

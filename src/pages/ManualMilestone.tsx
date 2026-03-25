@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useCreateMilestone, useCreateTask, useMilestones, useProjectMembers } from "@/hooks/useSupabaseProject";
+import { useCreateMilestone, useCreateTask, useCreateChange, useCurrentUser, useMilestones, useProjectMembers } from "@/hooks/useSupabaseProject";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +17,8 @@ export default function ManualMilestone() {
   const { currentProjectId } = useProjectContext();
   const createMilestone = useCreateMilestone();
   const createTask = useCreateTask();
+  const createChange = useCreateChange();
+  const { data: currentUser } = useCurrentUser();
   const { data: existingMilestones = [] } = useMilestones(currentProjectId ?? undefined);
   const { data: members = [], isLoading: membersLoading } = useProjectMembers(currentProjectId ?? undefined);
   const [formData, setFormData] = useState({
@@ -49,6 +51,13 @@ export default function ManualMilestone() {
       toast.error("Milestone name is required");
       return;
     }
+    if (!selectedMemberId) {
+      toast.error("Please assign this milestone to a team member");
+      return;
+    }
+
+    const selectedMember = assignableMembers.find((m) => m.id === selectedMemberId);
+
     try {
       const newMilestone = await createMilestone.mutateAsync({
         project_id: currentProjectId,
@@ -58,6 +67,10 @@ export default function ManualMilestone() {
         position: existingMilestones.length + 1,
         created_from: "manual" as const,
         checklist: [],
+        ...(selectedMember?.user_id && {
+          assigned_to: selectedMember.user_id,
+          assigned_to_name: selectedMember.name,
+        }),
       });
 
       // Create task records for each non-empty task draft
@@ -76,7 +89,6 @@ export default function ManualMilestone() {
         })
       );
 
-      const selectedMember = assignableMembers.find((m) => m.id === selectedMemberId);
       if (selectedMember?.user_id) {
         const { error: assignErr } = await supabase
           .from("milestone_assignments")
@@ -86,6 +98,27 @@ export default function ManualMilestone() {
             role: selectedMember.role,
           });
         if (assignErr) console.error("milestone_assignments insert error:", assignErr);
+      }
+
+      // Log change
+      try {
+        await createChange.mutateAsync({
+          project_id: currentProjectId,
+          entity_type: "milestone",
+          entity_id: newMilestone.id,
+          entity_name: formData.name,
+          change_type: "created",
+          changed_by: currentUser?.id,
+          changed_by_name: currentUser?.email ?? undefined,
+          new_value: {
+            name: formData.name,
+            due_date: formData.dueDate || null,
+            payment_value: formData.paymentValue ? Number(formData.paymentValue) : 0,
+            assigned_to_name: selectedMember?.name ?? null,
+          },
+        });
+      } catch (e) {
+        console.warn("Change log failed:", e);
       }
 
       toast.success("Milestone saved");
@@ -116,20 +149,20 @@ export default function ManualMilestone() {
         </div>
 
         <div>
-          <p className="font-mono text-[10px] text-muted-foreground mb-2">assign to</p>
+          <p className="font-mono text-[10px] text-muted-foreground mb-2">assign to <span className="text-destructive">*</span></p>
           {membersLoading ? (
             <select disabled className="underline-input text-muted-foreground font-mono text-[13px] bg-transparent w-full">
               <option>loading team...</option>
             </select>
           ) : assignableMembers.length === 0 ? (
             <p className="font-sans text-[13px] text-muted-foreground border-b border-border py-2">
-              invite team members first —{" "}
+              no team members yet — you will be assigned as PM.{" "}
               <button
                 type="button"
                 onClick={() => navigate("/project/team")}
                 className="text-accent underline underline-offset-4"
               >
-                go to team
+                invite team
               </button>
             </p>
           ) : (
@@ -138,7 +171,7 @@ export default function ManualMilestone() {
               onChange={(e) => setSelectedMemberId(e.target.value)}
               className="underline-input font-mono text-[13px] bg-transparent w-full"
             >
-              <option value="">— none —</option>
+              <option value="">— select assignee —</option>
               {assignableMembers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name} — {m.role}
