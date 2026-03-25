@@ -221,7 +221,7 @@ export default function EvidenceConfirm() {
     }
   };
 
-  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary" && k !== "quality_score") : [];
+  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary" && k !== "quality_score" && k !== "context_match") : [];
 
   return (
     <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
@@ -251,7 +251,7 @@ export default function EvidenceConfirm() {
 
       {correcting && editedTags ? (
         <div className="mb-4 space-y-2">
-          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && k !== "quality_score" && tagOptions[k]).map((key) => (
+          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && k !== "quality_score" && k !== "context_match" && tagOptions[k]).map((key) => (
             <div key={key} className="flex items-center gap-2">
               <span className="font-mono text-[10px] text-muted-foreground w-36 flex-shrink-0">
                 {key.replace(/_/g, " ")}
