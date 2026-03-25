@@ -78,6 +78,9 @@ export default function ProjectActivity() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { data: changes = [], isLoading } = useProjectChanges(currentProjectId ?? undefined);
+  const { data: user } = useCurrentUser();
+  const { role } = useRole();
+  const { data: members = [] } = useProjectMembers(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
 
   // Debug: log project ID on mount
