@@ -213,6 +213,26 @@ function PMDashboard() {
                   </div>
                 </div>
               )}
+
+              {pending.length > 0 && (
+                <div>
+                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">not started</p>
+                  <div className="space-y-2">
+                    {pending.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => navigate(`/project/milestone/${m.id}`)}
+                        className="w-full flex items-center justify-between py-3 border-b border-border text-left"
+                      >
+                        <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          {(m as any).assigned_to_name ?? "unassigned"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
