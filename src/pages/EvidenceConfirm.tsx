@@ -333,6 +333,7 @@ export default function EvidenceConfirm() {
              "✕ doesn't match task"}
           </span>
         </div>
+      )}
 
       {aiTags?.ai_summary && (
         <p className="font-mono text-[11px] text-muted-foreground italic mb-4 leading-relaxed">
