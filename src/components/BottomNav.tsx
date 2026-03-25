@@ -2,7 +2,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useRole } from "@/contexts/RoleContext";
 import { useTranslation } from "react-i18next";
 
-// Map routes to their screen color classes
 const routeColorMap: Record<string, { bg: string; text: string; activeText: string; borderColor: string }> = {
   "/project/dashboard":  { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
   "/project/milestones": { bg: "bg-surface-dark", text: "text-surface-dark-foreground/40", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
@@ -21,26 +20,33 @@ export function BottomNav() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  if (role === "client") return null;
+  const linksByRole: Record<string, { key: string; path: string }[]> = {
+    pm: [
+      { key: "navigation.dashboard", path: "/project/dashboard" },
+      { key: "navigation.milestones", path: "/project/milestones" },
+      { key: "navigation.evidence", path: "/project/evidence" },
+      { key: "navigation.payments", path: "/project/payments" },
+      { key: "navigation.activity", path: "/project/activity" },
+      { key: "navigation.team", path: "/project/team" },
+    ],
+    contractor: [
+      { key: "navigation.dashboard", path: "/project/dashboard" },
+      { key: "navigation.evidence", path: "/project/evidence" },
+      { key: "navigation.activity", path: "/project/activity" },
+      { key: "navigation.team", path: "/project/team" },
+    ],
+    trade: [
+      { key: "navigation.dashboard", path: "/project/dashboard" },
+      { key: "navigation.evidence", path: "/project/evidence" },
+      { key: "navigation.activity", path: "/project/activity" },
+    ],
+    client: [
+      { key: "navigation.dashboard", path: "/project/dashboard" },
+      { key: "navigation.activity", path: "/project/activity" },
+    ],
+  };
 
-  const pmLinks = [
-    { key: "navigation.dashboard", path: "/project/dashboard" },
-    { key: "navigation.milestones", path: "/project/milestones" },
-    { key: "navigation.evidence", path: "/project/evidence" },
-    { key: "navigation.payments", path: "/project/payments" },
-    { key: "navigation.activity", path: "/project/activity" },
-    { key: "navigation.team", path: "/project/team" },
-  ];
-
-  const contractorLinks = [
-    { key: "navigation.dashboard", path: "/project/dashboard" },
-    { key: "navigation.my_tasks", path: "/project/milestones" },
-    { key: "navigation.submit", path: "/project/submit" },
-    { key: "navigation.activity", path: "/project/activity" },
-    { key: "navigation.team", path: "/project/team" },
-  ];
-
-  const links = role === "pm" ? pmLinks : contractorLinks;
+  const links = linksByRole[role] ?? linksByRole.client;
   const colors = routeColorMap[location.pathname] ?? defaultColors;
 
   return (

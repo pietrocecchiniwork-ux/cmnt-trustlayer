@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useUpdateMilestoneStatus } from "@/hooks/useSupabaseProject";
+import { useUpdateMilestoneStatus, useCurrentUser } from "@/hooks/useSupabaseProject";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 
@@ -11,6 +11,7 @@ export default function SubmissionConfirmed() {
   const milestoneId = searchParams.get("milestoneId") ?? "";
   const { currentProjectId } = useProjectContext();
   const updateStatus = useUpdateMilestoneStatus();
+  const { data: user } = useCurrentUser();
 
   const freshCountParam = searchParams.get("freshCount");
   const evidenceCode = searchParams.get("evidenceCode");
@@ -28,7 +29,7 @@ export default function SubmissionConfirmed() {
   const db = supabase as any;
 
   useEffect(() => {
-    if (!milestoneId) return;
+    if (!milestoneId || !user) return;
 
     // Fresh evidence count
     supabase
@@ -51,21 +52,24 @@ export default function SubmissionConfirmed() {
         if (data) setMilestoneStatus(data.status);
       });
 
-    // Task count as requiredCount; next incomplete task for prompt
+    // Find next incomplete task assigned to current user
     db
       .from("tasks")
-      .select("id, name, status, position")
+      .select("id, name, status, position, assigned_to")
       .eq("milestone_id", milestoneId)
       .order("position", { ascending: true })
-      .then(({ data: tasks, error }: { data: { id: string; name: string; status: string; position: number }[] | null; error: unknown }) => {
+      .then(({ data: tasks, error }: { data: { id: string; name: string; status: string; position: number; assigned_to: string | null }[] | null; error: unknown }) => {
         if (error) { console.error("Tasks fetch error:", error); return; }
         const all = tasks ?? [];
         setRequiredCount(all.length || 1);
-        const next = all.find((t) => t.status !== "complete") ?? null;
+        // Find next incomplete task (prefer ones assigned to current user)
+        const myIncomplete = all.find(t => t.status !== "complete" && t.assigned_to === user.id);
+        const anyIncomplete = all.find(t => t.status !== "complete");
+        const next = myIncomplete ?? anyIncomplete ?? null;
         setNextTaskName(next?.name ?? null);
         setNextTaskId(next?.id ?? null);
       });
-  }, [milestoneId]);
+  }, [milestoneId, user]);
 
   const allSubmitted = evidenceCount !== null && evidenceCount >= requiredCount;
 
@@ -111,22 +115,23 @@ export default function SubmissionConfirmed() {
       {allSubmitted ? (
         <div>
           <p className="font-mono text-[10px] text-success mb-2">✓ all evidence submitted</p>
-          <p className="font-sans text-[14px] text-foreground">awaiting PM review</p>
+          <p className="font-sans text-[14px] text-foreground">all done — awaiting PM review</p>
+        </div>
+      ) : nextTaskName ? (
+        <div>
+          <p className="font-mono text-[10px] text-muted-foreground mb-2">next up</p>
+          <p className="font-sans text-[14px] text-foreground">{nextTaskName}</p>
         </div>
       ) : (
         <div>
           <p className="font-mono text-[10px] text-muted-foreground mb-2">still needed</p>
-          {nextTaskName ? (
-            <p className="font-sans text-[14px] text-foreground">{nextTaskName}</p>
-          ) : (
-            <p className="font-sans text-[14px] text-foreground">
-              {requiredCount - evidenceCount} more item{requiredCount - evidenceCount !== 1 ? "s" : ""}
-            </p>
-          )}
+          <p className="font-sans text-[14px] text-foreground">
+            {requiredCount - evidenceCount} more item{requiredCount - evidenceCount !== 1 ? "s" : ""}
+          </p>
         </div>
       )}
 
-      {/* Fixed action buttons above bottom nav */}
+      {/* Fixed action buttons */}
       <div
         className="fixed bottom-16 left-0 right-0 px-6 bg-background space-y-3"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
@@ -141,19 +146,23 @@ export default function SubmissionConfirmed() {
               )
             }
           >
-            <span className="font-sans text-[16px]">submit next item</span>
+            <span className="font-sans text-[16px]">submit next</span>
           </Button>
         )}
         <Button
           variant={allSubmitted ? "dark" : "outline"}
           size="full"
           onClick={() =>
-            milestoneId
-              ? navigate(`/project/milestone/${milestoneId}`)
-              : navigate("/project/dashboard")
+            allSubmitted
+              ? navigate("/project/dashboard")
+              : milestoneId
+                ? navigate(`/project/milestone/${milestoneId}`)
+                : navigate("/project/dashboard")
           }
         >
-          <span className="font-sans text-[16px]">back to milestone</span>
+          <span className="font-sans text-[16px]">
+            {allSubmitted ? "back to project" : "back to milestone"}
+          </span>
         </Button>
       </div>
     </div>
