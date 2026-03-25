@@ -84,7 +84,7 @@ function PMDashboard() {
           .select("assigned_to_name")
           .eq("milestone_id", id)
           .not("assigned_to_name", "is", null);
-        const names = [...new Set((tasks ?? []).map((t: any) => t.assigned_to_name as string))];
+        const names = [...new Set((tasks ?? []).map((t: any) => String(t.assigned_to_name)))] as string[];
         if (names.length > 0) map[id] = names;
       }
       return map;
