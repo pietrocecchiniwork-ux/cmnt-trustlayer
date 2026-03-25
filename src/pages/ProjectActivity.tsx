@@ -201,6 +201,11 @@ export default function ProjectActivity() {
             />
             <div className="flex-1 min-w-0">
               <p className="font-sans text-[14px] text-foreground leading-snug">{describeChange(c)}</p>
+              {(c.new_value as Record<string, unknown> | null)?.ai_comment && (
+                <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                  {String((c.new_value as Record<string, unknown>).ai_comment)}
+                </p>
+              )}
               <p className="font-mono text-[11px] text-muted-foreground mt-0.5">{formatTimestamp(c.created_at)}</p>
             </div>
           </div>
