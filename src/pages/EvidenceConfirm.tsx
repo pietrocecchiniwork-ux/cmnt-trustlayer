@@ -203,8 +203,26 @@ export default function EvidenceConfirm() {
         .eq("milestone_id", state.milestoneId);
       if (countErr) console.error("Fresh count error:", countErr);
 
+      // Auto-transition milestone from pending → in_progress on first evidence
+      try {
+        const { data: currentMs } = await supabase
+          .from("milestones")
+          .select("status")
+          .eq("id", state.milestoneId)
+          .single();
+        if (currentMs && currentMs.status === "pending") {
+          await supabase
+            .from("milestones")
+            .update({ status: "in_progress" })
+            .eq("id", state.milestoneId);
+        }
+      } catch (e) {
+        console.error("Auto-transition to in_progress failed:", e);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["evidence", state.milestoneId] });
       queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
+      queryClient.invalidateQueries({ queryKey: ["milestones"] });
 
       toast.success(`${state.photos.length} photo${state.photos.length !== 1 ? "s" : ""} submitted`);
       navigate(`/project/submission-confirmed?milestoneId=${state.milestoneId}&freshCount=${freshCount ?? 0}&evidenceCode=${encodeURIComponent(evidenceCode)}`);

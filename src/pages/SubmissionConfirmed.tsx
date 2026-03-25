@@ -4,6 +4,7 @@ import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useUpdateMilestoneStatus, useCurrentUser } from "@/hooks/useSupabaseProject";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SubmissionConfirmed() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function SubmissionConfirmed() {
   const { currentProjectId } = useProjectContext();
   const updateStatus = useUpdateMilestoneStatus();
   const { data: user } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   const freshCountParam = searchParams.get("freshCount");
   const evidenceCode = searchParams.get("evidenceCode");
@@ -41,15 +43,20 @@ export default function SubmissionConfirmed() {
         setEvidenceCount(count ?? 0);
       });
 
-    // Milestone status
+    // Milestone status (re-fetch after EvidenceConfirm may have changed it)
     supabase
       .from("milestones")
-      .select("status")
+      .select("status, checklist")
       .eq("id", milestoneId)
       .single()
       .then(({ data, error }) => {
         if (error) console.error("Milestone fetch error:", error);
-        if (data) setMilestoneStatus(data.status);
+        if (data) {
+          setMilestoneStatus(data.status);
+          // For Mode A milestones with checklist, use checklist length as required count
+          const checklistLen = Array.isArray(data.checklist) ? data.checklist.length : 0;
+          if (checklistLen > 0) setRequiredCount(checklistLen);
+        }
       });
 
     // Find next incomplete task assigned to current user
@@ -61,8 +68,8 @@ export default function SubmissionConfirmed() {
       .then(({ data: tasks, error }: { data: { id: string; name: string; status: string; position: number; assigned_to: string | null }[] | null; error: unknown }) => {
         if (error) { console.error("Tasks fetch error:", error); return; }
         const all = tasks ?? [];
-        setRequiredCount(all.length || 1);
-        // Find next incomplete task (prefer ones assigned to current user)
+        // Mode B: use task count as required count; Mode A: keep the checklist-based or default 1
+        if (all.length > 0) setRequiredCount(all.length);
         const myIncomplete = all.find(t => t.status !== "complete" && t.assigned_to === user.id);
         const anyIncomplete = all.find(t => t.status !== "complete");
         const next = myIncomplete ?? anyIncomplete ?? null;
@@ -86,6 +93,9 @@ export default function SubmissionConfirmed() {
         id: milestoneId,
         status: "in_review",
         projectId: currentProjectId,
+      }).then(() => {
+        // Invalidate so PM dashboard picks up the status change
+        queryClient.invalidateQueries({ queryKey: ["milestones"] });
       }).catch((err) => console.error("Auto-update to in_review failed:", err));
     }
   }, [allSubmitted, milestoneStatus, currentProjectId, autoUpdated]);
