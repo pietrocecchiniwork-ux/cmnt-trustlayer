@@ -18,12 +18,12 @@ interface AiTags {
 }
 
 const tagOptions: Partial<Record<keyof AiTags, string[]>> = {
-  work_type: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
-  trade_category: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
-  location_in_building: ["basement", "ground_floor", "first_floor", "second_floor", "roof", "exterior", "kitchen", "bathroom", "living_room", "bedroom", "hallway", "garage"],
-  completion_stage: ["started", "in_progress", "nearly_complete", "complete", "snagging"],
-  condition_flag: ["good", "acceptable", "poor", "defect", "damage"],
-  building_element: ["wall", "floor", "ceiling", "roof", "window", "door", "foundation", "pipe", "cable", "fitting", "fixture"],
+  work_type: ["electrical", "plumbing", "structural", "roofing", "insulation", "plastering", "carpentry", "glazing", "decoration", "groundworks", "drainage", "hvac", "other"],
+  trade_category: ["main_contractor", "electrician", "plumber", "carpenter", "plasterer", "roofer", "groundworker", "glazier", "decorator", "structural_engineer", "other"],
+  location_in_building: ["basement", "ground_floor", "first_floor", "second_floor", "roof", "external", "foundation", "party_wall", "loft", "other"],
+  completion_stage: ["groundworks", "shell", "first_fix", "insulation", "plastering", "second_fix", "fit_out", "snagging", "complete"],
+  condition_flag: ["pass", "concern", "fail"],
+  building_element: ["wall", "ceiling", "floor", "roof", "window", "door", "staircase", "foundation", "frame", "drainage", "services", "other"],
 };
 
 function generateEvidenceCode(): string {
