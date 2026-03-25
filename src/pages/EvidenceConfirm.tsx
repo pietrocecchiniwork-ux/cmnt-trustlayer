@@ -15,6 +15,7 @@ interface AiTags {
   building_element: string;
   quality_score?: number;
   ai_summary?: string;
+  context_match?: string;
 }
 
 const tagOptions: Partial<Record<keyof AiTags, string[]>> = {
@@ -77,6 +78,12 @@ export default function EvidenceConfirm() {
     const tId = sessionStorage.getItem("evidenceTaskId");
     const mName = sessionStorage.getItem("evidenceMilestoneName") ?? "";
     const tName = sessionStorage.getItem("evidenceTaskName") ?? "";
+    const pName = sessionStorage.getItem("evidenceProjectName") ?? "";
+    const mDesc = sessionStorage.getItem("evidenceMilestoneDescription") ?? "";
+    const tDesc = sessionStorage.getItem("evidenceTaskDescription") ?? "";
+    let allTasksParsed: { name: string; status: string }[] = [];
+    try { allTasksParsed = JSON.parse(sessionStorage.getItem("evidenceAllTasks") ?? "[]"); } catch {}
+
     setPhotoDataUrl(photo);
     setPhotoBase64(base64);
     setMilestoneId(mId ?? "");
@@ -85,7 +92,15 @@ export default function EvidenceConfirm() {
     if (base64) {
       setTagging(true);
       supabase.functions.invoke("tag-evidence", {
-        body: { image_base64: base64, milestone_name: mName, task_name: tName },
+        body: {
+          image_base64: base64,
+          milestone_name: mName,
+          task_name: tName,
+          project_name: pName,
+          milestone_description: mDesc,
+          task_description: tDesc,
+          all_tasks: allTasksParsed,
+        },
       }).then(({ data, error }) => {
         setTagging(false);
         if (error) {
@@ -182,6 +197,10 @@ export default function EvidenceConfirm() {
       sessionStorage.removeItem("capturedPhotoBase64");
       sessionStorage.removeItem("evidenceMilestoneId");
       sessionStorage.removeItem("evidenceTaskId");
+      sessionStorage.removeItem("evidenceProjectName");
+      sessionStorage.removeItem("evidenceMilestoneDescription");
+      sessionStorage.removeItem("evidenceTaskDescription");
+      sessionStorage.removeItem("evidenceAllTasks");
 
       const { count: freshCount, error: countErr } = await supabase
         .from("evidence")
@@ -202,7 +221,7 @@ export default function EvidenceConfirm() {
     }
   };
 
-  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary" && k !== "quality_score") : [];
+  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary" && k !== "quality_score" && k !== "context_match") : [];
 
   return (
     <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
@@ -232,7 +251,7 @@ export default function EvidenceConfirm() {
 
       {correcting && editedTags ? (
         <div className="mb-4 space-y-2">
-          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && k !== "quality_score" && tagOptions[k]).map((key) => (
+          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && k !== "quality_score" && k !== "context_match" && tagOptions[k]).map((key) => (
             <div key={key} className="flex items-center gap-2">
               <span className="font-mono text-[10px] text-muted-foreground w-36 flex-shrink-0">
                 {key.replace(/_/g, " ")}
@@ -296,6 +315,22 @@ export default function EvidenceConfirm() {
           </div>
           <span className="font-mono text-[11px] text-muted-foreground">
             {aiTags.quality_score}/10
+          </span>
+        </div>
+      )}
+
+      {aiTags?.context_match && (
+        <div className="mb-3">
+          <span className={`font-mono text-[11px] px-2 py-0.5 rounded ${
+            aiTags.context_match === "exact_match" ? "bg-success/20 text-success" :
+            aiTags.context_match === "related" ? "bg-accent/20 text-accent" :
+            aiTags.context_match === "partial" ? "bg-yellow-500/20 text-yellow-600" :
+            "bg-destructive/20 text-destructive"
+          }`}>
+            {aiTags.context_match === "exact_match" ? "✓ matches task" :
+             aiTags.context_match === "related" ? "~ related to task" :
+             aiTags.context_match === "partial" ? "⚠ partial match" :
+             "✕ doesn't match task"}
           </span>
         </div>
       )}

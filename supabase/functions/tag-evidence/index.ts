@@ -11,7 +11,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { image_base64, milestone_name, task_name } = await req.json();
+    const { image_base64, milestone_name, task_name, project_name, milestone_description, task_description, all_tasks } = await req.json();
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
@@ -30,11 +30,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Build rich context block
     const contextLines: string[] = [];
+    if (project_name) contextLines.push(`Project: "${project_name}"`);
     if (milestone_name) contextLines.push(`Milestone: "${milestone_name}"`);
+    if (milestone_description) contextLines.push(`Milestone description: "${milestone_description}"`);
     if (task_name) contextLines.push(`Task: "${task_name}"`);
+    if (task_description) contextLines.push(`Task description: "${task_description}"`);
+    if (all_tasks && Array.isArray(all_tasks) && all_tasks.length > 0) {
+      const taskList = all_tasks.map((t: { name: string; status: string }) => `  - ${t.name} (${t.status})`).join("\n");
+      contextLines.push(`Other tasks in this milestone:\n${taskList}`);
+    }
     const contextBlock = contextLines.length
-      ? `\n\nContext for this evidence submission:\n${contextLines.join("\n")}\nUse this context to make your analysis more accurate and relevant.`
+      ? `\n\nFull context for this evidence submission:\n${contextLines.join("\n")}\n\nUse this context to make your analysis more accurate. Specifically check whether the photo actually shows the work described in the task/milestone, and note any discrepancies.`
       : "";
 
     const prompt = `You are an expert UK construction site inspector analysing a photo submitted as evidence for a construction milestone.${contextBlock}
@@ -46,8 +54,9 @@ Analyse this construction photo carefully. Return a JSON object with exactly the
 - completion_stage: one of [not_started, early, mid, first_fix, second_fix, finishing, complete, snagging]
 - condition_flag: one of [good, acceptable, concern, defect]
 - building_element: one of [foundations, walls, floor, ceiling, roof, pipework, wiring, joists, plasterwork, fixtures, windows, doors, insulation]
-- quality_score: integer 1-10 rating how well this photo matches the milestone/task context (10 = perfect match showing exactly the expected work complete, 1 = completely unrelated). If no context was provided, rate the photo quality and clarity instead.
-- ai_summary: a short one-sentence description of what you see in the photo and whether it appears to match the milestone/task context
+- quality_score: integer 1-10 rating how well this photo matches the milestone/task context (10 = perfect evidence showing exactly the expected work complete, 1 = completely unrelated or unusable photo). Consider: does the photo clearly show the work described? Is it well-lit and in focus? Does the completion stage match what the task expects?
+- ai_summary: a 2-3 sentence description: (1) what you see in the photo, (2) whether it matches the expected milestone/task work, (3) any concerns or recommendations
+- context_match: one of [exact_match, related, partial, unrelated] — how well the photo content matches the task/milestone description
 
 Return ONLY the JSON object, no other text.`;
 
