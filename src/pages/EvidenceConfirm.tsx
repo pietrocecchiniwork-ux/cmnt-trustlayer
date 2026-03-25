@@ -6,6 +6,16 @@ import { useSubmitEvidence, uploadEvidencePhoto, useCurrentUser } from "@/hooks/
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getEvidencePhotoState, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AiTags {
   work_type: string;
@@ -62,6 +72,7 @@ export default function EvidenceConfirm() {
   const [editedTags, setEditedTags] = useState<AiTags | null>(null);
   const [tagsEdited, setTagsEdited] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
 
   const submitEvidence = useSubmitEvidence();
   const { data: user } = useCurrentUser();
@@ -119,11 +130,23 @@ export default function EvidenceConfirm() {
     setCorrecting(false);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     if (!state?.milestoneId || !user) {
       toast.error("Missing milestone or not signed in");
       return;
     }
+    // Show warning if AI flagged issues
+    const hasFail = aiTags?.condition_flag === "fail";
+    const noMatch = aiTags?.milestone_match === false;
+    if (hasFail || noMatch) {
+      setShowWarning(true);
+      return;
+    }
+    doSubmit();
+  };
+
+  const doSubmit = async () => {
+    if (!state?.milestoneId || !user) return;
     setSubmitting(true);
     try {
       // Upload all photos and submit one evidence record per photo
@@ -322,12 +345,35 @@ export default function EvidenceConfirm() {
         className="fixed bottom-16 left-0 right-0 px-6 bg-background"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
       >
-        <Button variant="dark" size="full" onClick={handleSubmit} disabled={submitting || !state.milestoneId}>
+        <Button variant="dark" size="full" onClick={handleSubmitClick} disabled={submitting || !state.milestoneId}>
           <span className="font-sans text-[16px]">
             {submitting ? "submitting..." : `submit ${state.photos.length} photo${state.photos.length !== 1 ? "s" : ""}`}
           </span>
         </Button>
       </div>
+
+      <AlertDialog open={showWarning} onOpenChange={setShowWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-mono text-[14px]">⚠ AI flagged potential issues</AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-[12px] space-y-2">
+              {aiTags?.condition_flag === "fail" && (
+                <span className="block text-destructive">• Condition flagged as <strong>fail</strong></span>
+              )}
+              {aiTags?.milestone_match === false && (
+                <span className="block text-destructive">• Photo doesn't appear to match this milestone</span>
+              )}
+              <span className="block mt-2 text-muted-foreground">Are you sure you want to submit this evidence?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-mono text-[12px]">go back</AlertDialogCancel>
+            <AlertDialogAction onClick={doSubmit} className="font-mono text-[12px] bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              submit anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
