@@ -15,6 +15,7 @@ interface AiTags {
   building_element: string;
   quality_score?: number;
   ai_summary?: string;
+  context_match?: string;
 }
 
 const tagOptions: Partial<Record<keyof AiTags, string[]>> = {
