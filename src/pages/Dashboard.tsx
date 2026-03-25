@@ -71,25 +71,8 @@ function PMDashboard() {
     },
   });
 
-  // Fetch assignments for in_progress milestones
-  const inProgressIds = milestones.filter(m => m.status === "in_progress").map(m => m.id);
-  const { data: assignmentMap = {} } = useQuery({
-    queryKey: ["milestone-assignments-names", inProgressIds],
-    enabled: inProgressIds.length > 0,
-    queryFn: async () => {
-      const map: Record<string, string[]> = {};
-      for (const id of inProgressIds) {
-        const { data: tasks } = await (supabase as any)
-          .from("tasks")
-          .select("assigned_to_name")
-          .eq("milestone_id", id)
-          .not("assigned_to_name", "is", null);
-        const names = [...new Set((tasks ?? []).map((t: any) => String(t.assigned_to_name)))] as string[];
-        if (names.length > 0) map[id] = names;
-      }
-      return map;
-    },
-  });
+  // Fetch assigned_to_name for in_progress milestones (from milestone itself now)
+  const inProgressMilestones = milestones.filter(m => m.status === "in_progress");
 
   const [isCreator, setIsCreator] = useState(false);
   useEffect(() => {
@@ -137,7 +120,7 @@ function PMDashboard() {
 
   const needsApproval = milestones.filter(m => m.status === "in_review");
   const delays = milestones.filter(m => m.status === "overdue");
-  const inProgress = milestones.filter(m => m.status === "in_progress");
+  const inProgress = inProgressMilestones;
   const allClear = needsApproval.length === 0 && delays.length === 0 && inProgress.length === 0;
 
   return (
@@ -222,7 +205,7 @@ function PMDashboard() {
                       >
                         <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
                         <span className="font-mono text-[11px] text-muted-foreground">
-                          {(assignmentMap[m.id] ?? []).join(", ") || "unassigned"}
+                          {(m as any).assigned_to_name ?? "unassigned"}
                         </span>
                       </button>
                     ))}
@@ -285,10 +268,10 @@ function ContractorDashboard() {
     },
   });
 
-  // Fetch all tasks across all milestones
+  // Fetch all tasks across all milestones assigned to this user
   const { data: allTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["all-user-tasks", currentProjectId, user?.id],
-    enabled: !!currentProjectId && !!user,
+    enabled: !!currentProjectId && !!user && milestones.length > 0,
     queryFn: async () => {
       const milestoneIds = milestones.map(m => m.id);
       if (milestoneIds.length === 0) return [];
@@ -303,26 +286,116 @@ function ContractorDashboard() {
     },
   });
 
-  // Sort tasks by milestone position then task position
-  const sortedTasks = useMemo(() => {
-    const milestonePositionMap = Object.fromEntries(milestones.map(m => [m.id, m.position]));
-    return [...allTasks].sort((a, b) => {
-      const mPosA = milestonePositionMap[a.milestone_id] ?? 999;
-      const mPosB = milestonePositionMap[b.milestone_id] ?? 999;
-      if (mPosA !== mPosB) return mPosA - mPosB;
+  // Milestones assigned directly to this user (Mode A — no tasks)
+  const myMilestones = useMemo(() => {
+    if (!user) return [];
+    return milestones.filter(m =>
+      (m as any).assigned_to === user.id &&
+      m.status !== "complete"
+    );
+  }, [milestones, user]);
+
+  // Check which milestones have tasks
+  const milestonesWithTasks = useMemo(() => {
+    const set = new Set(allTasks.map(t => t.milestone_id));
+    return set;
+  }, [allTasks]);
+
+  // We need to know ALL tasks per milestone to determine Mode A vs B
+  const { data: allProjectTasks = [] } = useQuery({
+    queryKey: ["all-project-tasks-for-mode", currentProjectId],
+    enabled: !!currentProjectId && milestones.length > 0,
+    queryFn: async () => {
+      const milestoneIds = milestones.map(m => m.id);
+      if (milestoneIds.length === 0) return [];
+      const { data, error } = await (supabase as any)
+        .from("tasks")
+        .select("id, milestone_id")
+        .in("milestone_id", milestoneIds);
+      if (error) throw error;
+      return (data ?? []) as { id: string; milestone_id: string }[];
+    },
+  });
+
+  const milestonesWithAnyTasks = useMemo(() => {
+    return new Set(allProjectTasks.map(t => t.milestone_id));
+  }, [allProjectTasks]);
+
+  // Build unified work list: Mode A milestones (no tasks) + Mode B tasks
+  type WorkItem = {
+    id: string;
+    name: string;
+    type: "milestone" | "task";
+    parentMilestoneName: string;
+    milestonePosition: number;
+    position: number;
+    status: string;
+    dueDate: string | null;
+    milestoneId: string;
+    taskId: string | null;
+  };
+
+  const workItems = useMemo<WorkItem[]>(() => {
+    const items: WorkItem[] = [];
+
+    // Mode A: milestones assigned to user with NO tasks
+    for (const m of myMilestones) {
+      if (!milestonesWithAnyTasks.has(m.id)) {
+        items.push({
+          id: m.id,
+          name: m.name,
+          type: "milestone",
+          parentMilestoneName: "",
+          milestonePosition: m.position,
+          position: 0,
+          status: m.status,
+          dueDate: m.due_date,
+          milestoneId: m.id,
+          taskId: null,
+        });
+      }
+    }
+
+    // Mode B: tasks assigned to user
+    const incompleteTasks = allTasks.filter(t => t.status !== "complete");
+    for (const t of incompleteTasks) {
+      const m = milestones.find(ms => ms.id === t.milestone_id);
+      items.push({
+        id: t.id,
+        name: t.name,
+        type: "task",
+        parentMilestoneName: m?.name ?? "",
+        milestonePosition: m?.position ?? 999,
+        position: t.position,
+        status: t.status,
+        dueDate: t.due_date ?? m?.due_date ?? null,
+        milestoneId: t.milestone_id,
+        taskId: t.id,
+      });
+    }
+
+    // Sort by due date, then milestone position, then task position
+    items.sort((a, b) => {
+      if (a.dueDate && b.dueDate) {
+        const cmp = a.dueDate.localeCompare(b.dueDate);
+        if (cmp !== 0) return cmp;
+      } else if (a.dueDate) return -1;
+      else if (b.dueDate) return 1;
+      if (a.milestonePosition !== b.milestonePosition) return a.milestonePosition - b.milestonePosition;
       return a.position - b.position;
     });
-  }, [allTasks, milestones]);
 
-  const incompleteTasks = sortedTasks.filter(t => t.status !== "complete");
-  const urgentTask = incompleteTasks[0] ?? null;
-  const otherTasks = incompleteTasks.slice(1);
+    return items;
+  }, [myMilestones, allTasks, milestones, milestonesWithAnyTasks]);
 
-  const urgentMilestone = urgentTask
-    ? milestones.find(m => m.id === urgentTask.milestone_id)
+  const urgentItem = workItems[0] ?? null;
+  const otherItems = workItems.slice(1);
+
+  const urgentMilestone = urgentItem
+    ? milestones.find(m => m.id === urgentItem.milestoneId)
     : null;
   const urgentMilestoneNumber = urgentMilestone
-    ? milestones.indexOf(urgentMilestone) + 1
+    ? urgentMilestone.position
     : 0;
 
   const isLoading = milestonesLoading || tasksLoading;
@@ -334,6 +407,14 @@ function ContractorDashboard() {
       </div>
     );
   }
+
+  const statusDot: Record<string, string> = {
+    pending: "bg-muted-foreground",
+    in_progress: "bg-foreground",
+    overdue: "bg-destructive",
+    in_review: "bg-accent",
+    complete: "bg-success",
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -347,10 +428,10 @@ function ContractorDashboard() {
           </p>
         </div>
 
-        {!urgentTask ? (
+        {!urgentItem ? (
           <div className="flex-1 flex items-center justify-center px-6">
             <p className="font-sans text-[16px] text-muted-foreground text-center">
-              no tasks assigned yet — contact your PM
+              no work assigned yet — contact your PM
             </p>
           </div>
         ) : (
@@ -360,25 +441,37 @@ function ContractorDashboard() {
                 {urgentMilestoneNumber}
               </p>
               <p className="font-sans text-[20px] text-foreground mt-2">
-                {urgentTask.name}
+                {urgentItem.name}
               </p>
               <p className="font-mono text-[12px] text-muted-foreground mt-1">
-                {urgentMilestone?.name?.toLowerCase()}
+                {urgentItem.type === "task"
+                  ? urgentItem.parentMilestoneName?.toLowerCase()
+                  : "milestone"}
               </p>
 
-              {otherTasks.length > 0 && (
+              {otherItems.length > 0 && (
                 <div className="mt-10">
                   <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">also outstanding</p>
                   <div className="space-y-1">
-                    {otherTasks.map(t => {
-                      const m = milestones.find(m => m.id === t.milestone_id);
-                      return (
-                        <div key={t.id} className="flex items-center justify-between py-2 border-b border-border">
-                          <span className="font-sans text-[14px] text-foreground">{t.name}</span>
-                          <span className="font-mono text-[11px] text-muted-foreground">{m?.name?.toLowerCase()}</span>
+                    {otherItems.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() =>
+                          item.type === "milestone"
+                            ? navigate(`/project/milestone/${item.milestoneId}`)
+                            : navigate(`/project/task/${item.taskId}`)
+                        }
+                        className="w-full flex items-center justify-between py-2 border-b border-border text-left"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot[item.status] ?? "bg-muted-foreground"}`} />
+                          <span className="font-sans text-[14px] text-foreground truncate">{item.name}</span>
                         </div>
-                      );
-                    })}
+                        <span className="font-mono text-[11px] text-muted-foreground flex-shrink-0 ml-2">
+                          {item.type === "task" ? item.parentMilestoneName?.toLowerCase() : "milestone"}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
@@ -389,11 +482,19 @@ function ContractorDashboard() {
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
             >
               <button
-                onClick={() =>
-                  navigate(
-                    `/project/camera?milestoneId=${urgentTask.milestone_id}&item=${encodeURIComponent(urgentTask.name)}&taskId=${urgentTask.id}&taskName=${encodeURIComponent(urgentTask.name)}`
-                  )
-                }
+                onClick={() => {
+                  if (urgentItem.type === "milestone") {
+                    // Mode A: submit evidence directly against milestone
+                    navigate(
+                      `/project/camera?milestoneId=${urgentItem.milestoneId}&item=${encodeURIComponent(urgentItem.name)}`
+                    );
+                  } else {
+                    // Mode B: submit evidence against task
+                    navigate(
+                      `/project/camera?milestoneId=${urgentItem.milestoneId}&item=${encodeURIComponent(urgentItem.name)}&taskId=${urgentItem.taskId}&taskName=${encodeURIComponent(urgentItem.name)}`
+                    );
+                  }
+                }}
                 className="w-full py-4 bg-foreground text-background font-sans text-[16px] text-center"
               >
                 submit evidence
@@ -429,18 +530,12 @@ function CancelConfirmInput({
         placeholder={projectName}
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        className="w-full font-mono text-[13px] bg-transparent border-b border-destructive/40 text-foreground py-2 outline-none placeholder:text-muted-foreground/40"
+        className="w-full bg-transparent border-b border-border font-mono text-[13px] text-foreground py-2 outline-none"
       />
       <div className="flex gap-3">
-        <button onClick={onCancel} className="flex-1 py-2 font-mono text-[12px] text-muted-foreground border border-border hover:border-foreground/40 transition-colors">
-          go back
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={!matches || cancelling}
-          className="flex-1 py-2 font-mono text-[12px] text-destructive-foreground bg-destructive border border-destructive disabled:opacity-40 transition-colors"
-        >
-          {cancelling ? "cancelling..." : "cancel project"}
+        <button onClick={onCancel} className="flex-1 py-2 font-mono text-[12px] text-muted-foreground border border-border">go back</button>
+        <button onClick={onConfirm} disabled={!matches || cancelling} className="flex-1 py-2 font-mono text-[12px] text-destructive border border-destructive disabled:opacity-30">
+          {cancelling ? "cancelling…" : "confirm cancel"}
         </button>
       </div>
     </div>

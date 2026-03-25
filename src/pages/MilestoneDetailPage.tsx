@@ -51,7 +51,6 @@ export default function MilestoneDetailPage() {
   const { currentProjectId } = useProjectContext();
   const { t } = useTranslation();
 
-  // Only query tasks when milestoneId is a valid UUID
   const validMilestoneId = milestoneId && UUID_RE.test(milestoneId) ? milestoneId : undefined;
 
   const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
@@ -67,12 +66,8 @@ export default function MilestoneDetailPage() {
   const createTask = useCreateTask();
   const createChange = useCreateChange();
 
-  // ─── Edit state ───
   const [editing, setEditing] = useState(false);
-  // ─── Quality assessment state ───
   const [qaPrompt, setQaPrompt] = useState(false);
-
-  // ─── Add task state ───
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDate, setNewTaskDate] = useState("");
@@ -81,10 +76,11 @@ export default function MilestoneDetailPage() {
   const [editName, setEditName] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editPayment, setEditPayment] = useState("");
+  const [editAssigneeId, setEditAssigneeId] = useState("");
 
   const milestone = milestones.find((m) => m.id === milestoneId);
+  const assignableMembers = members.filter(m => m.user_id !== null);
 
-  // Debug: log milestoneId on mount to confirm it's arriving
   useEffect(() => {
     console.log("[MilestoneDetail] milestoneId:", milestoneId, "validMilestoneId:", validMilestoneId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,18 +88,20 @@ export default function MilestoneDetailPage() {
 
   if (!milestone) return null;
 
+  const isTaskMode = tasks.length > 0;
   const dotClass = statusDotClass[milestone.status] ?? "bg-muted-foreground";
   const numColor = numberColor[milestone.status];
   const completedCount = evidenceItems.length;
 
-  // Next incomplete task (for contractor "take photo" prompt)
+  // Next incomplete task (for contractor "take photo" prompt) — Mode B only
   const nextIncompleteTask = tasks.find((t) => t.status !== "complete") ?? null;
 
-  // ─── Inline edit handlers ───
   const startEdit = () => {
     setEditName(milestone.name);
     setEditDate(milestone.due_date ?? "");
     setEditPayment(String(milestone.payment_value ?? ""));
+    const currentAssignee = assignableMembers.find(m => m.user_id === (milestone as any).assigned_to);
+    setEditAssigneeId(currentAssignee?.id ?? "");
     setEditing(true);
   };
 
@@ -123,6 +121,14 @@ export default function MilestoneDetailPage() {
       oldValues.payment_value = milestone.payment_value; newValues.payment_value = newPayment;
     }
 
+    const selectedMember = assignableMembers.find(m => m.id === editAssigneeId);
+    const newAssignedTo = selectedMember?.user_id ?? null;
+    const currentAssignedTo = (milestone as any).assigned_to ?? null;
+    if (newAssignedTo !== currentAssignedTo) {
+      oldValues.assigned_to_name = (milestone as any).assigned_to_name;
+      newValues.assigned_to_name = selectedMember?.name ?? null;
+    }
+
     try {
       await updateMilestone.mutateAsync({
         id: milestone.id,
@@ -130,22 +136,27 @@ export default function MilestoneDetailPage() {
         ...(editName !== milestone.name && { name: editName }),
         ...(editDate !== (milestone.due_date ?? "") && { due_date: editDate }),
         ...(newPayment !== milestone.payment_value && { payment_value: newPayment ?? undefined }),
+        ...(newAssignedTo !== currentAssignedTo && {
+          assigned_to: newAssignedTo,
+          assigned_to_name: selectedMember?.name ?? null,
+        }),
       });
 
-      // Change log is best-effort — table may not exist yet
       try {
         const isDateShift = oldValues.due_date !== undefined;
-        await createChange.mutateAsync({
-          project_id: currentProjectId,
-          entity_type: "milestone",
-          entity_id: milestone.id,
-          entity_name: milestone.name,
-          change_type: isDateShift ? "shifted" : "updated",
-          changed_by: currentUser?.id,
-          changed_by_name: currentUser?.email ?? undefined,
-          old_value: Object.keys(oldValues).length ? oldValues : undefined,
-          new_value: Object.keys(newValues).length ? newValues : undefined,
-        });
+        if (Object.keys(oldValues).length > 0 || Object.keys(newValues).length > 0) {
+          await createChange.mutateAsync({
+            project_id: currentProjectId,
+            entity_type: "milestone",
+            entity_id: milestone.id,
+            entity_name: milestone.name,
+            change_type: isDateShift ? "shifted" : "updated",
+            changed_by: currentUser?.id,
+            changed_by_name: currentUser?.email ?? undefined,
+            old_value: Object.keys(oldValues).length ? oldValues : undefined,
+            new_value: Object.keys(newValues).length ? newValues : undefined,
+          });
+        }
       } catch (changeErr) {
         console.warn("[saveEdit] change log failed:", changeErr);
       }
@@ -158,15 +169,21 @@ export default function MilestoneDetailPage() {
   };
 
   const handleApprove = () => {
+    // Mode B: check all tasks are complete first
+    if (isTaskMode) {
+      const allTasksComplete = tasks.every(t => t.status === "complete");
+      if (!allTasksComplete) {
+        toast.error("All tasks must be complete before approving this milestone");
+        return;
+      }
+    }
     setQaPrompt(true);
   };
 
   const confirmApprove = async (assessment: string) => {
     setQaPrompt(false);
     try {
-      // Evidence update is best-effort — never blocks approval
       try {
-        console.log("[confirmApprove] step 1: updating evidence items", evidenceItems.length);
         await Promise.all(
           evidenceItems.map((e) =>
             updateEvidence.mutateAsync({
@@ -179,10 +196,8 @@ export default function MilestoneDetailPage() {
         console.warn("[confirmApprove] evidence update failed (continuing anyway):", evidenceErr);
       }
 
-      console.log("[confirmApprove] step 2: updating milestone status to complete");
       await updateStatus.mutateAsync({ id: milestone.id, status: "complete", projectId: currentProjectId! });
 
-      // Change log is also best-effort
       try {
         if (currentProjectId) {
           await createChange.mutateAsync({
@@ -197,10 +212,9 @@ export default function MilestoneDetailPage() {
           });
         }
       } catch (changeErr) {
-        console.warn("[confirmApprove] change log failed (continuing anyway):", changeErr);
+        console.warn("[confirmApprove] change log failed:", changeErr);
       }
 
-      console.log("[confirmApprove] done");
       toast.success(t("milestone.approved"));
       navigate(-1);
     } catch (err) {
@@ -230,7 +244,6 @@ export default function MilestoneDetailPage() {
     }
   };
 
-  // ─── Add task handler ───
   const handleAddTask = async () => {
     const name = newTaskName.trim();
     if (!name || !validMilestoneId) return;
@@ -256,6 +269,12 @@ export default function MilestoneDetailPage() {
               change_type: "created",
               changed_by: currentUser?.id,
               changed_by_name: currentUser?.email ?? undefined,
+              new_value: {
+                name: task.name,
+                ...(assignee && { assigned_to_name: assignee.name }),
+                ...(newTaskDate && { due_date: newTaskDate }),
+                ...(newTaskBudget && { budget: Number(newTaskBudget) }),
+              },
             });
           }
           setNewTaskName("");
@@ -268,7 +287,7 @@ export default function MilestoneDetailPage() {
     );
   };
 
-  // ─── Tasks section (shared across roles) ───
+  // ─── Tasks section ───
   const tasksSection = (
     <>
       <div className="divider mt-6" />
@@ -295,7 +314,6 @@ export default function MilestoneDetailPage() {
         ))}
       </div>
 
-      {/* Add task (PM only) */}
       {role === "pm" && (
         addingTask ? (
           <div className="mt-3 space-y-2">
@@ -358,7 +376,6 @@ export default function MilestoneDetailPage() {
         )
       )}
 
-      {/* Budget allocation summary */}
       {tasks.length > 0 && (
         <p className="font-mono text-[11px] text-muted-foreground mt-4">
           {t("tasks.tasks")}: £{tasks.reduce((s, task) => s + (task.budget ?? 0), 0).toLocaleString()} of £{Number(milestone?.payment_value ?? 0).toLocaleString()} allocated
@@ -380,7 +397,7 @@ export default function MilestoneDetailPage() {
         <h1 className="font-sans text-[22px] leading-tight mt-3 text-foreground">{milestone.name}</h1>
         <p className="font-mono text-[13px] text-muted-foreground mt-2">{milestone.due_date ?? t("milestone.no_date")}</p>
 
-        {tasksSection}
+        {isTaskMode && tasksSection}
 
         <div className="divider mt-6" />
         <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">{t("evidence.submitted_evidence")} ({completedCount})</p>
@@ -402,12 +419,12 @@ export default function MilestoneDetailPage() {
           ))}
         </div>
 
-        {allTasksDone && (
+        {isTaskMode && allTasksDone && (
           <p className="font-mono text-[12px] text-success mt-4">{t("evidence.all_submitted")}</p>
         )}
 
-        {/* Fixed take photo button — shown when there's a next incomplete task */}
-        {!allTasksDone && nextIncompleteTask && (
+        {/* Mode B: take photo for next task */}
+        {isTaskMode && !allTasksDone && nextIncompleteTask && (
           <div
             className="fixed bottom-16 left-0 right-0 px-6 bg-background"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
@@ -420,6 +437,24 @@ export default function MilestoneDetailPage() {
               size="full"
               onClick={() =>
                 navigate(`/project/camera?milestoneId=${milestone.id}&item=${encodeURIComponent(nextIncompleteTask.name)}&taskId=${nextIncompleteTask.id}`)
+              }
+            >
+              <span className="font-sans text-[16px]">{t("evidence.take_photo")}</span>
+            </Button>
+          </div>
+        )}
+
+        {/* Mode A: submit evidence directly against milestone */}
+        {!isTaskMode && (
+          <div
+            className="fixed bottom-16 left-0 right-0 px-6 bg-background"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
+          >
+            <Button
+              variant="dark"
+              size="full"
+              onClick={() =>
+                navigate(`/project/camera?milestoneId=${milestone.id}&item=${encodeURIComponent(milestone.name)}`)
               }
             >
               <span className="font-sans text-[16px]">{t("evidence.take_photo")}</span>
@@ -463,6 +498,19 @@ export default function MilestoneDetailPage() {
                 type="number"
               />
             </div>
+            <div>
+              <p className="font-mono text-[10px] text-muted-foreground mb-1">assign to</p>
+              <select
+                value={editAssigneeId}
+                onChange={(e) => setEditAssigneeId(e.target.value)}
+                className="w-full bg-secondary border border-border rounded px-3 py-2 font-mono text-[13px] text-foreground"
+              >
+                <option value="">— unassigned —</option>
+                {assignableMembers.map(m => (
+                  <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex gap-3">
               <button
                 onClick={saveEdit}
@@ -497,6 +545,12 @@ export default function MilestoneDetailPage() {
               <span className="font-mono text-[13px] text-muted-foreground">{milestone.due_date ?? t("milestone.no_date")}</span>
               <span className="font-mono text-[13px] text-muted-foreground">£{Number(milestone.payment_value ?? 0).toLocaleString()}</span>
             </div>
+
+            {(milestone as any).assigned_to_name && (
+              <p className="font-mono text-[11px] text-muted-foreground mt-1">
+                assigned to {(milestone as any).assigned_to_name}
+              </p>
+            )}
 
             <div className="flex items-center gap-2 mt-4">
               <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
