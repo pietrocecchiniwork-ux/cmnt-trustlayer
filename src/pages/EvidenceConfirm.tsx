@@ -197,6 +197,10 @@ export default function EvidenceConfirm() {
       sessionStorage.removeItem("capturedPhotoBase64");
       sessionStorage.removeItem("evidenceMilestoneId");
       sessionStorage.removeItem("evidenceTaskId");
+      sessionStorage.removeItem("evidenceProjectName");
+      sessionStorage.removeItem("evidenceMilestoneDescription");
+      sessionStorage.removeItem("evidenceTaskDescription");
+      sessionStorage.removeItem("evidenceAllTasks");
 
       const { count: freshCount, error: countErr } = await supabase
         .from("evidence")
