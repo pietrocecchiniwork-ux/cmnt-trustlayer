@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useProjectChanges } from "@/hooks/useSupabaseProject";
+import { useProjectChanges, useCurrentUser, useProjectMembers } from "@/hooks/useSupabaseProject";
 import type { ProjectChange } from "@/hooks/useSupabaseProject";
+import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isToday, isYesterday } from "date-fns";
 

@@ -9,6 +9,7 @@ const routeColorMap: Record<string, { bg: string; text: string; activeText: stri
   "/project/evidence":   { bg: "bg-surface-cream", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
   "/project/payments":   { bg: "bg-surface-dark", text: "text-surface-dark-foreground/40", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
   "/project/activity":   { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
+  "/project/team":       { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
   "/project/submit":     { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
 };
 
@@ -28,12 +29,15 @@ export function BottomNav() {
     { key: "navigation.evidence", path: "/project/evidence" },
     { key: "navigation.payments", path: "/project/payments" },
     { key: "navigation.activity", path: "/project/activity" },
+    { key: "navigation.team", path: "/project/team" },
   ];
 
   const contractorLinks = [
     { key: "navigation.dashboard", path: "/project/dashboard" },
     { key: "navigation.my_tasks", path: "/project/milestones" },
     { key: "navigation.submit", path: "/project/submit" },
+    { key: "navigation.activity", path: "/project/activity" },
+    { key: "navigation.team", path: "/project/team" },
   ];
 
   const links = role === "pm" ? pmLinks : contractorLinks;
