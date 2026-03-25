@@ -6,6 +6,16 @@ import { useSubmitEvidence, uploadEvidencePhoto, useCurrentUser } from "@/hooks/
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getEvidencePhotoState, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AiTags {
   work_type: string;
@@ -62,6 +72,7 @@ export default function EvidenceConfirm() {
   const [editedTags, setEditedTags] = useState<AiTags | null>(null);
   const [tagsEdited, setTagsEdited] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
 
   const submitEvidence = useSubmitEvidence();
   const { data: user } = useCurrentUser();
@@ -119,10 +130,23 @@ export default function EvidenceConfirm() {
     setCorrecting(false);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     if (!state?.milestoneId || !user) {
       toast.error("Missing milestone or not signed in");
       return;
+    }
+    // Show warning if AI flagged issues
+    const hasFail = aiTags?.condition_flag === "fail";
+    const noMatch = aiTags?.milestone_match === false;
+    if (hasFail || noMatch) {
+      setShowWarning(true);
+      return;
+    }
+    doSubmit();
+  };
+
+  const doSubmit = async () => {
+    if (!state?.milestoneId || !user) return;
     }
     setSubmitting(true);
     try {
