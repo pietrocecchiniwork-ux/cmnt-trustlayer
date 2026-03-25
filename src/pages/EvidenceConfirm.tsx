@@ -13,9 +13,8 @@ interface AiTags {
   completion_stage: string;
   condition_flag: string;
   building_element: string;
-  quality_score?: number;
-  ai_summary?: string;
-  context_match?: string;
+  milestone_match?: boolean;
+  ai_comment?: string;
 }
 
 const tagOptions: Partial<Record<keyof AiTags, string[]>> = {
