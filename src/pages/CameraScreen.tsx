@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Image as ImageIcon } from "lucide-react";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { useMilestones, useTasks, useProject } from "@/hooks/useSupabaseProject";
 
 export default function CameraScreen() {
   const navigate = useNavigate();
