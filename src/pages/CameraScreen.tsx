@@ -14,6 +14,7 @@ export default function CameraScreen() {
   const { data: project } = useProject(currentProjectId ?? undefined);
   const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
   const { data: allTasks = [] } = useTasks(milestoneId || undefined);
+
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export default function CameraScreen() {
   const milestone = milestones.find(m => m.id === milestoneId);
   const task = allTasks.find(t => t.id === taskId);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -33,6 +34,8 @@ export default function CameraScreen() {
       setBase64Data(b64);
     };
     reader.readAsDataURL(file);
+    // Reset input value so the same file can be re-selected
+    e.target.value = "";
   };
 
   const handleConfirm = () => {
@@ -43,10 +46,6 @@ export default function CameraScreen() {
     sessionStorage.setItem("evidenceTaskId", taskId);
     sessionStorage.setItem("evidenceMilestoneName", milestone?.name || itemName || "");
     sessionStorage.setItem("evidenceTaskName", task?.name || (searchParams.get("taskName") ?? ""));
-    sessionStorage.setItem("evidenceProjectName", project?.name ?? "");
-    sessionStorage.setItem("evidenceMilestoneDescription", milestone?.description ?? "");
-    sessionStorage.setItem("evidenceTaskDescription", task?.description ?? "");
-    sessionStorage.setItem("evidenceAllTasks", JSON.stringify(allTasks.map(t => ({ name: t.name, status: t.status }))));
     sessionStorage.setItem("evidenceProjectName", project?.name ?? "");
     sessionStorage.setItem("evidenceMilestoneDescription", milestone?.description ?? "");
     sessionStorage.setItem("evidenceTaskDescription", task?.description ?? "");
@@ -86,21 +85,23 @@ export default function CameraScreen() {
         )}
       </div>
 
-      {/* Hidden file inputs */}
+      {/* Hidden file input for CAMERA (has capture attribute) */}
       <input
         ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={handleFile}
+        onChange={handleFileSelect}
       />
+
+      {/* Hidden file input for GALLERY (no capture attribute) */}
       <input
         ref={galleryInputRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleFile}
+        onChange={handleFileSelect}
       />
 
       {/* Fixed buttons above bottom nav */}
@@ -132,7 +133,7 @@ export default function CameraScreen() {
               <span className="w-16 h-16 rounded-full border-2 border-surface-dark-foreground flex items-center justify-center">
                 <Camera className="w-6 h-6 text-surface-dark-foreground" />
               </span>
-              <span className="font-mono text-[10px] text-surface-dark-muted">camera</span>
+              <span className="font-mono text-[10px] text-surface-dark-muted">take photo</span>
             </button>
             <button
               onClick={() => galleryInputRef.current?.click()}
@@ -141,7 +142,7 @@ export default function CameraScreen() {
               <span className="w-16 h-16 rounded-full border-2 border-surface-dark-foreground flex items-center justify-center">
                 <ImageIcon className="w-6 h-6 text-surface-dark-foreground" />
               </span>
-              <span className="font-mono text-[10px] text-surface-dark-muted">gallery</span>
+              <span className="font-mono text-[10px] text-surface-dark-muted">choose from library</span>
             </button>
           </>
         )}
