@@ -7,6 +7,7 @@ const en = {
     activity: "activity",
     team: "team",
     my_tasks: "my tasks",
+    my_work: "my work",
     submit: "submit",
   },
   common: {
