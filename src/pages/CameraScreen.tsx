@@ -34,8 +34,12 @@ export default function CameraScreen() {
     sessionStorage.setItem("capturedPhotoBase64", base64Data);
     sessionStorage.setItem("evidenceMilestoneId", milestoneId);
     sessionStorage.setItem("evidenceTaskId", taskId);
-    sessionStorage.setItem("evidenceMilestoneName", itemName || "");
-    sessionStorage.setItem("evidenceTaskName", searchParams.get("taskName") ?? "");
+    sessionStorage.setItem("evidenceMilestoneName", milestone?.name || itemName || "");
+    sessionStorage.setItem("evidenceTaskName", task?.name || searchParams.get("taskName") ?? "");
+    sessionStorage.setItem("evidenceProjectName", project?.name ?? "");
+    sessionStorage.setItem("evidenceMilestoneDescription", milestone?.description ?? "");
+    sessionStorage.setItem("evidenceTaskDescription", task?.description ?? "");
+    sessionStorage.setItem("evidenceAllTasks", JSON.stringify(tasks.map(t => ({ name: t.name, status: t.status }))));
     navigate("/project/evidence-confirm");
   };
 
