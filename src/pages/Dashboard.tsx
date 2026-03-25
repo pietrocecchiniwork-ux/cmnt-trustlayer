@@ -121,7 +121,8 @@ function PMDashboard() {
   const needsApproval = milestones.filter(m => m.status === "in_review");
   const delays = milestones.filter(m => m.status === "overdue");
   const inProgress = inProgressMilestones;
-  const allClear = needsApproval.length === 0 && delays.length === 0 && inProgress.length === 0;
+  const pending = milestones.filter(m => m.status === "pending");
+  const allClear = needsApproval.length === 0 && delays.length === 0 && inProgress.length === 0 && pending.length === 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
