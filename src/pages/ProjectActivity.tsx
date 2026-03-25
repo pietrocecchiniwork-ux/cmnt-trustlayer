@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useProjectChanges } from "@/hooks/useSupabaseProject";
+import { useProjectChanges, useCurrentUser, useProjectMembers } from "@/hooks/useSupabaseProject";
 import type { ProjectChange } from "@/hooks/useSupabaseProject";
+import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isToday, isYesterday } from "date-fns";
 
@@ -77,6 +78,9 @@ export default function ProjectActivity() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { data: changes = [], isLoading } = useProjectChanges(currentProjectId ?? undefined);
+  const { data: user } = useCurrentUser();
+  const { role } = useRole();
+  const { data: members = [] } = useProjectMembers(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
 
   // Debug: log project ID on mount
@@ -106,12 +110,33 @@ export default function ProjectActivity() {
       });
   }, [currentProjectId]);
 
+  // Role-based filtering:
+  // PM/client → see all activity
+  // contractor → see own + trade members' activity
+  // trade → see only own activity
+  const filteredChanges = useMemo(() => {
+    if (!user) return [];
+    if (role === "pm" || role === "client") return changes;
+
+    if (role === "contractor") {
+      // Get user IDs of trade members in this project
+      const tradeUserIds = new Set(
+        members.filter(m => m.role === "trade").map(m => m.user_id).filter(Boolean)
+      );
+      tradeUserIds.add(user.id); // include own
+      return changes.filter(c => c.changed_by && tradeUserIds.has(c.changed_by));
+    }
+
+    // trade: only own activity
+    return changes.filter(c => c.changed_by === user.id);
+  }, [changes, role, user, members]);
+
   // Query is disabled when projectId is null — treat as empty, not loading
   const showLoading = (isLoading && !!currentProjectId) && !timedOut;
-  const showEmpty = (!showLoading && changes.length === 0) || (!currentProjectId && timedOut);
+  const showEmpty = (!showLoading && filteredChanges.length === 0) || (!currentProjectId && timedOut);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-8">
+    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-32">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-6">← back</button>
       <h1 className="font-sans text-[22px] leading-tight text-foreground">activity</h1>
       <p className="font-mono text-[11px] text-muted-foreground mt-1 mb-8">full audit trail</p>
@@ -129,7 +154,7 @@ export default function ProjectActivity() {
       )}
 
       <div className="space-y-5">
-        {changes.map((c) => (
+        {filteredChanges.map((c) => (
           <div key={c.id} className="flex items-start gap-3">
             <span
               className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px] ${entityDot[c.entity_type] ?? "bg-muted-foreground"}`}

@@ -93,7 +93,8 @@ export default function TeamScreen() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
+    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-32">
+      <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-6">← back</button>
       <h1 className="font-sans text-[22px] text-foreground mb-6">team</h1>
 
       <div className="flex-1">
