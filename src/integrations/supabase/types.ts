@@ -210,6 +210,8 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          assigned_to: string | null
+          assigned_to_name: string | null
           checklist: Json | null
           created_at: string
           created_from: Database["public"]["Enums"]["milestone_source"]
@@ -225,6 +227,8 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          assigned_to?: string | null
+          assigned_to_name?: string | null
           checklist?: Json | null
           created_at?: string
           created_from?: Database["public"]["Enums"]["milestone_source"]
@@ -240,6 +244,8 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          assigned_to?: string | null
+          assigned_to_name?: string | null
           checklist?: Json | null
           created_at?: string
           created_from?: Database["public"]["Enums"]["milestone_source"]
