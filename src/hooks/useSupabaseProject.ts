@@ -554,7 +554,7 @@ export function useUpdateMilestone() {
       assigned_to?: string | null;
       assigned_to_name?: string | null;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("milestones")
         .update(updates)
         .eq("id", id)
