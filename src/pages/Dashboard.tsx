@@ -150,7 +150,7 @@ function PMDashboard() {
         <div className="px-6 mt-8 flex-1">
           {allClear ? (
             <div className="flex items-center justify-center py-20">
-              <p className="font-sans text-[16px] text-muted-foreground">all clear</p>
+              <p className="font-sans text-[16px] text-muted-foreground">all clear — no actions needed</p>
             </div>
           ) : (
             <div className="space-y-8">
@@ -195,7 +195,7 @@ function PMDashboard() {
 
               {inProgress.length > 0 && (
                 <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">in progress</p>
+                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">waiting for evidence</p>
                   <div className="space-y-2">
                     {inProgress.map(m => (
                       <button
@@ -431,7 +431,7 @@ function ContractorDashboard() {
         {!urgentItem ? (
           <div className="flex-1 flex items-center justify-center px-6">
             <p className="font-sans text-[16px] text-muted-foreground text-center">
-              no work assigned yet — contact your PM
+              no tasks assigned yet — ask your PM for the project code
             </p>
           </div>
         ) : (
