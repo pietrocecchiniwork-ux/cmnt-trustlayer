@@ -7,6 +7,7 @@ const it = {
     activity: "attività",
     team: "squadra",
     my_tasks: "i miei compiti",
+    my_work: "il mio lavoro",
     submit: "invia",
   },
   common: {
