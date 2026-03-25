@@ -13,18 +13,17 @@ interface AiTags {
   completion_stage: string;
   condition_flag: string;
   building_element: string;
-  quality_score?: number;
-  ai_summary?: string;
-  context_match?: string;
+  milestone_match?: boolean;
+  ai_comment?: string;
 }
 
 const tagOptions: Partial<Record<keyof AiTags, string[]>> = {
-  work_type: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
-  trade_category: ["electrical", "plumbing", "roofing", "carpentry", "plastering", "tiling", "decorating", "flooring", "structural", "general"],
-  location_in_building: ["basement", "ground_floor", "first_floor", "second_floor", "roof", "exterior", "kitchen", "bathroom", "living_room", "bedroom", "hallway", "garage"],
-  completion_stage: ["started", "in_progress", "nearly_complete", "complete", "snagging"],
-  condition_flag: ["good", "acceptable", "poor", "defect", "damage"],
-  building_element: ["wall", "floor", "ceiling", "roof", "window", "door", "foundation", "pipe", "cable", "fitting", "fixture"],
+  work_type: ["electrical", "plumbing", "structural", "roofing", "insulation", "plastering", "carpentry", "glazing", "decoration", "groundworks", "drainage", "hvac", "other"],
+  trade_category: ["main_contractor", "electrician", "plumber", "carpenter", "plasterer", "roofer", "groundworker", "glazier", "decorator", "structural_engineer", "other"],
+  location_in_building: ["basement", "ground_floor", "first_floor", "second_floor", "roof", "external", "foundation", "party_wall", "loft", "other"],
+  completion_stage: ["groundworks", "shell", "first_fix", "insulation", "plastering", "second_fix", "fit_out", "snagging", "complete"],
+  condition_flag: ["pass", "concern", "fail"],
+  building_element: ["wall", "ceiling", "floor", "roof", "window", "door", "staircase", "foundation", "frame", "drainage", "services", "other"],
 };
 
 function generateEvidenceCode(): string {
@@ -221,7 +220,7 @@ export default function EvidenceConfirm() {
     }
   };
 
-  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_summary" && k !== "quality_score" && k !== "context_match") : [];
+  const tagEntries = aiTags ? (Object.entries(aiTags) as [keyof AiTags, string][]).filter(([k]) => k !== "ai_comment" && k !== "milestone_match") : [];
 
   return (
     <div className="flex flex-col h-full bg-background px-6 pt-12 pb-40">
@@ -251,14 +250,14 @@ export default function EvidenceConfirm() {
 
       {correcting && editedTags ? (
         <div className="mb-4 space-y-2">
-          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_summary" && k !== "quality_score" && k !== "context_match" && tagOptions[k]).map((key) => (
+          {(Object.keys(editedTags) as (keyof AiTags)[]).filter(k => k !== "ai_comment" && k !== "milestone_match" && tagOptions[k]).map((key) => (
             <div key={key} className="flex items-center gap-2">
               <span className="font-mono text-[10px] text-muted-foreground w-36 flex-shrink-0">
                 {key.replace(/_/g, " ")}
               </span>
               <select
                 className="flex-1 bg-secondary border border-border rounded px-2 py-1 font-mono text-[11px] text-foreground"
-                value={editedTags[key]}
+                value={String(editedTags[key] ?? "")}
                 onChange={(e) => setEditedTags({ ...editedTags, [key]: e.target.value })}
               >
                 {tagOptions[key]!.map((opt) => (
@@ -295,49 +294,33 @@ export default function EvidenceConfirm() {
         </div>
       )}
 
-      {aiTags?.quality_score != null && (
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex gap-[3px]">
-            {Array.from({ length: 10 }, (_, i) => (
-              <div
-                key={i}
-                className={`w-[18px] h-[6px] rounded-[1px] transition-colors ${
-                  i < aiTags.quality_score!
-                    ? aiTags.quality_score! >= 7
-                      ? "bg-accent"
-                      : aiTags.quality_score! >= 4
-                        ? "bg-yellow-500"
-                        : "bg-destructive"
-                    : "bg-muted"
-                }`}
-              />
-            ))}
-          </div>
-          <span className="font-mono text-[11px] text-muted-foreground">
-            {aiTags.quality_score}/10
-          </span>
-        </div>
-      )}
-
-      {aiTags?.context_match && (
+      {aiTags?.milestone_match != null && (
         <div className="mb-3">
           <span className={`font-mono text-[11px] px-2 py-0.5 rounded ${
-            aiTags.context_match === "exact_match" ? "bg-success/20 text-success" :
-            aiTags.context_match === "related" ? "bg-accent/20 text-accent" :
-            aiTags.context_match === "partial" ? "bg-yellow-500/20 text-yellow-600" :
-            "bg-destructive/20 text-destructive"
+            aiTags.milestone_match ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
           }`}>
-            {aiTags.context_match === "exact_match" ? "✓ matches task" :
-             aiTags.context_match === "related" ? "~ related to task" :
-             aiTags.context_match === "partial" ? "⚠ partial match" :
-             "✕ doesn't match task"}
+            {aiTags.milestone_match ? "✓ matches milestone" : "✕ doesn't match milestone"}
           </span>
         </div>
       )}
 
-      {aiTags?.ai_summary && (
+      {aiTags?.condition_flag && (
+        <div className="mb-3">
+          <span className={`font-mono text-[11px] px-2 py-0.5 rounded ${
+            aiTags.condition_flag === "pass" ? "bg-success/20 text-success" :
+            aiTags.condition_flag === "concern" ? "bg-yellow-500/20 text-yellow-600" :
+            "bg-destructive/20 text-destructive"
+          }`}>
+            {aiTags.condition_flag === "pass" ? "✓ pass" :
+             aiTags.condition_flag === "concern" ? "⚠ concern" :
+             "✕ fail"}
+          </span>
+        </div>
+      )}
+
+      {aiTags?.ai_comment && (
         <p className="font-mono text-[11px] text-muted-foreground italic mb-4 leading-relaxed">
-          {aiTags.ai_summary}
+          {aiTags.ai_comment}
         </p>
       )}
 

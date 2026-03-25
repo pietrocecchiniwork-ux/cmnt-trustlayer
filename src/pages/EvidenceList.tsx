@@ -31,10 +31,11 @@ export default function EvidenceList() {
       <div className="flex-1 px-6 pb-6">
         {evidence.map((e) => {
           const tagsObj = e.ai_tags && typeof e.ai_tags === "object" ? (e.ai_tags as Record<string, unknown>) : {};
-          const qualityScore = typeof tagsObj.quality_score === "number" ? tagsObj.quality_score : null;
-          const aiSummary = typeof tagsObj.ai_summary === "string" ? tagsObj.ai_summary : null;
+          const milestoneMatch = typeof tagsObj.milestone_match === "boolean" ? tagsObj.milestone_match : null;
+          const conditionFlag = typeof tagsObj.condition_flag === "string" ? tagsObj.condition_flag : null;
+          const aiComment = typeof tagsObj.ai_comment === "string" ? tagsObj.ai_comment : null;
           const displayTags = Object.entries(tagsObj)
-            .filter(([k]) => k !== "quality_score" && k !== "ai_summary")
+            .filter(([k]) => k !== "milestone_match" && k !== "ai_comment" && k !== "condition_flag")
             .map(([, v]) => String(v));
 
           return (
@@ -53,33 +54,26 @@ export default function EvidenceList() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-mono text-[12px] text-foreground truncate">{e.milestone_name}</p>
-                  {qualityScore != null && (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <div className="flex gap-[2px]">
-                        {Array.from({ length: 10 }, (_, i) => (
-                          <div
-                            key={i}
-                            className={`w-[10px] h-[4px] rounded-[1px] ${
-                              i < qualityScore
-                                ? qualityScore >= 7
-                                  ? "bg-accent"
-                                  : qualityScore >= 4
-                                    ? "bg-yellow-500"
-                                    : "bg-destructive"
-                                : "bg-muted"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="font-mono text-[10px] text-foreground/40">{qualityScore}</span>
-                    </div>
+                  {conditionFlag && (
+                    <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
+                      conditionFlag === "pass" ? "bg-success/20 text-success" :
+                      conditionFlag === "concern" ? "bg-yellow-500/20 text-yellow-600" :
+                      "bg-destructive/20 text-destructive"
+                    }`}>
+                      {conditionFlag}
+                    </span>
+                  )}
+                  {milestoneMatch != null && (
+                    <span className={`font-mono text-[10px] flex-shrink-0 ${milestoneMatch ? "text-success" : "text-destructive"}`}>
+                      {milestoneMatch ? "✓" : "✕"}
+                    </span>
                   )}
                 </div>
                 <p className="font-mono text-[10px] text-foreground/40 mt-0.5">
                   {format(new Date(e.submitted_at), "dd MMM yyyy · HH:mm")}
                 </p>
-                {aiSummary && (
-                  <p className="font-mono text-[10px] text-foreground/50 italic mt-1 leading-relaxed">{aiSummary}</p>
+                {aiComment && (
+                  <p className="font-mono text-[10px] text-foreground/50 italic mt-1 leading-relaxed">{aiComment}</p>
                 )}
                 {e.note && <p className="font-mono text-[12px] text-foreground/70 mt-1">{e.note}</p>}
                 <div className="flex flex-wrap gap-3 mt-1.5">

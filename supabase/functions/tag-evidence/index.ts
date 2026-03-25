@@ -13,70 +13,84 @@ Deno.serve(async (req: Request) => {
   try {
     const { image_base64, milestone_name, task_name, project_name, milestone_description, task_description, all_tasks } = await req.json();
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
-      console.error("LOVABLE_API_KEY not configured");
+      console.error("ANTHROPIC_API_KEY not configured");
       return new Response(
         JSON.stringify({
-          work_type: "unknown",
-          trade_category: "general",
-          location_in_building: "ground_floor",
-          completion_stage: "mid",
-          condition_flag: "good",
-          building_element: "walls",
-          ai_summary: "AI not configured — default tags applied.",
+          work_type: "other",
+          trade_category: "other",
+          location_in_building: "other",
+          completion_stage: "first_fix",
+          condition_flag: "concern",
+          building_element: "other",
+          milestone_match: false,
+          ai_comment: "AI not configured — default tags applied.",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Build rich context block
+    // Build rich context
     const contextLines: string[] = [];
-    if (project_name) contextLines.push(`Project: "${project_name}"`);
-    if (milestone_name) contextLines.push(`Milestone: "${milestone_name}"`);
-    if (milestone_description) contextLines.push(`Milestone description: "${milestone_description}"`);
-    if (task_name) contextLines.push(`Task: "${task_name}"`);
-    if (task_description) contextLines.push(`Task description: "${task_description}"`);
+    if (project_name) contextLines.push(`- Project: "${project_name}"`);
+    if (milestone_description) contextLines.push(`- Milestone description: "${milestone_description}"`);
+    if (task_description) contextLines.push(`- Task description: "${task_description}"`);
     if (all_tasks && Array.isArray(all_tasks) && all_tasks.length > 0) {
       const taskList = all_tasks.map((t: { name: string; status: string }) => `  - ${t.name} (${t.status})`).join("\n");
-      contextLines.push(`Other tasks in this milestone:\n${taskList}`);
+      contextLines.push(`- Other tasks in this milestone:\n${taskList}`);
     }
-    const contextBlock = contextLines.length
-      ? `\n\nFull context for this evidence submission:\n${contextLines.join("\n")}\n\nUse this context to make your analysis more accurate. Specifically check whether the photo actually shows the work described in the task/milestone, and note any discrepancies.`
-      : "";
+    const extraContext = contextLines.length ? "\n" + contextLines.join("\n") : "";
 
-    const prompt = `You are an expert UK construction site inspector analysing a photo submitted as evidence for a construction milestone.${contextBlock}
+    const prompt = `You are analysing a construction site photo for a UK construction verification platform.
 
-Analyse this construction photo carefully. Return a JSON object with exactly these fields:
-- work_type: one of [demolition, excavation, concrete_pour, framing, rough_in, boarding, plastering, first_fix, second_fix, finishing, inspection, cleaning, landscaping]
-- trade_category: one of [general, plumbing, electrical, carpentry, plastering, painting, tiling, roofing, glazing, bricklaying, flooring]
-- location_in_building: one of [exterior, ground_floor, first_floor, second_floor, loft, basement, kitchen, bathroom, hallway, roof, garden, utility_room]
-- completion_stage: one of [not_started, early, mid, first_fix, second_fix, finishing, complete, snagging]
-- condition_flag: one of [good, acceptable, concern, defect]
-- building_element: one of [foundations, walls, floor, ceiling, roof, pipework, wiring, joists, plasterwork, fixtures, windows, doors, insulation]
-- quality_score: integer 1-10 rating how well this photo matches the milestone/task context (10 = perfect evidence showing exactly the expected work complete, 1 = completely unrelated or unusable photo). Consider: does the photo clearly show the work described? Is it well-lit and in focus? Does the completion stage match what the task expects?
-- ai_summary: a 2-3 sentence description: (1) what you see in the photo, (2) whether it matches the expected milestone/task work, (3) any concerns or recommendations
-- context_match: one of [exact_match, related, partial, unrelated] — how well the photo content matches the task/milestone description
+Project context:
+- Milestone: ${milestone_name || "unknown"}
+- Task: ${task_name || "unknown"}${extraContext}
 
-Return ONLY the JSON object, no other text.`;
+Analyse this photo and return ONLY a valid JSON object with exactly these six fields and only these allowed values:
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+{
+  "work_type": one of [electrical, plumbing, structural, roofing, insulation, plastering, carpentry, glazing, decoration, groundworks, drainage, hvac, other],
+  "trade_category": one of [main_contractor, electrician, plumber, carpenter, plasterer, roofer, groundworker, glazier, decorator, structural_engineer, other],
+  "location_in_building": one of [basement, ground_floor, first_floor, second_floor, roof, external, foundation, party_wall, loft, other],
+  "completion_stage": one of [groundworks, shell, first_fix, insulation, plastering, second_fix, fit_out, snagging, complete],
+  "condition_flag": one of [pass, concern, fail],
+  "building_element": one of [wall, ceiling, floor, roof, window, door, staircase, foundation, frame, drainage, services, other]
+}
+
+Also add two additional fields:
+- "milestone_match": boolean — does this photo appear to show work related to the milestone "${milestone_name || "unknown"}"?
+- "ai_comment": string — one sentence assessment of the work quality and whether it appears correctly completed
+
+Return ONLY the JSON object. No explanation. No markdown.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-sonnet-4-5-20250514",
+        max_tokens: 1024,
         messages: [
           {
             role: "user",
             content: [
               {
-                type: "image_url",
-                image_url: { url: `data:image/jpeg;base64,${image_base64}` },
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: "image/jpeg",
+                  data: image_base64,
+                },
               },
-              { type: "text", text: prompt },
+              {
+                type: "text",
+                text: prompt,
+              },
             ],
           },
         ],
@@ -85,7 +99,7 @@ Return ONLY the JSON object, no other text.`;
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
+      console.error("Anthropic API error:", response.status, errText);
 
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, please try again shortly." }), {
@@ -93,19 +107,13 @@ Return ONLY the JSON object, no other text.`;
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
-      throw new Error(`Gateway ${response.status}`);
+      throw new Error(`Anthropic ${response.status}`);
     }
 
-    const data = await response.json();
-    const rawText = data.choices?.[0]?.message?.content ?? "{}";
-    const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+    const result = await response.json();
+    const text = result.content?.[0]?.text ?? "{}";
+    const cleaned = text.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
     const tags = JSON.parse(cleaned);
 
     return new Response(JSON.stringify(tags), {
@@ -115,13 +123,14 @@ Return ONLY the JSON object, no other text.`;
     console.error("tag-evidence error:", error);
     return new Response(
       JSON.stringify({
-        work_type: "unknown",
-        trade_category: "general",
-        location_in_building: "ground_floor",
-        completion_stage: "mid",
-        condition_flag: "good",
-        building_element: "walls",
-        ai_summary: "Analysis failed — default tags applied.",
+        work_type: "other",
+        trade_category: "other",
+        location_in_building: "other",
+        completion_stage: "first_fix",
+        condition_flag: "concern",
+        building_element: "other",
+        milestone_match: false,
+        ai_comment: "Analysis failed — default tags applied.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
