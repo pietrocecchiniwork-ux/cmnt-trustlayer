@@ -84,7 +84,7 @@ export default function ProjectActivity() {
   const { data: members = [] } = useProjectMembers(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
 
-  // Fetch all tasks across all milestones for this project (for assignment-based filtering)
+  // Fetch tasks and milestone assignments for role-based filtering
   const { data: allProjectTasks = [] } = useQuery({
     queryKey: ["all-project-tasks", currentProjectId],
     enabled: !!currentProjectId && (role === "contractor" || role === "trade"),
@@ -97,9 +97,21 @@ export default function ProjectActivity() {
       const milestoneIds = milestones.map(m => m.id);
       const { data: tasks } = await (supabase as any)
         .from("tasks")
-        .select("id, assigned_to")
+        .select("id, milestone_id, assigned_to")
         .in("milestone_id", milestoneIds);
-      return (tasks ?? []) as { id: string; assigned_to: string | null }[];
+      return (tasks ?? []) as { id: string; milestone_id: string; assigned_to: string | null }[];
+    },
+  });
+
+  const { data: myMilestoneAssignments = [] } = useQuery({
+    queryKey: ["my-milestone-assignments", currentProjectId, user?.id],
+    enabled: !!currentProjectId && !!user && (role === "trade" || role === "contractor"),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("milestone_assignments")
+        .select("milestone_id")
+        .eq("user_id", user!.id);
+      return (data ?? []).map(r => r.milestone_id);
     },
   });
 
