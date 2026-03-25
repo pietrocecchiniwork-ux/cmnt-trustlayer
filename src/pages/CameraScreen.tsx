@@ -10,10 +10,17 @@ export default function CameraScreen() {
   const milestoneId = searchParams.get("milestoneId") ?? "";
   const itemName = searchParams.get("item") ?? "";
   const taskId = searchParams.get("taskId") ?? "";
+  const { currentProjectId } = useProjectContext();
+  const { data: project } = useProject(currentProjectId ?? undefined);
+  const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
+  const { data: allTasks = [] } = useTasks(milestoneId || undefined);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [base64Data, setBase64Data] = useState<string | null>(null);
+
+  const milestone = milestones.find(m => m.id === milestoneId);
+  const task = allTasks.find(t => t.id === taskId);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,7 +42,11 @@ export default function CameraScreen() {
     sessionStorage.setItem("evidenceMilestoneId", milestoneId);
     sessionStorage.setItem("evidenceTaskId", taskId);
     sessionStorage.setItem("evidenceMilestoneName", milestone?.name || itemName || "");
-    sessionStorage.setItem("evidenceTaskName", task?.name || searchParams.get("taskName") ?? "");
+    sessionStorage.setItem("evidenceTaskName", task?.name || (searchParams.get("taskName") ?? ""));
+    sessionStorage.setItem("evidenceProjectName", project?.name ?? "");
+    sessionStorage.setItem("evidenceMilestoneDescription", milestone?.description ?? "");
+    sessionStorage.setItem("evidenceTaskDescription", task?.description ?? "");
+    sessionStorage.setItem("evidenceAllTasks", JSON.stringify(allTasks.map(t => ({ name: t.name, status: t.status }))));
     sessionStorage.setItem("evidenceProjectName", project?.name ?? "");
     sessionStorage.setItem("evidenceMilestoneDescription", milestone?.description ?? "");
     sessionStorage.setItem("evidenceTaskDescription", task?.description ?? "");
