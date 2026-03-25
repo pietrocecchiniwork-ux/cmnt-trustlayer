@@ -50,7 +50,7 @@ export default function CameraScreen() {
     sessionStorage.setItem("evidenceProjectName", project?.name ?? "");
     sessionStorage.setItem("evidenceMilestoneDescription", milestone?.description ?? "");
     sessionStorage.setItem("evidenceTaskDescription", task?.description ?? "");
-    sessionStorage.setItem("evidenceAllTasks", JSON.stringify(tasks.map(t => ({ name: t.name, status: t.status }))));
+    sessionStorage.setItem("evidenceAllTasks", JSON.stringify(allTasks.map(t => ({ name: t.name, status: t.status }))));
     navigate("/project/evidence-confirm");
   };
 
