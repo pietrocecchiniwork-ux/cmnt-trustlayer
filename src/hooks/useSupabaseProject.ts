@@ -551,6 +551,8 @@ export function useUpdateMilestone() {
       name?: string;
       due_date?: string;
       payment_value?: number;
+      assigned_to?: string | null;
+      assigned_to_name?: string | null;
     }) => {
       const { data, error } = await supabase
         .from("milestones")
