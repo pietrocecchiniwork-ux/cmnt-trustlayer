@@ -79,6 +79,7 @@ Return ONLY the JSON object. No explanation. No markdown.`;
                 type: "image_url",
                 image_url: {
                   url: `data:image/jpeg;base64,${image_base64}`,
+                  detail: "low",
                 },
               },
               {
