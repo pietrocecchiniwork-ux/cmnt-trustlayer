@@ -580,6 +580,61 @@ export default function MilestoneDetailPage() {
               <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
               <span className="font-mono text-[12px] text-muted-foreground">{t(`milestone.status.${milestone.status}`)}</span>
             </div>
+
+            {/* Client dispute link */}
+            {role === "client" && milestone.status !== "complete" && (milestone.status as string) !== "disputed" && (
+              disputeOpen ? (
+                <div className="mt-3 space-y-2">
+                  <input
+                    autoFocus
+                    className="w-full bg-secondary border border-border rounded px-3 py-1.5 font-sans text-[14px] text-foreground"
+                    placeholder="reason for dispute"
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") { setDisputeOpen(false); setDisputeReason(""); } }}
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={async () => {
+                        if (!disputeReason.trim() || !currentProjectId || !currentUser) return;
+                        setDisputeSubmitting(true);
+                        try {
+                          await updateStatus.mutateAsync({ id: milestone.id, status: "disputed" as any, projectId: currentProjectId });
+                          await createChange.mutateAsync({
+                            project_id: currentProjectId,
+                            entity_type: "milestone",
+                            entity_id: milestone.id,
+                            entity_name: milestone.name,
+                            change_type: "disputed",
+                            changed_by: currentUser.id,
+                            changed_by_name: currentUser.email ?? undefined,
+                            new_value: { reason: disputeReason.trim() },
+                          });
+                          toast.success("Dispute raised");
+                          setDisputeOpen(false);
+                          setDisputeReason("");
+                        } catch {
+                          toast.error("Failed to raise dispute");
+                        } finally {
+                          setDisputeSubmitting(false);
+                        }
+                      }}
+                      disabled={disputeSubmitting || !disputeReason.trim()}
+                      className="font-mono text-[12px] text-destructive border border-destructive rounded px-3 py-1.5"
+                    >
+                      {disputeSubmitting ? "submitting..." : "confirm dispute"}
+                    </button>
+                    <button onClick={() => { setDisputeOpen(false); setDisputeReason(""); }} className="font-mono text-[12px] text-muted-foreground">
+                      cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setDisputeOpen(true)} className="font-mono text-[11px] text-destructive mt-2">
+                  raise dispute
+                </button>
+              )
+            )}
           </>
         )}
 
