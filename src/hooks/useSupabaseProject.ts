@@ -200,6 +200,10 @@ export function useUpdateEvidence() {
       milestoneId: string;
       note?: string;
       ai_tags?: Record<string, unknown>;
+      quality_assessment?: string;
+      verification_level?: number;
+      label_dimensions_captured?: number;
+      human_override?: boolean;
     }) => {
       const { data, error } = await supabase
         .from("evidence")
