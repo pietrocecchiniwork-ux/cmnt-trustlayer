@@ -151,6 +151,12 @@ export default function EvidenceConfirm() {
     if (!state?.milestoneId || !user) return;
     setSubmitting(true);
     try {
+      // Upload voice note if recorded
+      let voiceNoteUrl: string | null = null;
+      if (voiceBlob) {
+        voiceNoteUrl = await uploadVoiceNote(voiceBlob, "voice_note.webm");
+      }
+
       // Upload all photos and submit one evidence record per photo
       for (let i = 0; i < state.photos.length; i++) {
         const photo = state.photos[i];
