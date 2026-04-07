@@ -335,6 +335,16 @@ export async function uploadEvidencePhoto(file: Blob, fileName: string): Promise
   return data.publicUrl;
 }
 
+export async function uploadVoiceNote(file: Blob, fileName: string): Promise<string> {
+  const path = `${Date.now()}_${fileName}`;
+  const { error } = await supabase.storage
+    .from("evidence-photos")
+    .upload(path, file, { contentType: "audio/webm" });
+  if (error) { console.error("uploadVoiceNote error:", error); throw error; }
+  const { data } = supabase.storage.from("evidence-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 // ─── Local types for new tables (not yet in generated types) ───
 
 export type Task = {

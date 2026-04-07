@@ -76,6 +76,9 @@ export default function EvidenceList() {
                   <p className="font-mono text-[10px] text-foreground/50 italic mt-1 leading-relaxed">{aiComment}</p>
                 )}
                 {e.note && <p className="font-mono text-[12px] text-foreground/70 mt-1">{e.note}</p>}
+                {(e as any).voice_note_url && (
+                  <audio src={(e as any).voice_note_url} controls className="mt-1 h-7 w-44" />
+                )}
                 <div className="flex flex-wrap gap-3 mt-1.5">
                   {displayTags.map((tag, j) => (
                     <span

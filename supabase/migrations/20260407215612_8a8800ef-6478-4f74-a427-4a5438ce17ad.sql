@@ -1,0 +1,1 @@
+ALTER TABLE public.evidence ADD COLUMN voice_note_url text DEFAULT NULL;

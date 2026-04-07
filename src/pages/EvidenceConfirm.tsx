@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { useSubmitEvidence, uploadEvidencePhoto, useCurrentUser } from "@/hooks/useSupabaseProject";
+import { useSubmitEvidence, uploadEvidencePhoto, uploadVoiceNote, useCurrentUser } from "@/hooks/useSupabaseProject";
+import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getEvidencePhotoState, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
@@ -73,6 +74,7 @@ export default function EvidenceConfirm() {
   const [tagsEdited, setTagsEdited] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
 
   const submitEvidence = useSubmitEvidence();
   const { data: user } = useCurrentUser();
@@ -149,6 +151,12 @@ export default function EvidenceConfirm() {
     if (!state?.milestoneId || !user) return;
     setSubmitting(true);
     try {
+      // Upload voice note if recorded
+      let voiceNoteUrl: string | null = null;
+      if (voiceBlob) {
+        voiceNoteUrl = await uploadVoiceNote(voiceBlob, "voice_note.webm");
+      }
+
       // Upload all photos and submit one evidence record per photo
       for (let i = 0; i < state.photos.length; i++) {
         const photo = state.photos[i];
@@ -174,10 +182,11 @@ export default function EvidenceConfirm() {
           task_id: state.taskId || null,
           gps_lat: coords?.lat ?? null,
           gps_lng: coords?.lng ?? null,
+          voice_note_url: i === 0 ? voiceNoteUrl : null,
         };
 
         try {
-          await submitEvidence.mutateAsync(fullPayload);
+          await submitEvidence.mutateAsync(fullPayload as any);
         } catch (lcmErr: unknown) {
           const code = (lcmErr as { code?: string })?.code;
           if (code === "42703") {
@@ -356,8 +365,15 @@ export default function EvidenceConfirm() {
         placeholder="add a note (optional)"
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        className="underline-input mb-6"
+        className="underline-input mb-3"
       />
+
+      <VoiceNoteRecorder
+        onRecorded={(blob) => setVoiceBlob(blob)}
+        onCleared={() => setVoiceBlob(null)}
+      />
+
+      <div className="mb-6" />
 
       <div
         className="fixed bottom-16 left-0 right-0 px-6 bg-background"
