@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useProjectEvidence } from "@/hooks/useSupabaseProject";
+import { useProjectEvidence, useProject } from "@/hooks/useSupabaseProject";
 import { format } from "date-fns";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
+import { exportEvidenceList } from "@/lib/exportCsv";
+import { useRole } from "@/contexts/RoleContext";
 
 const PAGE_SIZE = 20;
 
 export default function EvidenceList() {
   const { currentProjectId } = useProjectContext();
   const { data: evidence = [], isLoading } = useProjectEvidence(currentProjectId ?? undefined);
+  const { data: project } = useProject(currentProjectId ?? undefined);
+  const { role } = useRole();
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
@@ -28,6 +32,14 @@ export default function EvidenceList() {
         <p className="font-mono text-[12px] text-foreground/40 mt-1">
           {evidence.length} submissions
         </p>
+        {(role === "pm" || role === "client") && evidence.length > 0 && (
+          <button
+            onClick={() => exportEvidenceList(evidence, project?.name ?? "project")}
+            className="font-mono text-[10px] text-foreground/50 underline underline-offset-4 mt-2"
+          >
+            export csv
+          </button>
+        )}
       </div>
 
       {isLoading && (
