@@ -83,6 +83,7 @@ export default function MilestoneDetailPage() {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const milestone = milestones.find((m) => m.id === milestoneId);
   const assignableMembers = members.filter(m => m.user_id !== null);
