@@ -79,6 +79,9 @@ export default function MilestoneDetailPage() {
   const [editDate, setEditDate] = useState("");
   const [editPayment, setEditPayment] = useState("");
   const [editAssigneeId, setEditAssigneeId] = useState("");
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
 
   const milestone = milestones.find((m) => m.id === milestoneId);
   const assignableMembers = members.filter(m => m.user_id !== null);
