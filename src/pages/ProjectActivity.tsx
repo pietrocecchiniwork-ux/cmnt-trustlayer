@@ -93,6 +93,8 @@ export default function ProjectActivity() {
   const { role } = useRole();
   const { data: members = [] } = useProjectMembers(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 30;
 
   // Fetch tasks and milestone assignments for role-based filtering
   const { data: allProjectTasks = [] } = useQuery({
@@ -203,24 +205,39 @@ export default function ProjectActivity() {
         </div>
       )}
 
-      <div className="space-y-5">
-        {filteredChanges.map((c) => (
-          <div key={c.id} className="flex items-start gap-3">
-            <span
-              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px] ${entityDot[c.entity_type] ?? "bg-muted-foreground"}`}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-sans text-[14px] text-foreground leading-snug">{describeChange(c)}</p>
-              {(c.new_value as Record<string, unknown> | null)?.ai_comment && (
-                <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
-                  {String((c.new_value as Record<string, unknown>).ai_comment)}
-                </p>
-              )}
-              <p className="font-mono text-[11px] text-muted-foreground mt-0.5">{formatTimestamp(c.created_at)}</p>
+      {(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredChanges.length / PAGE_SIZE));
+        const paged = filteredChanges.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+        return (
+          <>
+            <div className="space-y-5">
+              {paged.map((c) => (
+                <div key={c.id} className="flex items-start gap-3">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px] ${entityDot[c.entity_type] ?? "bg-muted-foreground"}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-sans text-[14px] text-foreground leading-snug">{describeChange(c)}</p>
+                    {(c.new_value as Record<string, unknown> | null)?.ai_comment && (
+                      <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                        {String((c.new_value as Record<string, unknown>).ai_comment)}
+                      </p>
+                    )}
+                    <p className="font-mono text-[11px] text-muted-foreground mt-0.5">{formatTimestamp(c.created_at)}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="font-mono text-[11px] text-muted-foreground disabled:opacity-30">← prev</button>
+                <span className="font-mono text-[11px] text-muted-foreground">{page + 1} / {totalPages}</span>
+                <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="font-mono text-[11px] text-muted-foreground disabled:opacity-30">next →</button>
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
