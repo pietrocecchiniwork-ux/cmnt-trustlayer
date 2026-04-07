@@ -229,6 +229,29 @@ export default function EvidenceConfirm() {
         console.error("Auto-transition to in_progress failed:", e);
       }
 
+      // Write project_changes record for evidence_submitted
+      try {
+        const { data: msData } = await supabase
+          .from("milestones")
+          .select("project_id, name")
+          .eq("id", state.milestoneId)
+          .single();
+        if (msData) {
+          await (supabase as any).from("project_changes").insert({
+            project_id: msData.project_id,
+            entity_type: "evidence",
+            entity_id: state.milestoneId,
+            entity_name: msData.name,
+            change_type: "evidence_submitted",
+            changed_by: user.id,
+            changed_by_name: user.email,
+            new_value: { photo_count: state.photos.length, task_name: state.taskName ?? null },
+          });
+        }
+      } catch (changeErr) {
+        console.warn("evidence_submitted change log failed:", changeErr);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["evidence", state.milestoneId] });
       queryClient.invalidateQueries({ queryKey: ["project-evidence"] });
       queryClient.invalidateQueries({ queryKey: ["milestones"] });

@@ -131,7 +131,7 @@ export default function ProjectActivity() {
     // Client — only approvals and payment releases
     if (role === "client") {
       return changes.filter(c =>
-        c.change_type === "approved" || c.change_type === "released"
+        c.change_type === "approved" || c.change_type === "released" || c.change_type === "authorized"
       );
     }
 
