@@ -182,7 +182,8 @@ export default function EvidenceConfirm() {
           task_id: state.taskId || null,
           gps_lat: coords?.lat ?? null,
           gps_lng: coords?.lng ?? null,
-        };
+          voice_note_url: i === 0 ? voiceNoteUrl : null,
+        } as Record<string, unknown>;
 
         try {
           await submitEvidence.mutateAsync(fullPayload);
