@@ -232,6 +232,15 @@ export default function Auth() {
             {isSignUp ? "already have an account?" : "create account"}
           </button>
 
+          {!isSignUp && (
+            <button
+              onClick={() => navigate("/forgot-password")}
+              className="font-mono text-[11px] text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors mt-2"
+            >
+              forgot password?
+            </button>
+          )}
+
           <button
             onClick={() => { setShowPassword(false); setPasswordError(null); }}
             className="font-mono text-[13px] text-muted-foreground mt-6 underline underline-offset-4 hover:text-foreground transition-colors"

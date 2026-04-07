@@ -13,6 +13,8 @@ import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import Demo from "./pages/Demo";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import CreateProject from "./pages/CreateProject";
 import InviteTeam from "./pages/InviteTeam";
 import MilestoneSetup from "./pages/MilestoneSetup";
@@ -65,6 +67,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<Home />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/demo" element={<Demo />} />

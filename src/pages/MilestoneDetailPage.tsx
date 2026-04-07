@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
@@ -82,6 +83,7 @@ export default function MilestoneDetailPage() {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const milestone = milestones.find((m) => m.id === milestoneId);
   const assignableMembers = members.filter(m => m.user_id !== null);
@@ -647,7 +649,9 @@ export default function MilestoneDetailPage() {
           {evidenceItems.map((item) => (
             <div key={item.id} className="flex items-start gap-3">
               {item.photo_url ? (
-                <img src={item.photo_url} alt="evidence" className="w-[52px] h-[52px] object-cover flex-shrink-0" />
+                <button onClick={() => setLightboxUrl(item.photo_url!)} className="flex-shrink-0">
+                  <img src={item.photo_url} alt="evidence" className="w-[52px] h-[52px] object-cover hover:opacity-80 transition-opacity" />
+                </button>
               ) : (
                 <div className="w-[52px] h-[52px] bg-secondary flex-shrink-0" />
               )}
@@ -723,6 +727,9 @@ export default function MilestoneDetailPage() {
           </Button>
         )}
       </div>
+      {lightboxUrl && (
+        <PhotoLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+      )}
     </div>
   );
 }

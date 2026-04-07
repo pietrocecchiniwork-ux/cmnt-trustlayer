@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useProjectChanges, useCurrentUser, useProjectMembers } from "@/hooks/useSupabaseProject";
+import { useProjectChanges, useCurrentUser, useProjectMembers, useProject } from "@/hooks/useSupabaseProject";
 import type { ProjectChange } from "@/hooks/useSupabaseProject";
 import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
+import { exportAuditTrail } from "@/lib/exportCsv";
 
 const entityDot: Record<string, string> = {
   task: "bg-accent",
@@ -92,7 +93,10 @@ export default function ProjectActivity() {
   const { data: user } = useCurrentUser();
   const { role } = useRole();
   const { data: members = [] } = useProjectMembers(currentProjectId ?? undefined);
+  const { data: project } = useProject(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 30;
 
   // Fetch tasks and milestone assignments for role-based filtering
   const { data: allProjectTasks = [] } = useQuery({
@@ -188,8 +192,20 @@ export default function ProjectActivity() {
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-32">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-6">← back</button>
-      <h1 className="font-sans text-[22px] leading-tight text-foreground">activity</h1>
-      <p className="font-mono text-[11px] text-muted-foreground mt-1 mb-8">full audit trail</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-sans text-[22px] leading-tight text-foreground">activity</h1>
+          <p className="font-mono text-[11px] text-muted-foreground mt-1 mb-8">full audit trail</p>
+        </div>
+        {role === "pm" && filteredChanges.length > 0 && (
+          <button
+            onClick={() => exportAuditTrail(filteredChanges, project?.name ?? "project")}
+            className="font-mono text-[10px] text-muted-foreground underline underline-offset-4"
+          >
+            export csv
+          </button>
+        )}
+      </div>
 
       {showLoading && (
         <p className="font-mono text-[12px] text-muted-foreground">loading…</p>
@@ -203,24 +219,39 @@ export default function ProjectActivity() {
         </div>
       )}
 
-      <div className="space-y-5">
-        {filteredChanges.map((c) => (
-          <div key={c.id} className="flex items-start gap-3">
-            <span
-              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px] ${entityDot[c.entity_type] ?? "bg-muted-foreground"}`}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-sans text-[14px] text-foreground leading-snug">{describeChange(c)}</p>
-              {(c.new_value as Record<string, unknown> | null)?.ai_comment && (
-                <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
-                  {String((c.new_value as Record<string, unknown>).ai_comment)}
-                </p>
-              )}
-              <p className="font-mono text-[11px] text-muted-foreground mt-0.5">{formatTimestamp(c.created_at)}</p>
+      {(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredChanges.length / PAGE_SIZE));
+        const paged = filteredChanges.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+        return (
+          <>
+            <div className="space-y-5">
+              {paged.map((c) => (
+                <div key={c.id} className="flex items-start gap-3">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[7px] ${entityDot[c.entity_type] ?? "bg-muted-foreground"}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-sans text-[14px] text-foreground leading-snug">{describeChange(c)}</p>
+                    {(c.new_value as Record<string, unknown> | null)?.ai_comment && (
+                      <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                        {String((c.new_value as Record<string, unknown>).ai_comment)}
+                      </p>
+                    )}
+                    <p className="font-mono text-[11px] text-muted-foreground mt-0.5">{formatTimestamp(c.created_at)}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="font-mono text-[11px] text-muted-foreground disabled:opacity-30">← prev</button>
+                <span className="font-mono text-[11px] text-muted-foreground">{page + 1} / {totalPages}</span>
+                <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="font-mono text-[11px] text-muted-foreground disabled:opacity-30">next →</button>
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }

@@ -1,10 +1,23 @@
+import { useState } from "react";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useProjectEvidence } from "@/hooks/useSupabaseProject";
+import { useProjectEvidence, useProject } from "@/hooks/useSupabaseProject";
 import { format } from "date-fns";
+import { PhotoLightbox } from "@/components/PhotoLightbox";
+import { exportEvidenceList } from "@/lib/exportCsv";
+import { useRole } from "@/contexts/RoleContext";
+
+const PAGE_SIZE = 20;
 
 export default function EvidenceList() {
   const { currentProjectId } = useProjectContext();
   const { data: evidence = [], isLoading } = useProjectEvidence(currentProjectId ?? undefined);
+  const { data: project } = useProject(currentProjectId ?? undefined);
+  const { role } = useRole();
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  const totalPages = Math.max(1, Math.ceil(evidence.length / PAGE_SIZE));
+  const paged = evidence.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="min-h-screen screen-cream">
@@ -19,6 +32,14 @@ export default function EvidenceList() {
         <p className="font-mono text-[12px] text-foreground/40 mt-1">
           {evidence.length} submissions
         </p>
+        {(role === "pm" || role === "client") && evidence.length > 0 && (
+          <button
+            onClick={() => exportEvidenceList(evidence, project?.name ?? "project")}
+            className="font-mono text-[10px] text-foreground/50 underline underline-offset-4 mt-2"
+          >
+            export csv
+          </button>
+        )}
       </div>
 
       {isLoading && (
@@ -29,7 +50,7 @@ export default function EvidenceList() {
 
       {/* Evidence items */}
       <div className="flex-1 px-6 pb-6">
-        {evidence.map((e) => {
+        {paged.map((e) => {
           const tagsObj = e.ai_tags && typeof e.ai_tags === "object" ? (e.ai_tags as Record<string, unknown>) : {};
           const milestoneMatch = typeof tagsObj.milestone_match === "boolean" ? tagsObj.milestone_match : null;
           const conditionFlag = typeof tagsObj.condition_flag === "string" ? tagsObj.condition_flag : null;
@@ -41,11 +62,13 @@ export default function EvidenceList() {
           return (
             <div key={e.id} className="flex items-start gap-4 py-4 border-b border-foreground/10">
               {e.photo_url ? (
-                <img
-                  src={e.photo_url}
-                  alt="evidence"
-                  className="w-[48px] h-[48px] object-cover flex-shrink-0 border border-foreground/20"
-                />
+                <button onClick={() => setLightboxUrl(e.photo_url!)} className="flex-shrink-0">
+                  <img
+                    src={e.photo_url}
+                    alt="evidence"
+                    className="w-[48px] h-[48px] object-cover border border-foreground/20 hover:opacity-80 transition-opacity"
+                  />
+                </button>
               ) : (
                 <div className="w-[48px] h-[48px] border border-foreground/20 flex items-center justify-center flex-shrink-0">
                   <span className="font-mono text-[10px] text-foreground/30">—</span>
@@ -96,8 +119,35 @@ export default function EvidenceList() {
         {evidence.length === 0 && !isLoading && (
           <p className="font-mono text-[13px] text-foreground/40 mt-4">no evidence submitted yet</p>
         )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-6">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="font-mono text-[11px] text-foreground/60 disabled:opacity-30"
+            >
+              ← prev
+            </button>
+            <span className="font-mono text-[11px] text-foreground/40">
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="font-mono text-[11px] text-foreground/60 disabled:opacity-30"
+            >
+              next →
+            </button>
+          </div>
+        )}
       </div>
       </div>
+
+      {lightboxUrl && (
+        <PhotoLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+      )}
     </div>
   );
 }

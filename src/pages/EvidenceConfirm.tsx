@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useSubmitEvidence, uploadEvidencePhoto, uploadVoiceNote, useCurrentUser } from "@/hooks/useSupabaseProject";
+import { uploadWithRetry } from "@/lib/uploadQueue";
 import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -154,7 +155,7 @@ export default function EvidenceConfirm() {
       // Upload voice note if recorded
       let voiceNoteUrl: string | null = null;
       if (voiceBlob) {
-        voiceNoteUrl = await uploadVoiceNote(voiceBlob, "voice_note.webm");
+        voiceNoteUrl = await uploadWithRetry(() => uploadVoiceNote(voiceBlob, "voice_note.webm"));
       }
 
       // Upload all photos and submit one evidence record per photo
@@ -163,7 +164,7 @@ export default function EvidenceConfirm() {
         const blob = await fetch(photo.dataUrl).then(r => r.blob());
         const fileSizeBytes = blob.size;
         const fileHash = await computeHash(blob);
-        const photoUrl = await uploadEvidencePhoto(blob, `evidence_${i}.jpg`);
+        const photoUrl = await uploadWithRetry(() => uploadEvidencePhoto(blob, `evidence_${i}.jpg`));
 
         const fullPayload = {
           milestone_id: state.milestoneId,
