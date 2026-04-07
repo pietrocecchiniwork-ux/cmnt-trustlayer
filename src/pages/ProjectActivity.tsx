@@ -70,6 +70,16 @@ function describeChange(c: ProjectChange): string {
       return `${who} completed ${entity}`;
     case "deleted":
       return `${who} deleted ${entity}`;
+    case "disputed": {
+      const reason = (c.new_value as Record<string, unknown> | null)?.reason as string | undefined;
+      return reason ? `${who} raised dispute on ${entity}: ${reason}` : `${who} raised dispute on ${entity}`;
+    }
+    case "authorized":
+      return `${who} authorized payment for ${entity}`;
+    case "evidence_submitted": {
+      const count = (c.new_value as Record<string, unknown> | null)?.photo_count;
+      return `${who} submitted ${count ?? ""} evidence for ${entity}`;
+    }
     default:
       return `${who} — ${c.change_type} on ${entity}`;
   }
@@ -131,7 +141,7 @@ export default function ProjectActivity() {
     // Client — only approvals and payment releases
     if (role === "client") {
       return changes.filter(c =>
-        c.change_type === "approved" || c.change_type === "released"
+        c.change_type === "approved" || c.change_type === "released" || c.change_type === "authorized"
       );
     }
 

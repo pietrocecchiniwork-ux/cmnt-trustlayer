@@ -82,11 +82,10 @@ export default function PaymentCertificate() {
         milestone_id: milestoneId,
         amount: Number(milestone?.payment_value ?? 0),
         generated_at: now,
-        released_at: now,
-        released_by: currentUser.id,
-      });
+        payment_status: "awaiting_client_authorization",
+      } as any);
       if (error) throw error;
-      toast.success("Payment released");
+      toast.success("Payment certificate created — awaiting client authorization");
       navigate("/project/payments");
     } catch (err) {
       console.error("Release payment failed:", err);
@@ -150,7 +149,7 @@ export default function PaymentCertificate() {
 
         <Button variant="dark" size="full" onClick={handleRelease} disabled={saving}>
           <span className="font-sans text-[16px]">
-            {saving ? "releasing..." : "confirm and release payment"}
+            {saving ? "generating..." : "generate payment certificate"}
           </span>
         </Button>
       </div>

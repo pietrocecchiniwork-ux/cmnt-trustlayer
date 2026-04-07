@@ -278,6 +278,7 @@ export type Database = {
           generated_at: string
           id: string
           milestone_id: string
+          payment_status: string | null
           released_at: string | null
           released_by: string | null
         }
@@ -287,6 +288,7 @@ export type Database = {
           generated_at?: string
           id?: string
           milestone_id: string
+          payment_status?: string | null
           released_at?: string | null
           released_by?: string | null
         }
@@ -296,6 +298,7 @@ export type Database = {
           generated_at?: string
           id?: string
           milestone_id?: string
+          payment_status?: string | null
           released_at?: string | null
           released_by?: string | null
         }
@@ -619,6 +622,7 @@ export type Database = {
         | "overdue"
         | "in_review"
         | "complete"
+        | "disputed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -756,6 +760,7 @@ export const Constants = {
         "overdue",
         "in_review",
         "complete",
+        "disputed",
       ],
     },
   },
