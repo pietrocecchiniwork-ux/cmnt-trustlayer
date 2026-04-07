@@ -1,13 +1,25 @@
 import { useNavigate } from "react-router-dom";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { usePaymentCertificates, useMilestones } from "@/hooks/useSupabaseProject";
+import { usePaymentCertificates, useMilestones, useProject } from "@/hooks/useSupabaseProject";
 import { DitheredCircle } from "@/components/DitheredCircle";
+import { exportPaymentCertificates } from "@/lib/exportCsv";
+import { useRole } from "@/contexts/RoleContext";
 
 export default function PaymentsList() {
   const navigate = useNavigate();
   const { currentProjectId } = useProjectContext();
   const { data: milestones = [] } = useMilestones(currentProjectId ?? undefined);
   const { data: certificates = [], isLoading } = usePaymentCertificates(currentProjectId ?? undefined);
+  const { data: project } = useProject(currentProjectId ?? undefined);
+  const { role } = useRole();
+
+  const handleExportCsv = () => {
+    const enriched = certificates.map(c => ({
+      ...c,
+      milestone_name: milestones.find(m => m.id === c.milestone_id)?.name ?? "",
+    }));
+    exportPaymentCertificates(enriched, project?.name ?? "project");
+  };
 
   const totalReleased = milestones
     .filter(m => m.status === "complete")
@@ -24,6 +36,11 @@ export default function PaymentsList() {
         <div className="flex items-center justify-between mb-6">
           <span className="font-mono text-[14px] text-surface-dark-foreground/40">←</span>
           <span className="font-mono text-[16px] text-surface-dark-foreground/40">—</span>
+          {(role === "pm" || role === "client") && certificates.length > 0 && (
+            <button onClick={handleExportCsv} className="font-mono text-[10px] text-surface-dark-foreground/60 underline underline-offset-4">
+              export csv
+            </button>
+          )}
         </div>
       </div>
 
