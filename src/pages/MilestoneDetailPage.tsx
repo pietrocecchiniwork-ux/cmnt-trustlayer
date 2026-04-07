@@ -27,6 +27,7 @@ const statusDotClass: Record<string, string> = {
   overdue: "bg-destructive",
   in_review: "bg-accent",
   complete: "bg-success",
+  disputed: "bg-destructive",
 };
 
 const numberColor: Record<string, string> = {
@@ -35,6 +36,7 @@ const numberColor: Record<string, string> = {
   overdue: "text-destructive",
   in_review: "text-accent",
   complete: "text-success",
+  disputed: "text-destructive",
 };
 
 function TaskCircle({ status }: { status: string }) {

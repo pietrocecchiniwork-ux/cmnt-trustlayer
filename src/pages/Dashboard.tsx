@@ -299,6 +299,59 @@ function PMDashboard() {
                   </div>
                 </div>
               )}
+
+              {disputed.length > 0 && (
+                <div>
+                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">disputed</p>
+                  <div className="space-y-2">
+                    {disputed.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => navigate(`/project/milestone/${m.id}`)}
+                        className="w-full flex items-center justify-between py-3 border-b border-border text-left"
+                      >
+                        <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
+                        <span className="font-mono text-[11px] text-destructive">disputed</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PM: payment certificate status */}
+              {role === "pm" && awaitingCerts.length > 0 && (
+                <div>
+                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">awaiting client authorization</p>
+                  <div className="space-y-2">
+                    {awaitingCerts.map((c: any) => (
+                      <div key={c.id} className="flex items-center justify-between py-3 border-b border-border">
+                        <span className="font-sans text-[14px] text-foreground">{c.milestone_name?.toLowerCase()}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground">£{Number(c.amount).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Client: authorize payments */}
+              {role === "client" && clientPaymentCerts.length > 0 && (
+                <div>
+                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">payments awaiting your authorization</p>
+                  <div className="space-y-2">
+                    {clientPaymentCerts.map((c: any) => (
+                      <div key={c.id} className="space-y-2 py-3 border-b border-border">
+                        <div className="flex items-center justify-between">
+                          <span className="font-sans text-[14px] text-foreground">{c.milestone_name?.toLowerCase()}</span>
+                          <span className="font-mono text-[11px] text-muted-foreground">£{Number(c.amount).toLocaleString()}</span>
+                        </div>
+                        <Button variant="dark" size="full" onClick={() => handleAuthorize(c)} disabled={authorizing === c.id}>
+                          <span className="font-sans text-[16px]">{authorizing === c.id ? "authorizing..." : "authorize payment"}</span>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
