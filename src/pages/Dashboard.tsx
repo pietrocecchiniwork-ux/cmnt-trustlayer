@@ -4,11 +4,12 @@ import { useMilestones, useCurrentUser } from "@/hooks/useSupabaseProject";
 import { useRealtimeMilestones, useRealtimeEvidence } from "@/hooks/useRealtimeSubscription";
 import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { differenceInDays } from "date-fns";
+import { Button } from "@/components/ui/button";
 import type { Task } from "@/hooks/useSupabaseProject";
 
 export default function Dashboard() {
@@ -24,6 +25,8 @@ function PMDashboard() {
   const { currentProjectId, setCurrentProjectId } = useProjectContext();
   const { role } = useRole();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
   const { data: milestones = [], isLoading } = useMilestones(currentProjectId ?? undefined);
   useRealtimeMilestones(currentProjectId ?? undefined);
   useRealtimeEvidence(currentProjectId ?? undefined);
@@ -122,7 +125,70 @@ function PMDashboard() {
   const delays = milestones.filter(m => m.status === "overdue");
   const inProgress = inProgressMilestones;
   const pending = milestones.filter(m => m.status === "pending");
-  const allClear = needsApproval.length === 0 && delays.length === 0 && inProgress.length === 0 && pending.length === 0;
+  const disputed = milestones.filter(m => (m.status as string) === "disputed");
+
+  // Payment certificates for PM view
+  const { data: paymentCerts = [] } = useQuery({
+    queryKey: ["pm-payment-certs", currentProjectId],
+    enabled: !!currentProjectId && role === "pm",
+    queryFn: async () => {
+      const { data: ms } = await supabase.from("milestones").select("id, name").eq("project_id", currentProjectId!);
+      if (!ms?.length) return [];
+      const ids = ms.map(m => m.id);
+      const nameMap = Object.fromEntries(ms.map(m => [m.id, m.name]));
+      const { data } = await supabase.from("payment_certificates").select("*").in("milestone_id", ids);
+      return (data ?? []).map((p: any) => ({ ...p, milestone_name: nameMap[p.milestone_id] ?? "" }));
+    },
+  });
+
+  // Client payment authorization
+  const { data: clientPaymentCerts = [] } = useQuery({
+    queryKey: ["client-payment-certs", currentProjectId],
+    enabled: !!currentProjectId && role === "client",
+    queryFn: async () => {
+      const { data: ms } = await supabase.from("milestones").select("id, name, payment_value").eq("project_id", currentProjectId!);
+      if (!ms?.length) return [];
+      const ids = ms.map(m => m.id);
+      const nameMap = Object.fromEntries(ms.map(m => [m.id, { name: m.name, value: m.payment_value }]));
+      const { data } = await (supabase as any).from("payment_certificates").select("*").in("milestone_id", ids).eq("payment_status", "awaiting_client_authorization");
+      return (data ?? []).map((p: any) => ({ ...p, milestone_name: nameMap[p.milestone_id]?.name ?? "", payment_value: nameMap[p.milestone_id]?.value ?? 0 }));
+    },
+  });
+
+  const [authorizing, setAuthorizing] = useState<string | null>(null);
+  const handleAuthorize = async (cert: any) => {
+    if (!currentUser) return;
+    setAuthorizing(cert.id);
+    try {
+      const now = new Date().toISOString();
+      await (supabase as any).from("payment_certificates").update({ payment_status: "authorized", released_at: now, released_by: currentUser.id }).eq("id", cert.id);
+      if (currentProjectId) {
+        await (supabase as any).from("project_changes").insert({
+          project_id: currentProjectId,
+          entity_type: "payment",
+          entity_id: cert.milestone_id,
+          entity_name: cert.milestone_name,
+          change_type: "authorized",
+          changed_by: currentUser.id,
+          changed_by_name: currentUser.email,
+          new_value: { amount: cert.amount, milestone_name: cert.milestone_name },
+        });
+      }
+      toast.success("Payment authorized");
+      queryClient.invalidateQueries({ queryKey: ["client-payment-certs"] });
+      queryClient.invalidateQueries({ queryKey: ["pm-payment-certs"] });
+      queryClient.invalidateQueries({ queryKey: ["payment-certificates"] });
+    } catch {
+      toast.error("Failed to authorize payment");
+    } finally {
+      setAuthorizing(null);
+    }
+  };
+
+  const awaitingCerts = paymentCerts.filter((p: any) => p.payment_status === "awaiting_client_authorization");
+  const releasedCerts = paymentCerts.filter((p: any) => p.payment_status === "authorized");
+
+  const allClear = needsApproval.length === 0 && delays.length === 0 && inProgress.length === 0 && pending.length === 0 && disputed.length === 0 && (role === "pm" ? awaitingCerts.length === 0 : clientPaymentCerts.length === 0);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
