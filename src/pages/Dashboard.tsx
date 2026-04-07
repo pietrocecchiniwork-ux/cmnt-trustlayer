@@ -78,6 +78,34 @@ function PMDashboard() {
   // Fetch assigned_to_name for in_progress milestones (from milestone itself now)
   const inProgressMilestones = milestones.filter(m => m.status === "in_progress");
 
+  // Payment certificates for PM view
+  const { data: paymentCerts = [] } = useQuery({
+    queryKey: ["pm-payment-certs", currentProjectId],
+    enabled: !!currentProjectId && role === "pm",
+    queryFn: async () => {
+      const { data: ms } = await supabase.from("milestones").select("id, name").eq("project_id", currentProjectId!);
+      if (!ms?.length) return [];
+      const ids = ms.map(m => m.id);
+      const nameMap = Object.fromEntries(ms.map(m => [m.id, m.name]));
+      const { data } = await supabase.from("payment_certificates").select("*").in("milestone_id", ids);
+      return (data ?? []).map((p: any) => ({ ...p, milestone_name: nameMap[p.milestone_id] ?? "" }));
+    },
+  });
+
+  // Client payment authorization
+  const { data: clientPaymentCerts = [] } = useQuery({
+    queryKey: ["client-payment-certs", currentProjectId],
+    enabled: !!currentProjectId && role === "client",
+    queryFn: async () => {
+      const { data: ms } = await supabase.from("milestones").select("id, name, payment_value").eq("project_id", currentProjectId!);
+      if (!ms?.length) return [];
+      const ids = ms.map(m => m.id);
+      const nameMap = Object.fromEntries(ms.map(m => [m.id, { name: m.name, value: m.payment_value }]));
+      const { data } = await (supabase as any).from("payment_certificates").select("*").in("milestone_id", ids).eq("payment_status", "awaiting_client_authorization");
+      return (data ?? []).map((p: any) => ({ ...p, milestone_name: nameMap[p.milestone_id]?.name ?? "", payment_value: nameMap[p.milestone_id]?.value ?? 0 }));
+    },
+  });
+
   const [isCreator, setIsCreator] = useState(false);
   useEffect(() => {
     if (!project) return;
