@@ -585,6 +585,9 @@ export default function MilestoneDetailPage() {
                   {format(new Date(item.submitted_at), "dd MMM yyyy · HH:mm")}
                 </p>
                 {item.note && <p className="font-sans text-[13px] text-foreground mt-0.5">{item.note}</p>}
+                {(item as any).voice_note_url && (
+                  <audio src={(item as any).voice_note_url} controls className="mt-1 h-7 w-44" />
+                )}
                 {item.ai_tags && typeof item.ai_tags === "object" && (
                   <div className="flex flex-wrap gap-3 mt-2">
                     {Object.values(item.ai_tags as Record<string, string>).map((tag, i) => (
