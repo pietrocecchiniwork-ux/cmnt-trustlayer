@@ -183,10 +183,10 @@ export default function EvidenceConfirm() {
           gps_lat: coords?.lat ?? null,
           gps_lng: coords?.lng ?? null,
           voice_note_url: i === 0 ? voiceNoteUrl : null,
-        } as Record<string, unknown>;
+        };
 
         try {
-          await submitEvidence.mutateAsync(fullPayload);
+          await submitEvidence.mutateAsync(fullPayload as any);
         } catch (lcmErr: unknown) {
           const code = (lcmErr as { code?: string })?.code;
           if (code === "42703") {
