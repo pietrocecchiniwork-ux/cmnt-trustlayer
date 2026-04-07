@@ -32,6 +32,7 @@ function PMDashboard() {
   useRealtimeEvidence(currentProjectId ?? undefined);
 
   const [isAnon, setIsAnon] = useState(false);
+  const [authorizing, setAuthorizing] = useState<string | null>(null);
   const [cancelStep, setCancelStep] = useState(0);
   const [cancelling, setCancelling] = useState(false);
 
