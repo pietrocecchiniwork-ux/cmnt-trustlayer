@@ -73,6 +73,7 @@ export type Database = {
           task_id: string | null
           training_eligible: boolean
           verification_level: number
+          voice_note_url: string | null
         }
         Insert: {
           ai_tags?: Json | null
@@ -97,6 +98,7 @@ export type Database = {
           task_id?: string | null
           training_eligible?: boolean
           verification_level?: number
+          voice_note_url?: string | null
         }
         Update: {
           ai_tags?: Json | null
@@ -121,6 +123,7 @@ export type Database = {
           task_id?: string | null
           training_eligible?: boolean
           verification_level?: number
+          voice_note_url?: string | null
         }
         Relationships: [
           {
