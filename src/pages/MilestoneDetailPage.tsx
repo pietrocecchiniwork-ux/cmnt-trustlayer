@@ -185,12 +185,23 @@ export default function MilestoneDetailPage() {
     try {
       try {
         await Promise.all(
-          evidenceItems.map((e) =>
-            updateEvidence.mutateAsync({
+          evidenceItems.map((e) => {
+            const tags = e.ai_tags && typeof e.ai_tags === "object" ? e.ai_tags as Record<string, unknown> : {};
+            const origTags = (e as any).ai_tags_original && typeof (e as any).ai_tags_original === "object"
+              ? (e as any).ai_tags_original as Record<string, unknown> : null;
+            const hasHumanOverride = origTags
+              ? JSON.stringify(tags) !== JSON.stringify(origTags)
+              : (e as any).human_override === true;
+
+            return updateEvidence.mutateAsync({
               id: e.id,
               milestoneId: milestone.id,
-            })
-          )
+              quality_assessment: assessment,
+              verification_level: 3,
+              label_dimensions_captured: 2,
+              human_override: hasHumanOverride,
+            } as any);
+          })
         );
       } catch (evidenceErr) {
         console.warn("[confirmApprove] evidence update failed (continuing anyway):", evidenceErr);
