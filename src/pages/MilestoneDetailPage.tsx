@@ -727,6 +727,9 @@ export default function MilestoneDetailPage() {
           </Button>
         )}
       </div>
+      {lightboxUrl && (
+        <PhotoLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+      )}
     </div>
   );
 }
