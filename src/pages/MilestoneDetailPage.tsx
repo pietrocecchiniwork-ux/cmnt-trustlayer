@@ -414,6 +414,14 @@ export default function MilestoneDetailPage() {
                   {format(new Date(e.submitted_at), "dd MMM yyyy · HH:mm")}
                 </p>
                 {e.note && <p className="font-sans text-[13px] text-foreground mt-0.5">{e.note}</p>}
+                {(e as any).voice_note_url && (
+                  <audio
+                    src={(e as any).voice_note_url}
+                    controls
+                    className="mt-1 h-7 w-44"
+                    style={{ maxWidth: "180px" }}
+                  />
+                )}
               </div>
             </div>
           ))}
