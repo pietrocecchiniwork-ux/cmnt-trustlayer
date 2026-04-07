@@ -365,8 +365,15 @@ export default function EvidenceConfirm() {
         placeholder="add a note (optional)"
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        className="underline-input mb-6"
+        className="underline-input mb-3"
       />
+
+      <VoiceNoteRecorder
+        onRecorded={(blob) => setVoiceBlob(blob)}
+        onCleared={() => setVoiceBlob(null)}
+      />
+
+      <div className="mb-6" />
 
       <div
         className="fixed bottom-16 left-0 right-0 px-6 bg-background"
