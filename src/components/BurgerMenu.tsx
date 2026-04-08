@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects, useCurrentUser } from "@/hooks/useSupabaseProject";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import i18n from "@/i18n/index";
 
 const LANG_KEY = "cmnt_language";
@@ -16,10 +19,13 @@ export function BurgerMenu() {
     () => localStorage.getItem(LANG_KEY) ?? i18n.language.slice(0, 2) ?? "en"
   );
   const panelRef = useRef<HTMLDivElement>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { data: projects = [] } = useProjects();
   const { data: currentUser } = useCurrentUser();
+  const { setCurrentProjectId } = useProjectContext();
+  const queryClient = useQueryClient();
 
   // Close on outside click
   useEffect(() => {
@@ -62,6 +68,25 @@ export function BurgerMenu() {
   const go = (path: string) => {
     setOpen(false);
     navigate(path);
+  };
+
+  const handleExploreDemo = async () => {
+    setDemoLoading(true);
+    setOpen(false);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-demo-project");
+      if (error) throw error;
+      await queryClient.invalidateQueries();
+      queryClient.clear();
+      setCurrentProjectId(data.project_id);
+      navigate("/project/dashboard");
+      toast.success("Demo project loaded");
+    } catch (err) {
+      console.error("Demo seed error:", err);
+      toast.error("Failed to load demo");
+    } finally {
+      setDemoLoading(false);
+    }
   };
 
   return (
@@ -199,10 +224,11 @@ export function BurgerMenu() {
               {t("menu.support")}
             </p>
             <button
-              onClick={() => go("/demo")}
-              className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors"
+              onClick={handleExploreDemo}
+              disabled={demoLoading}
+              className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors disabled:opacity-50"
             >
-              {t("auth.explore_demo")}
+              {demoLoading ? "loading demo..." : t("auth.explore_demo")}
             </button>
             <button
               onClick={handleSignOut}
