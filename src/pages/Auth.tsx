@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { DemoWalkthrough } from "@/components/DemoWalkthrough";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -21,14 +22,13 @@ export default function Auth() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const seedingRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user && !seedingRef.current) navigate("/");
+      if (user) navigate("/");
     });
   }, [navigate]);
 
@@ -40,28 +40,8 @@ export default function Auth() {
     if (result?.error) setGoogleError(result.error.message);
   };
 
-  const handleDemo = async () => {
-    seedingRef.current = true;
-    setDemoLoading(true);
-    try {
-      const { error: anonErr } = await supabase.auth.signInAnonymously();
-      if (anonErr) throw anonErr;
-
-      const { data, error } = await supabase.functions.invoke("seed-demo-project");
-      if (error) throw error;
-
-      await queryClient.invalidateQueries();
-      queryClient.clear();
-
-      setCurrentProjectId(data.project_id);
-      navigate("/project/dashboard");
-    } catch (err) {
-      console.error("Demo seed error:", err);
-      toast.error("Failed to load demo");
-      seedingRef.current = false;
-    } finally {
-      setDemoLoading(false);
-    }
+  const handleDemo = () => {
+    setShowDemo(true);
   };
 
   const handlePasswordAuth = async () => {
@@ -100,13 +80,8 @@ export default function Auth() {
     else console.error("Email OTP error:", error);
   };
 
-  if (demoLoading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background items-center justify-center">
-        <div className="w-10 h-10 bg-foreground rounded-sm mb-4" />
-        <p className="font-mono text-[12px] text-muted-foreground animate-pulse">{t("auth.setting_up_demo")}</p>
-      </div>
-    );
+  if (showDemo) {
+    return <DemoWalkthrough onClose={() => setShowDemo(false)} />;
   }
 
   return (
