@@ -40,28 +40,8 @@ export default function Auth() {
     if (result?.error) setGoogleError(result.error.message);
   };
 
-  const handleDemo = async () => {
-    seedingRef.current = true;
-    setDemoLoading(true);
-    try {
-      const { error: anonErr } = await supabase.auth.signInAnonymously();
-      if (anonErr) throw anonErr;
-
-      const { data, error } = await supabase.functions.invoke("seed-demo-project");
-      if (error) throw error;
-
-      await queryClient.invalidateQueries();
-      queryClient.clear();
-
-      setCurrentProjectId(data.project_id);
-      navigate("/project/dashboard");
-    } catch (err) {
-      console.error("Demo seed error:", err);
-      toast.error("Failed to load demo");
-      seedingRef.current = false;
-    } finally {
-      setDemoLoading(false);
-    }
+  const handleDemo = () => {
+    setShowDemo(true);
   };
 
   const handlePasswordAuth = async () => {
