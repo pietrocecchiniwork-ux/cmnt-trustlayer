@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { DemoWalkthrough } from "@/components/DemoWalkthrough";
 
 export default function Auth() {
   const navigate = useNavigate();
