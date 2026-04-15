@@ -80,13 +80,8 @@ export default function Auth() {
     else console.error("Email OTP error:", error);
   };
 
-  if (demoLoading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background items-center justify-center">
-        <div className="w-10 h-10 bg-foreground rounded-sm mb-4" />
-        <p className="font-mono text-[12px] text-muted-foreground animate-pulse">{t("auth.setting_up_demo")}</p>
-      </div>
-    );
+  if (showDemo) {
+    return <DemoWalkthrough onClose={() => setShowDemo(false)} />;
   }
 
   return (
