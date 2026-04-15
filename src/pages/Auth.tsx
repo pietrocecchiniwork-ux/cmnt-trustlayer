@@ -28,7 +28,7 @@ export default function Auth() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user && !seedingRef.current) navigate("/");
+      if (user) navigate("/");
     });
   }, [navigate]);
 
