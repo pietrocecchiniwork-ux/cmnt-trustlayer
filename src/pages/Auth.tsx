@@ -22,10 +22,9 @@ export default function Auth() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const seedingRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
