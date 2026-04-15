@@ -213,21 +213,45 @@ export default function EvidenceConfirm() {
         .eq("milestone_id", state.milestoneId);
       if (countErr) console.error("Fresh count error:", countErr);
 
-      // Auto-transition milestone from pending → in_progress on first evidence
+      // Auto-transition milestone status after evidence submission
       try {
         const { data: currentMs } = await supabase
           .from("milestones")
-          .select("status")
+          .select("status, project_id, name")
           .eq("id", state.milestoneId)
           .single();
-        if (currentMs && currentMs.status === "pending") {
-          await supabase
-            .from("milestones")
-            .update({ status: "in_progress" })
-            .eq("id", state.milestoneId);
+        if (currentMs) {
+          if (currentMs.status === "pending") {
+            await supabase
+              .from("milestones")
+              .update({ status: "in_progress" })
+              .eq("id", state.milestoneId);
+          } else if (currentMs.status === "in_progress") {
+            // Move to in_review so PM sees it in "needs your approval"
+            await supabase
+              .from("milestones")
+              .update({ status: "in_review" })
+              .eq("id", state.milestoneId);
+            // Log the status change
+            try {
+              await (supabase as any).from("project_changes").insert({
+                project_id: currentMs.project_id,
+                entity_type: "milestone",
+                entity_id: state.milestoneId,
+                entity_name: currentMs.name,
+                change_type: "milestone_status_change",
+                changed_by: user.id,
+                changed_by_name: user.email,
+                old_value: { status: "in_progress" },
+                new_value: { status: "in_review" },
+              });
+            } catch (logErr) {
+              console.warn("Failed to log in_review transition:", logErr);
+            }
+          }
         }
       } catch (e) {
-        console.error("Auto-transition to in_progress failed:", e);
+        console.error("Auto-transition failed:", e);
       }
 
       // Write project_changes record for evidence_submitted
