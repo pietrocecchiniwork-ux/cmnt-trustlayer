@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { useProjectEvidence, useProject } from "@/hooks/useSupabaseProject";
 import { format } from "date-fns";
@@ -7,6 +7,8 @@ import { exportEvidenceList } from "@/lib/exportCsv";
 import { useRole } from "@/contexts/RoleContext";
 
 const PAGE_SIZE = 20;
+const FLAG_FILTERS = ["all", "pass", "concern", "fail"] as const;
+type FlagFilter = typeof FLAG_FILTERS[number];
 
 export default function EvidenceList() {
   const { currentProjectId } = useProjectContext();
@@ -15,9 +17,26 @@ export default function EvidenceList() {
   const { role } = useRole();
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [flagFilter, setFlagFilter] = useState<FlagFilter>("all");
 
-  const totalPages = Math.max(1, Math.ceil(evidence.length / PAGE_SIZE));
-  const paged = evidence.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return evidence.filter((e: any) => {
+      const tags = e.ai_tags && typeof e.ai_tags === "object" ? e.ai_tags as Record<string, unknown> : {};
+      if (flagFilter !== "all" && tags.condition_flag !== flagFilter) return false;
+      if (!q) return true;
+      const hay = [
+        e.milestone_name ?? "",
+        e.note ?? "",
+        ...Object.values(tags).map(v => String(v)),
+      ].join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  }, [evidence, search, flagFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="min-h-screen screen-cream">
