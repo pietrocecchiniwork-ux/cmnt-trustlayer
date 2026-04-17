@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import type { Task } from "@/hooks/useSupabaseProject";
 import { generateEvidencePackPdf, downloadBlob } from "@/lib/evidencePdf";
 import { sendTransactionalEmail } from "@/lib/sendEmail";
+import { HealthDashboard } from "@/components/HealthDashboard";
 
 export default function Dashboard() {
   const { role } = useRole();
@@ -291,6 +292,11 @@ function PMDashboard() {
             )}
           </div>
         </div>
+
+        {/* PM-only health dashboard */}
+        {role === "pm" && (
+          <HealthDashboard milestones={milestones as any} needsApprovalCount={needsApproval.length} />
+        )}
 
         {/* Action queue */}
         <div className="px-6 mt-8 flex-1">
