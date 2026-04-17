@@ -308,21 +308,12 @@ function PMDashboard() {
           ) : (
             <div className="space-y-8">
               {needsApproval.length > 0 && (
-                <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">needs approval</p>
-                  <div className="space-y-2">
-                    {needsApproval.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => navigate(`/project/milestone/${m.id}`)}
-                        className="w-full flex items-center justify-between py-3 border-b border-border text-left"
-                      >
-                        <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
-                        <span className="font-mono text-[11px] text-accent">{evidenceCounts[m.id] ?? 0} evidence</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <BulkApproveQueue
+                  milestones={needsApproval}
+                  evidenceCounts={evidenceCounts}
+                  projectId={currentProjectId}
+                  projectName={project?.name ?? null}
+                />
               )}
 
               {delays.length > 0 && (
