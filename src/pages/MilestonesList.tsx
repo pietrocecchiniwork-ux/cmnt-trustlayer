@@ -5,8 +5,11 @@ import { useRole } from "@/contexts/RoleContext";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Task } from "@/hooks/useSupabaseProject";
+
+const STATUS_FILTERS = ["all", "pending", "in_progress", "in_review", "overdue", "complete"] as const;
+type StatusFilter = typeof STATUS_FILTERS[number];
 
 const statusDotClass: Record<string, string> = {
   pending: "bg-muted-foreground",
@@ -23,6 +26,8 @@ export default function MilestonesList() {
   const { role } = useRole();
   const { t } = useTranslation();
   const { data: user } = useCurrentUser();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const isWorker = role === "contractor" || role === "trade";
 
@@ -176,7 +181,14 @@ export default function MilestonesList() {
     );
   }
 
-  // PM/Client: original milestones list
+  // PM/Client: original milestones list with search + filter
+  const filteredMilestones = milestones.filter(m => {
+    const q = search.trim().toLowerCase();
+    if (statusFilter !== "all" && m.status !== statusFilter) return false;
+    if (q && !m.name?.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
@@ -196,11 +208,32 @@ export default function MilestonesList() {
               done: milestones.filter(m => m.status === "complete").length,
             })}
           </p>
+
+          <input
+            type="text"
+            placeholder="search milestones..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full mt-5 px-3 py-2 bg-secondary border border-border font-mono text-[12px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground/40"
+          />
+          <div className="flex gap-3 mt-3 overflow-x-auto pb-1">
+            {STATUS_FILTERS.map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`font-mono text-[10px] pb-0.5 whitespace-nowrap border-b ${
+                  statusFilter === s ? "text-foreground border-foreground" : "text-muted-foreground border-transparent hover:text-foreground/70"
+                }`}
+              >
+                {s.replace(/_/g, " ")}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex-1 px-6 pb-6">
           <div className="space-y-0">
-            {milestones.map((m) => (
+            {filteredMilestones.map((m) => (
               <button
                 key={m.id}
                 onClick={() => navigate(`/project/milestone/${m.id}`)}
@@ -220,6 +253,9 @@ export default function MilestonesList() {
                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDotClass[m.status]}`} />
               </button>
             ))}
+            {filteredMilestones.length === 0 && milestones.length > 0 && (
+              <p className="font-mono text-[13px] text-muted-foreground mt-4">no milestones match your filters</p>
+            )}
             {milestones.length === 0 && (
               <p className="font-mono text-[13px] text-muted-foreground mt-4">{t("milestone.no_milestones")}</p>
             )}

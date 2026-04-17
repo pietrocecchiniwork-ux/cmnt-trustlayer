@@ -19,6 +19,8 @@ import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { sendTransactionalEmail } from "@/lib/sendEmail";
+import { supabase } from "@/integrations/supabase/client";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -231,6 +233,40 @@ export default function MilestoneDetailPage() {
         }
       } catch (changeErr) {
         console.warn("[confirmApprove] change log failed:", changeErr);
+      }
+
+      // Email contractor + client when milestone is approved
+      try {
+        const { data: projectRow } = await supabase
+          .from("projects")
+          .select("name")
+          .eq("id", currentProjectId!)
+          .single();
+        const recipients: { email: string; name?: string }[] = [];
+        const assignedUserId = (milestone as any).assigned_to;
+        if (assignedUserId) {
+          const m = members.find(x => x.user_id === assignedUserId);
+          if (m?.email) recipients.push({ email: m.email, name: m.name });
+        }
+        const clients = members.filter(m => m.role === "client" && m.email);
+        for (const c of clients) recipients.push({ email: c.email!, name: c.name });
+
+        for (const r of recipients) {
+          await sendTransactionalEmail({
+            templateName: "milestone-approved",
+            recipientEmail: r.email,
+            idempotencyKey: `milestone-approved-${milestone.id}-${r.email}`,
+            templateData: {
+              recipientName: r.name?.split(" ")[0] ?? null,
+              milestoneName: milestone.name,
+              projectName: projectRow?.name ?? null,
+              approverName: currentUser?.email?.split("@")[0] ?? null,
+              paymentValue: milestone.payment_value ?? null,
+            },
+          });
+        }
+      } catch (emailErr) {
+        console.warn("milestone-approved email failed:", emailErr);
       }
 
       toast.success(t("milestone.approved"));

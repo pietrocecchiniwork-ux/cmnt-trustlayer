@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { differenceInDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import type { Task } from "@/hooks/useSupabaseProject";
+import { generateEvidencePackPdf, downloadBlob } from "@/lib/evidencePdf";
+import { sendTransactionalEmail } from "@/lib/sendEmail";
 
 export default function Dashboard() {
   const { role } = useRole();
@@ -35,6 +37,7 @@ function PMDashboard() {
   const [authorizing, setAuthorizing] = useState<string | null>(null);
   const [cancelStep, setCancelStep] = useState(0);
   const [cancelling, setCancelling] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -174,6 +177,34 @@ function PMDashboard() {
           new_value: { amount: cert.amount, milestone_name: cert.milestone_name },
         });
       }
+      // Notify PM + assigned contractor of payment authorization
+      try {
+        const { data: members } = await supabase
+          .from("project_members")
+          .select("name, email, role, user_id")
+          .eq("project_id", currentProjectId!)
+          .eq("status", "active");
+        const ms = milestones.find(m => m.id === cert.milestone_id);
+        const assignedUserId = (ms as any)?.assigned_to;
+        const recipients = (members ?? []).filter(m => m.email && (m.role === "pm" || m.user_id === assignedUserId));
+        for (const r of recipients) {
+          await sendTransactionalEmail({
+            templateName: "payment-authorized",
+            recipientEmail: r.email!,
+            idempotencyKey: `payment-authorized-${cert.id}-${r.email}`,
+            templateData: {
+              recipientName: r.name?.split(" ")[0] ?? null,
+              milestoneName: cert.milestone_name,
+              projectName: project?.name ?? null,
+              amount: cert.amount,
+              certificateRef: `CMT-${cert.id.slice(0, 8).toUpperCase()}`,
+              authorizedBy: currentUser.email?.split("@")[0] ?? "client",
+            },
+          });
+        }
+      } catch (emailErr) {
+        console.warn("payment-authorized email failed:", emailErr);
+      }
       toast.success("Payment authorized");
       queryClient.invalidateQueries({ queryKey: ["client-payment-certs"] });
       queryClient.invalidateQueries({ queryKey: ["pm-payment-certs"] });
@@ -182,6 +213,43 @@ function PMDashboard() {
       toast.error("Failed to authorize payment");
     } finally {
       setAuthorizing(null);
+    }
+  };
+
+  const handleExportPack = async () => {
+    if (!currentProjectId || !project) return;
+    setGeneratingPdf(true);
+    try {
+      const { data: ev } = await supabase
+        .from("evidence")
+        .select("id, milestone_id, photo_url, note, submitted_at, ai_tags")
+        .in("milestone_id", milestones.map(m => m.id))
+        .order("submitted_at", { ascending: true });
+      const { data: pmRow } = await supabase
+        .from("project_members")
+        .select("user_id, name, role")
+        .eq("project_id", currentProjectId)
+        .eq("role", "pm")
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+      const blob = await generateEvidencePackPdf({
+        project: { name: project.name, address: project.address, project_code: (project as any).project_code ?? null },
+        milestones: milestones.map(m => ({
+          id: m.id, name: m.name, status: m.status, position: m.position,
+          due_date: m.due_date, payment_value: m.payment_value, approved_at: (m as any).approved_at ?? null,
+        })),
+        evidence: (ev ?? []) as any,
+        pmMember: pmRow as any,
+      });
+      const safeName = (project.name || "project").replace(/\s+/g, "_");
+      downloadBlob(blob, `${safeName}_evidence_pack.pdf`);
+      toast.success("Evidence pack generated");
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      toast.error("Could not generate PDF");
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -208,9 +276,20 @@ function PMDashboard() {
           <p className="font-mono text-[28px] tracking-tight text-foreground mt-6">
             {project.name?.toLowerCase()}
           </p>
-          <p className="font-mono text-[12px] text-muted-foreground mt-1">
-            {completed} of {total} milestones complete · £{releasedBudget.toLocaleString()} released
-          </p>
+          <div className="flex items-end justify-between mt-1 gap-3">
+            <p className="font-mono text-[12px] text-muted-foreground">
+              {completed} of {total} milestones complete · £{releasedBudget.toLocaleString()} released
+            </p>
+            {role === "pm" && total > 0 && (
+              <button
+                onClick={handleExportPack}
+                disabled={generatingPdf}
+                className="font-mono text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-4 disabled:opacity-50 flex-shrink-0"
+              >
+                {generatingPdf ? "generating..." : "export pack (pdf)"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Action queue */}

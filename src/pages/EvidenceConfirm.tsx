@@ -6,6 +6,7 @@ import { useSubmitEvidence, uploadEvidencePhoto, uploadVoiceNote, useCurrentUser
 import { uploadWithRetry } from "@/lib/uploadQueue";
 import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import { supabase } from "@/integrations/supabase/client";
+import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { getEvidencePhotoState, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
 import {
@@ -275,6 +276,42 @@ export default function EvidenceConfirm() {
         }
       } catch (changeErr) {
         console.warn("evidence_submitted change log failed:", changeErr);
+      }
+
+      // Notify PMs by email when milestone moved to in_review
+      try {
+        const { data: msFull } = await supabase
+          .from("milestones")
+          .select("status, name, project_id, projects(name)")
+          .eq("id", state.milestoneId)
+          .single();
+        if (msFull && msFull.status === "in_review") {
+          const { data: pmMembers } = await supabase
+            .from("project_members")
+            .select("name, email")
+            .eq("project_id", msFull.project_id)
+            .eq("role", "pm")
+            .eq("status", "active");
+          const projectName = (msFull as any).projects?.name ?? null;
+          for (const pm of pmMembers ?? []) {
+            if (!pm.email) continue;
+            await sendTransactionalEmail({
+              templateName: "evidence-submitted",
+              recipientEmail: pm.email,
+              idempotencyKey: `evidence-submitted-${state.milestoneId}-${pm.email}`,
+              templateData: {
+                pmName: pm.name?.split(" ")[0] ?? null,
+                contractorName: user.email?.split("@")[0] ?? "A team member",
+                milestoneName: msFull.name,
+                projectName,
+                photoCount: state.photos.length,
+                reviewUrl: `${window.location.origin}/project/milestone/${state.milestoneId}`,
+              },
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.warn("evidence-submitted email failed:", emailErr);
       }
 
       queryClient.invalidateQueries({ queryKey: ["evidence", state.milestoneId] });

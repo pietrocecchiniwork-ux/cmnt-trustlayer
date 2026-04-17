@@ -37,6 +37,7 @@ import SubmitEvidence from "./pages/SubmitEvidence";
 import JoinProject from "./pages/JoinProject";
 import TaskDetail from "./pages/TaskDetail";
 import ProjectActivity from "./pages/ProjectActivity";
+import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => (
               <Route path="/manual-milestone" element={<ManualMilestone />} />
               <Route path="/whatsapp-sim" element={<WhatsAppSim />} />
               <Route path="/join" element={<JoinProject />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
               
               {/* Project screens with bottom nav */}
               <Route element={<AppLayout />}>
