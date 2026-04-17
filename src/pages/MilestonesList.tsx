@@ -26,6 +26,8 @@ export default function MilestonesList() {
   const { role } = useRole();
   const { t } = useTranslation();
   const { data: user } = useCurrentUser();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const isWorker = role === "contractor" || role === "trade";
 
@@ -180,17 +182,12 @@ export default function MilestonesList() {
   }
 
   // PM/Client: original milestones list with search + filter
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-
-  const filteredMilestones = useMemo(() => {
+  const filteredMilestones = milestones.filter(m => {
     const q = search.trim().toLowerCase();
-    return milestones.filter(m => {
-      if (statusFilter !== "all" && m.status !== statusFilter) return false;
-      if (q && !m.name?.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [milestones, search, statusFilter]);
+    if (statusFilter !== "all" && m.status !== statusFilter) return false;
+    if (q && !m.name?.toLowerCase().includes(q)) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background">
