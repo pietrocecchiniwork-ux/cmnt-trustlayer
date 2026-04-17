@@ -701,13 +701,58 @@ export default function MilestoneDetailPage() {
                 {(item as any).voice_note_url && (
                   <audio src={(item as any).voice_note_url} controls className="mt-1 h-7 w-44" />
                 )}
-                {item.ai_tags && typeof item.ai_tags === "object" && (
-                  <div className="flex flex-wrap gap-3 mt-2">
-                    {Object.values(item.ai_tags as Record<string, string>).map((tag, i) => (
-                      <span key={i} className="font-mono text-[10px] text-accent border-b border-accent/40 pb-0.5">{tag}</span>
-                    ))}
-                  </div>
-                )}
+                {item.ai_tags && typeof item.ai_tags === "object" && (() => {
+                  const tags = item.ai_tags as Record<string, unknown>;
+                  const TAXONOMY_KEYS = [
+                    "work_type",
+                    "trade_category",
+                    "location_in_building",
+                    "completion_stage",
+                    "building_element",
+                  ] as const;
+                  const condition = typeof tags.condition_flag === "string" ? tags.condition_flag : null;
+                  const match = typeof tags.milestone_match === "boolean" ? tags.milestone_match : null;
+                  const comment = typeof tags.ai_comment === "string" ? tags.ai_comment : null;
+                  const taxonomyTags = TAXONOMY_KEYS
+                    .map(k => tags[k])
+                    .filter((v): v is string => typeof v === "string" && v.length > 0);
+                  return (
+                    <div className="mt-2 space-y-1.5">
+                      {(condition || match !== null) && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {condition && (
+                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
+                              condition === "pass" ? "bg-success/20 text-success" :
+                              condition === "concern" ? "bg-warning/20 text-warning" :
+                              "bg-destructive/20 text-destructive"
+                            }`}>
+                              {condition === "pass" ? "✓ pass" : condition === "concern" ? "⚠ concern" : "✕ fail"}
+                            </span>
+                          )}
+                          {match !== null && (
+                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
+                              match ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+                            }`}>
+                              {match ? "✓ matches" : "✕ no match"}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {taxonomyTags.length > 0 && (
+                        <div className="flex flex-wrap gap-x-3 gap-y-1">
+                          {taxonomyTags.map((tag, i) => (
+                            <span key={i} className="font-mono text-[10px] text-accent border-b border-accent/40 pb-0.5">
+                              {tag.replace(/_/g, " ")}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {comment && (
+                        <p className="font-mono text-[10px] text-muted-foreground italic leading-relaxed">{comment}</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}
