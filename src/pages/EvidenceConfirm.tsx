@@ -6,6 +6,7 @@ import { useSubmitEvidence, uploadEvidencePhoto, uploadVoiceNote, useCurrentUser
 import { uploadWithRetry } from "@/lib/uploadQueue";
 import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import { supabase } from "@/integrations/supabase/client";
+import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { getEvidencePhotoState, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
 import {
