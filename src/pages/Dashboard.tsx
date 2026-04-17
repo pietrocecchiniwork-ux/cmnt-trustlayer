@@ -276,9 +276,20 @@ function PMDashboard() {
           <p className="font-mono text-[28px] tracking-tight text-foreground mt-6">
             {project.name?.toLowerCase()}
           </p>
-          <p className="font-mono text-[12px] text-muted-foreground mt-1">
-            {completed} of {total} milestones complete · £{releasedBudget.toLocaleString()} released
-          </p>
+          <div className="flex items-end justify-between mt-1 gap-3">
+            <p className="font-mono text-[12px] text-muted-foreground">
+              {completed} of {total} milestones complete · £{releasedBudget.toLocaleString()} released
+            </p>
+            {role === "pm" && total > 0 && (
+              <button
+                onClick={handleExportPack}
+                disabled={generatingPdf}
+                className="font-mono text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-4 disabled:opacity-50 flex-shrink-0"
+              >
+                {generatingPdf ? "generating..." : "export pack (pdf)"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Action queue */}
