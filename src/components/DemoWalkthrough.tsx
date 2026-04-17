@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface Step {
@@ -10,6 +10,8 @@ interface Step {
   detail: string[];
   cta: string;
 }
+
+const SWIPE_THRESHOLD = 50;
 
 const steps: Step[] = [
   {
@@ -103,6 +105,10 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const current = steps[step];
   const isLast = step === steps.length - 1;
+  
+  // Swipe gesture state
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   const handleNext = () => {
     if (isLast) {
@@ -112,11 +118,48 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
     setStep((s) => s + 1);
   };
 
+  const handlePrevious = () => {
+    if (step === 0) return;
+    setStep((s) => s - 1);
+  };
+
+  // Swipe handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > SWIPE_THRESHOLD;
+    const isRightSwipe = distance < -SWIPE_THRESHOLD;
+
+    if (isLeftSwipe) {
+      handleNext();
+    } else if (isRightSwipe) {
+      handlePrevious();
+    }
+    
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   const textColor = current.role === "ai" ? "text-white" : current.role === "client" ? "text-white" : "text-white";
   const mutedColor = current.role === "ai" ? "text-white/60" : "text-white/70";
 
   return (
-    <div className={`fixed inset-0 z-[100] ${current.bg} transition-colors duration-500 flex flex-col`}>
+    <div 
+      className={`fixed inset-0 z-[100] ${current.bg} transition-colors duration-500 flex flex-col`}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-8 pb-4">
         <button onClick={onClose} className={`font-mono text-[13px] ${mutedColor}`}>
