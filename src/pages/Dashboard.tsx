@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { differenceInDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import type { Task } from "@/hooks/useSupabaseProject";
+import { generateEvidencePackPdf, downloadBlob } from "@/lib/evidencePdf";
+import { sendTransactionalEmail } from "@/lib/sendEmail";
 
 export default function Dashboard() {
   const { role } = useRole();
