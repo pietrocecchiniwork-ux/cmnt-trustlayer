@@ -8,7 +8,7 @@ import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
-import { getEvidencePhotoState, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
+import { readEvidenceHandoff, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,8 +83,25 @@ export default function EvidenceConfirm() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const photoState = getEvidencePhotoState();
-    if (!photoState || photoState.photos.length === 0) {
+    const handoff = readEvidenceHandoff();
+    if (handoff.kind === "missing") {
+      // No capture session — user navigated here directly. Quietly route back.
+      navigate(-1);
+      return;
+    }
+    if (handoff.kind === "lost") {
+      // iOS Safari likely suspended the tab and dropped the in-memory photos.
+      // Surface a clear error and route back to the camera so the user can retry.
+      toast.error("Photos were lost — please retake");
+      clearEvidencePhotoState();
+      const target = handoff.milestoneId
+        ? `/project/camera?milestoneId=${handoff.milestoneId}`
+        : "/";
+      navigate(target, { replace: true });
+      return;
+    }
+    const photoState = handoff.state;
+    if (photoState.photos.length === 0) {
       navigate(-1);
       return;
     }

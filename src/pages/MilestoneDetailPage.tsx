@@ -178,6 +178,7 @@ export default function MilestoneDetailPage() {
   };
 
   const handleApprove = () => {
+    if (updateStatus.isPending || updateEvidence.isPending) return;
     // Mode B: check all tasks are complete first
     if (isTaskMode) {
       const allTasksComplete = tasks.every(t => t.status === "complete");
@@ -190,6 +191,7 @@ export default function MilestoneDetailPage() {
   };
 
   const confirmApprove = async (assessment: string) => {
+    if (updateStatus.isPending || updateEvidence.isPending) return; // double-tap guard
     setQaPrompt(false);
     try {
       try {
@@ -699,13 +701,58 @@ export default function MilestoneDetailPage() {
                 {(item as any).voice_note_url && (
                   <audio src={(item as any).voice_note_url} controls className="mt-1 h-7 w-44" />
                 )}
-                {item.ai_tags && typeof item.ai_tags === "object" && (
-                  <div className="flex flex-wrap gap-3 mt-2">
-                    {Object.values(item.ai_tags as Record<string, string>).map((tag, i) => (
-                      <span key={i} className="font-mono text-[10px] text-accent border-b border-accent/40 pb-0.5">{tag}</span>
-                    ))}
-                  </div>
-                )}
+                {item.ai_tags && typeof item.ai_tags === "object" && (() => {
+                  const tags = item.ai_tags as Record<string, unknown>;
+                  const TAXONOMY_KEYS = [
+                    "work_type",
+                    "trade_category",
+                    "location_in_building",
+                    "completion_stage",
+                    "building_element",
+                  ] as const;
+                  const condition = typeof tags.condition_flag === "string" ? tags.condition_flag : null;
+                  const match = typeof tags.milestone_match === "boolean" ? tags.milestone_match : null;
+                  const comment = typeof tags.ai_comment === "string" ? tags.ai_comment : null;
+                  const taxonomyTags = TAXONOMY_KEYS
+                    .map(k => tags[k])
+                    .filter((v): v is string => typeof v === "string" && v.length > 0);
+                  return (
+                    <div className="mt-2 space-y-1.5">
+                      {(condition || match !== null) && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {condition && (
+                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
+                              condition === "pass" ? "bg-success/20 text-success" :
+                              condition === "concern" ? "bg-warning/20 text-warning" :
+                              "bg-destructive/20 text-destructive"
+                            }`}>
+                              {condition === "pass" ? "✓ pass" : condition === "concern" ? "⚠ concern" : "✕ fail"}
+                            </span>
+                          )}
+                          {match !== null && (
+                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
+                              match ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+                            }`}>
+                              {match ? "✓ matches" : "✕ no match"}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {taxonomyTags.length > 0 && (
+                        <div className="flex flex-wrap gap-x-3 gap-y-1">
+                          {taxonomyTags.map((tag, i) => (
+                            <span key={i} className="font-mono text-[10px] text-accent border-b border-accent/40 pb-0.5">
+                              {tag.replace(/_/g, " ")}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {comment && (
+                        <p className="font-mono text-[10px] text-muted-foreground italic leading-relaxed">{comment}</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}
@@ -726,18 +773,24 @@ export default function MilestoneDetailPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => confirmApprove("satisfactory")}
-                className="flex-1 font-mono text-[12px] text-success border border-success rounded py-2"
+                disabled={updateStatus.isPending || updateEvidence.isPending}
+                className="flex-1 font-mono text-[12px] text-success border border-success rounded py-2 disabled:opacity-50 disabled:pointer-events-none"
               >
-                {t("milestone.satisfactory")}
+                {updateStatus.isPending ? "approving..." : t("milestone.satisfactory")}
               </button>
               <button
                 onClick={() => confirmApprove("requires_attention")}
-                className="flex-1 font-mono text-[12px] text-destructive border border-destructive rounded py-2"
+                disabled={updateStatus.isPending || updateEvidence.isPending}
+                className="flex-1 font-mono text-[12px] text-destructive border border-destructive rounded py-2 disabled:opacity-50 disabled:pointer-events-none"
               >
-                {t("milestone.requires_attention")}
+                {updateStatus.isPending ? "approving..." : t("milestone.requires_attention")}
               </button>
             </div>
-            <button onClick={() => setQaPrompt(false)} className="font-mono text-[11px] text-muted-foreground">
+            <button
+              onClick={() => setQaPrompt(false)}
+              disabled={updateStatus.isPending || updateEvidence.isPending}
+              className="font-mono text-[11px] text-muted-foreground disabled:opacity-50"
+            >
               {t("common.cancel")}
             </button>
           </div>
