@@ -293,6 +293,11 @@ function PMDashboard() {
           </div>
         </div>
 
+        {/* PM-only health dashboard */}
+        {role === "pm" && (
+          <HealthDashboard milestones={milestones as any} needsApprovalCount={needsApproval.length} />
+        )}
+
         {/* Action queue */}
         <div className="px-6 mt-8 flex-1">
           {allClear ? (
