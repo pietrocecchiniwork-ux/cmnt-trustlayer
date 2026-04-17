@@ -14,6 +14,7 @@ import type { Task } from "@/hooks/useSupabaseProject";
 import { generateEvidencePackPdf, downloadBlob } from "@/lib/evidencePdf";
 import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { HealthDashboard } from "@/components/HealthDashboard";
+import { BulkApproveQueue } from "@/components/BulkApproveQueue";
 
 export default function Dashboard() {
   const { role } = useRole();
