@@ -122,8 +122,7 @@ export async function generateEvidencePackPdf(opts: {
     headStyles: { fillColor: [240, 240, 238], textColor: 30, lineWidth: 0.5 },
     margin: { left: margin, right: margin },
   });
-  // @ts-expect-error autoTable adds finalY
-  y = (doc as any).lastAutoTable.finalY + 24;
+  y = ((doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 24;
 
   // Per-milestone sections
   for (const m of milestones) {
