@@ -728,18 +728,24 @@ export default function MilestoneDetailPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => confirmApprove("satisfactory")}
-                className="flex-1 font-mono text-[12px] text-success border border-success rounded py-2"
+                disabled={updateStatus.isPending || updateEvidence.isPending}
+                className="flex-1 font-mono text-[12px] text-success border border-success rounded py-2 disabled:opacity-50 disabled:pointer-events-none"
               >
-                {t("milestone.satisfactory")}
+                {updateStatus.isPending ? "approving..." : t("milestone.satisfactory")}
               </button>
               <button
                 onClick={() => confirmApprove("requires_attention")}
-                className="flex-1 font-mono text-[12px] text-destructive border border-destructive rounded py-2"
+                disabled={updateStatus.isPending || updateEvidence.isPending}
+                className="flex-1 font-mono text-[12px] text-destructive border border-destructive rounded py-2 disabled:opacity-50 disabled:pointer-events-none"
               >
-                {t("milestone.requires_attention")}
+                {updateStatus.isPending ? "approving..." : t("milestone.requires_attention")}
               </button>
             </div>
-            <button onClick={() => setQaPrompt(false)} className="font-mono text-[11px] text-muted-foreground">
+            <button
+              onClick={() => setQaPrompt(false)}
+              disabled={updateStatus.isPending || updateEvidence.isPending}
+              className="font-mono text-[11px] text-muted-foreground disabled:opacity-50"
+            >
               {t("common.cancel")}
             </button>
           </div>
