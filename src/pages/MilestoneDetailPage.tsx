@@ -178,6 +178,7 @@ export default function MilestoneDetailPage() {
   };
 
   const handleApprove = () => {
+    if (updateStatus.isPending || updateEvidence.isPending) return;
     // Mode B: check all tasks are complete first
     if (isTaskMode) {
       const allTasksComplete = tasks.every(t => t.status === "complete");
@@ -190,6 +191,7 @@ export default function MilestoneDetailPage() {
   };
 
   const confirmApprove = async (assessment: string) => {
+    if (updateStatus.isPending || updateEvidence.isPending) return; // double-tap guard
     setQaPrompt(false);
     try {
       try {
