@@ -45,6 +45,13 @@ export default function CameraScreen() {
     setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
+  const retakeLast = () => {
+    if (photos.length === 0) return;
+    setPhotos(prev => prev.slice(0, -1));
+    // Reopen camera for a fresh shot
+    setTimeout(() => cameraInputRef.current?.click(), 50);
+  };
+
   const handleConfirm = () => {
     if (photos.length === 0) return;
     setEvidencePhotoState({
@@ -125,19 +132,28 @@ export default function CameraScreen() {
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
       >
         {photos.length > 0 ? (
-          <div className="flex gap-4">
+          <div className="flex flex-col items-center gap-3">
             <button
-              onClick={() => setPhotos([])}
-              className="font-mono text-[13px] text-surface-dark-foreground border border-surface-dark-foreground rounded-full px-6 py-3"
+              onClick={retakeLast}
+              disabled={processing}
+              className="font-mono text-[11px] text-surface-dark-muted underline underline-offset-4 disabled:opacity-50"
             >
-              clear all
+              ↺ retake last photo
             </button>
-            <button
-              onClick={handleConfirm}
-              className="font-mono text-[13px] bg-surface-dark-foreground text-surface-dark rounded-full px-6 py-3"
-            >
-              use {photos.length} photo{photos.length !== 1 ? "s" : ""} →
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setPhotos([])}
+                className="font-mono text-[13px] text-surface-dark-foreground border border-surface-dark-foreground rounded-full px-6 py-3"
+              >
+                clear all
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="font-mono text-[13px] bg-surface-dark-foreground text-surface-dark rounded-full px-6 py-3"
+              >
+                use {photos.length} photo{photos.length !== 1 ? "s" : ""} →
+              </button>
+            </div>
           </div>
         ) : (
           <>
