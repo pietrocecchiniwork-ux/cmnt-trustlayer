@@ -67,6 +67,7 @@ const App = () => (
       <DemoProjectProvider>
         <RoleProvider>
           <BrowserRouter>
+            <BurgerMenu />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
