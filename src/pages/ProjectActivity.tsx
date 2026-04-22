@@ -101,6 +101,7 @@ export default function ProjectActivity() {
   const { data: project } = useProject(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
   const [page, setPage] = useState(0);
+  const [hideViews, setHideViews] = useState(false);
   const PAGE_SIZE = 30;
 
   // Fetch tasks and milestone assignments for role-based filtering
@@ -144,8 +145,10 @@ export default function ProjectActivity() {
   const filteredChanges = useMemo(() => {
     if (!user) return [];
 
-    // PM — see everything including evidence views/downloads
-    if (role === "pm") return changes;
+    // PM — see everything including evidence views/downloads (with optional hide-views toggle)
+    if (role === "pm") {
+      return hideViews ? changes.filter(c => c.change_type !== "viewed") : changes;
+    }
 
     // Contractor — see everything except other people's view events (noise)
     if (role === "contractor") {
@@ -199,7 +202,7 @@ export default function ProjectActivity() {
       if (c.entity_type === "evidence" && c.entity_id && connectedMilestoneIds.has(c.entity_id)) return true;
       return false;
     });
-  }, [changes, role, user, myMilestoneAssignments, allProjectTasks]);
+  }, [changes, role, user, myMilestoneAssignments, allProjectTasks, hideViews]);
 
   const showLoading = (isLoading && !!currentProjectId) && !timedOut;
   const showEmpty = (!showLoading && filteredChanges.length === 0) || (!currentProjectId && timedOut);
@@ -219,6 +222,16 @@ export default function ProjectActivity() {
           />
         )}
       </div>
+
+      {role === "pm" && (
+        <button
+          onClick={() => { setHideViews(v => !v); setPage(0); }}
+          className="self-start mb-6 font-mono text-[10px] text-muted-foreground underline underline-offset-4"
+          aria-pressed={hideViews}
+        >
+          {hideViews ? "show viewed evidence events" : "hide viewed evidence events"}
+        </button>
+      )}
 
       {showLoading && (
         <p className="font-mono text-[12px] text-muted-foreground">loading…</p>
