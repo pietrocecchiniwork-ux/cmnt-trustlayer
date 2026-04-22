@@ -22,14 +22,6 @@ export function BurgerMenu() {
   const [demoLoading, setDemoLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Hide on auth-related routes and standalone token pages where a logged-out
-  // user shouldn't see project/account controls.
-  const HIDDEN_ROUTES = ["/auth", "/forgot-password", "/reset-password", "/unsubscribe"];
-  const isHidden = HIDDEN_ROUTES.some(
-    (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
-  );
-  if (isHidden) return null;
   const { t } = useTranslation();
   const { data: projects = [] } = useProjects();
   const { data: currentUser } = useCurrentUser();
