@@ -101,6 +101,7 @@ export default function ProjectActivity() {
   const { data: project } = useProject(currentProjectId ?? undefined);
   const [timedOut, setTimedOut] = useState(false);
   const [page, setPage] = useState(0);
+  const [hideViews, setHideViews] = useState(false);
   const PAGE_SIZE = 30;
 
   // Fetch tasks and milestone assignments for role-based filtering
