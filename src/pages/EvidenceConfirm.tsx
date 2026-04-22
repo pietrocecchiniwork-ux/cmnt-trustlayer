@@ -265,6 +265,13 @@ export default function EvidenceConfirm() {
           } catch (logErr) {
             console.warn("Failed to log in_review transition:", logErr);
           }
+        } else {
+          // Milestone is already complete / in_review / disputed / overdue —
+          // we still attach the new evidence but intentionally don't change status.
+          // Surface a warning so this isn't silently invisible during debugging.
+          console.warn(
+            `[EvidenceConfirm] Evidence submitted on milestone "${currentMs.name}" with status "${currentMs.status}" — no status transition applied.`
+          );
         }
       }
 
