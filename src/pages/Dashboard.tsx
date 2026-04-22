@@ -246,6 +246,18 @@ function PMDashboard() {
       });
       const safeName = (project.name || "project").replace(/\s+/g, "_");
       downloadBlob(blob, `${safeName}_evidence_pack.pdf`);
+      // Audit: record the export for legal defensibility
+      if (currentUser) {
+        await (supabase as any).from("project_changes").insert({
+          project_id: currentProjectId,
+          entity_type: "project",
+          entity_name: `${safeName}_evidence_pack.pdf`,
+          change_type: "downloaded",
+          changed_by: currentUser.id,
+          changed_by_name: currentUser.email ?? "user",
+          new_value: { evidence_count: (ev ?? []).length, milestone_count: milestones.length },
+        });
+      }
       toast.success("Evidence pack generated");
     } catch (err) {
       console.error("PDF generation failed:", err);
