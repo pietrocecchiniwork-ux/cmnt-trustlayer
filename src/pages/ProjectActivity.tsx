@@ -202,7 +202,7 @@ export default function ProjectActivity() {
       if (c.entity_type === "evidence" && c.entity_id && connectedMilestoneIds.has(c.entity_id)) return true;
       return false;
     });
-  }, [changes, role, user, myMilestoneAssignments, allProjectTasks]);
+  }, [changes, role, user, myMilestoneAssignments, allProjectTasks, hideViews]);
 
   const showLoading = (isLoading && !!currentProjectId) && !timedOut;
   const showEmpty = (!showLoading && filteredChanges.length === 0) || (!currentProjectId && timedOut);
