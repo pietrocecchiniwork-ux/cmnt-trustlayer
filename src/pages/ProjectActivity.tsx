@@ -223,6 +223,16 @@ export default function ProjectActivity() {
         )}
       </div>
 
+      {role === "pm" && (
+        <button
+          onClick={() => { setHideViews(v => !v); setPage(0); }}
+          className="self-start mb-6 font-mono text-[10px] text-muted-foreground underline underline-offset-4"
+          aria-pressed={hideViews}
+        >
+          {hideViews ? "show viewed evidence events" : "hide viewed evidence events"}
+        </button>
+      )}
+
       {showLoading && (
         <p className="font-mono text-[12px] text-muted-foreground">loading…</p>
       )}
