@@ -6,6 +6,24 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Curated public construction photos (Unsplash) — stable URLs
+const DEMO_PHOTOS = [
+  "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80",
+  "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1200&q=80",
+  "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1200&q=80",
+  "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1200&q=80",
+  "https://images.unsplash.com/photo-1517581177682-a085bb7ffb15?w=1200&q=80",
+  "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=1200&q=80",
+];
+
+// London-area GPS jitter around 14 Kensington Mews (51.5008, -0.1900)
+function jitterGps(): { lat: number; lng: number } {
+  return {
+    lat: 51.5008 + (Math.random() - 0.5) * 0.0008,
+    lng: -0.1900 + (Math.random() - 0.5) * 0.0008,
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -82,55 +100,82 @@ Deno.serve(async (req: Request) => {
       .insert(members.map((m) => ({ ...m, project_id: pid })));
     if (tmErr) throw tmErr;
 
-    // 4. Evidence against milestone 4
-    const m4 = mData.find((m: any) => m.position === 4);
-    if (m4) {
-      const evidenceItems = [
-        {
-          milestone_id: m4.id,
+    // 4. Evidence — distribute across completed and in-progress milestones, with photos + GPS
+    const evidenceTargets = mData.filter((m: any) => [2, 3, 4, 5].includes(m.position));
+    const evidenceItems: any[] = [];
+    const samples = [
+      { note: "First fix plumbing rough-in complete in kitchen", tags: { work_type: "plumbing", trade_category: "plumber", location_in_building: "kitchen", completion_stage: "rough-in", condition_flag: "pass", building_element: "pipework", milestone_match: true } },
+      { note: "Electrical wiring run through ground floor", tags: { work_type: "electrical", trade_category: "electrician", location_in_building: "ground floor", completion_stage: "rough-in", condition_flag: "pass", building_element: "wiring", milestone_match: true } },
+      { note: "Hot and cold water supply installed in bathroom", tags: { work_type: "plumbing", trade_category: "plumber", location_in_building: "bathroom", completion_stage: "rough-in", condition_flag: "pass", building_element: "pipework", milestone_match: true } },
+      { note: "Consumer unit fitted in utility cupboard — needs second check", tags: { work_type: "electrical", trade_category: "electrician", location_in_building: "utility", completion_stage: "first fix", condition_flag: "concern", building_element: "consumer unit", milestone_match: true, ai_comment: "Cable routing tight near board — recommend review" } },
+      { note: "Foundation pour day 2 — south side", tags: { work_type: "groundwork", trade_category: "groundworker", location_in_building: "foundations", completion_stage: "complete", condition_flag: "pass", building_element: "concrete", milestone_match: true } },
+      { note: "Steel beam in place above kitchen opening", tags: { work_type: "structural", trade_category: "steelwork", location_in_building: "ground floor", completion_stage: "complete", condition_flag: "pass", building_element: "beam", milestone_match: true } },
+      { note: "Drylining started on first floor", tags: { work_type: "plastering", trade_category: "plasterer", location_in_building: "first floor", completion_stage: "in-progress", condition_flag: "pass", building_element: "wall", milestone_match: true } },
+    ];
+    let photoIdx = 0;
+    for (const m of evidenceTargets) {
+      const count = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < count; i++) {
+        const s = samples[(photoIdx + i) % samples.length];
+        const gps = jitterGps();
+        const submittedAt = new Date(Date.now() - (photoIdx + i) * 36 * 60 * 60 * 1000).toISOString();
+        evidenceItems.push({
+          milestone_id: m.id,
           submitted_by: user.id,
-          channel: "app",
-          note: "First fix plumbing rough-in complete in kitchen",
-          ai_tags: { work_type: "plumbing", trade_category: "plumber", location_in_building: "kitchen", completion_stage: "rough-in", condition_flag: "good", building_element: "pipework" },
-        },
-        {
-          milestone_id: m4.id,
-          submitted_by: user.id,
-          channel: "app",
-          note: "Electrical wiring run through ground floor",
-          ai_tags: { work_type: "electrical", trade_category: "electrician", location_in_building: "ground floor", completion_stage: "rough-in", condition_flag: "good", building_element: "wiring" },
-        },
-        {
-          milestone_id: m4.id,
-          submitted_by: user.id,
-          channel: "app",
-          note: "Hot and cold water supply installed in bathroom",
-          ai_tags: { work_type: "plumbing", trade_category: "plumber", location_in_building: "bathroom", completion_stage: "rough-in", condition_flag: "good", building_element: "pipework" },
-        },
-        {
-          milestone_id: m4.id,
-          submitted_by: user.id,
-          channel: "whatsapp",
-          note: "Consumer unit fitted in utility cupboard",
-          ai_tags: { work_type: "electrical", trade_category: "electrician", location_in_building: "utility", completion_stage: "first fix", condition_flag: "attention", building_element: "consumer unit" },
-        },
-      ];
+          channel: i % 3 === 0 ? "whatsapp" : "app",
+          note: s.note,
+          ai_tags: s.tags,
+          photo_url: DEMO_PHOTOS[photoIdx % DEMO_PHOTOS.length],
+          gps_lat: gps.lat,
+          gps_lng: gps.lng,
+          latitude: gps.lat,
+          longitude: gps.lng,
+          submitted_at: submittedAt,
+          quality_assessment: m.position <= 3 ? "satisfactory" : null,
+          verification_level: m.position <= 3 ? 3 : 1,
+        });
+        photoIdx++;
+      }
+    }
+    if (evidenceItems.length) {
       const { error: eErr } = await admin.from("evidence").insert(evidenceItems);
       if (eErr) throw eErr;
     }
 
-    // 5. Payment certificates for milestones 1, 2, 3
+    // 5. Payment certificates for milestones 1, 2, 3 (mix of statuses)
     const completeMilestones = mData.filter((m: any) => [1, 2, 3].includes(m.position));
     if (completeMilestones.length) {
-      const certs = completeMilestones.map((m: any) => ({
+      const certs = completeMilestones.map((m: any, idx: number) => ({
         milestone_id: m.id,
         amount: m.payment_value,
-        released_at: new Date().toISOString(),
-        released_by: user.id,
+        released_at: idx < 2 ? new Date(Date.now() - (idx + 1) * 7 * 24 * 60 * 60 * 1000).toISOString() : null,
+        released_by: idx < 2 ? user.id : null,
+        payment_status: idx < 2 ? "released" : "awaiting_client_authorization",
       }));
       const { error: cErr } = await admin.from("payment_certificates").insert(certs);
       if (cErr) throw cErr;
     }
+
+    // 6. Seed audit trail entries for richer demo
+    const changes = [
+      { entity_type: "project", entity_name: project.name, change_type: "created", changed_by_name: "anna p." },
+      { entity_type: "member", entity_name: "mark t.", change_type: "created", changed_by_name: "anna p." },
+      { entity_type: "member", entity_name: "sarah k.", change_type: "created", changed_by_name: "anna p." },
+      { entity_type: "milestone", entity_name: "site setup and demolition", change_type: "approved", changed_by_name: "anna p." },
+      { entity_type: "milestone", entity_name: "foundations and groundwork", change_type: "approved", changed_by_name: "anna p." },
+      { entity_type: "payment", entity_name: "site setup and demolition", change_type: "authorized", changed_by_name: "james r." },
+      { entity_type: "payment", entity_name: "foundations and groundwork", change_type: "authorized", changed_by_name: "james r." },
+      { entity_type: "milestone", entity_name: "structural frame and roof", change_type: "approved", changed_by_name: "anna p." },
+    ];
+    const { error: chErr } = await admin.from("project_changes").insert(
+      changes.map((c, i) => ({
+        ...c,
+        project_id: pid,
+        changed_by: user.id,
+        created_at: new Date(Date.now() - (changes.length - i) * 8 * 60 * 60 * 1000).toISOString(),
+      }))
+    );
+    if (chErr) console.error("changes seed error", chErr);
 
     return new Response(JSON.stringify({ project_id: pid }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

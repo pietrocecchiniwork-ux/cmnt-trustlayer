@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
 import { exportAuditTrail } from "@/lib/exportCsv";
+import { CsvExportButton } from "@/components/CsvExportButton";
 
 const entityDot: Record<string, string> = {
   task: "bg-accent",
@@ -77,6 +78,10 @@ function describeChange(c: ProjectChange): string {
     }
     case "authorized":
       return `${who} authorized payment for ${entity}`;
+    case "viewed":
+      return `${who} viewed evidence on ${entity}`;
+    case "downloaded":
+      return `${who} downloaded ${entity}`;
     case "evidence_submitted": {
       const count = (c.new_value as Record<string, unknown> | null)?.photo_count;
       return `${who} submitted ${count ?? ""} evidence for ${entity}`;
@@ -139,13 +144,23 @@ export default function ProjectActivity() {
   const filteredChanges = useMemo(() => {
     if (!user) return [];
 
-    // PM / contractor (main contractor) — see everything
-    if (role === "pm" || role === "contractor") return changes;
+    // PM — see everything including evidence views/downloads
+    if (role === "pm") return changes;
 
-    // Client — only approvals and payment releases
+    // Contractor — see everything except other people's view events (noise)
+    if (role === "contractor") {
+      return changes.filter(c =>
+        !(c.change_type === "viewed" && c.changed_by !== user.id)
+      );
+    }
+
+    // Client — only approvals, payment releases, and own actions
     if (role === "client") {
       return changes.filter(c =>
-        c.change_type === "approved" || c.change_type === "released" || c.change_type === "authorized"
+        c.change_type === "approved" ||
+        c.change_type === "released" ||
+        c.change_type === "authorized" ||
+        c.changed_by === user.id
       );
     }
 
@@ -198,12 +213,10 @@ export default function ProjectActivity() {
           <p className="font-mono text-[11px] text-muted-foreground mt-1 mb-8">full audit trail</p>
         </div>
         {role === "pm" && filteredChanges.length > 0 && (
-          <button
-            onClick={() => exportAuditTrail(filteredChanges, project?.name ?? "project")}
+          <CsvExportButton
+            onExport={(range) => exportAuditTrail(filteredChanges, project?.name ?? "project", range)}
             className="font-mono text-[10px] text-muted-foreground underline underline-offset-4"
-          >
-            export csv
-          </button>
+          />
         )}
       </div>
 
