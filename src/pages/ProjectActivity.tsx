@@ -78,8 +78,13 @@ function describeChange(c: ProjectChange): string {
     }
     case "authorized":
       return `${who} authorized payment for ${entity}`;
-    case "viewed":
-      return `${who} viewed evidence on ${entity}`;
+    case "viewed": {
+      const nv = c.new_value as Record<string, unknown> | null;
+      const code = nv?.evidence_code as string | undefined;
+      const mName = nv?.milestone_name as string | undefined;
+      const ref = code ?? entity;
+      return mName ? `${who} viewed ${ref} (${mName})` : `${who} viewed ${ref}`;
+    }
     case "downloaded":
       return `${who} downloaded ${entity}`;
     case "evidence_submitted": {
@@ -198,8 +203,11 @@ export default function ProjectActivity() {
       if (c.entity_type === "milestone" && c.entity_id && connectedMilestoneIds.has(c.entity_id)) return true;
       // Task changes on connected milestones
       if (c.entity_type === "task" && c.entity_id && connectedTaskIds.has(c.entity_id)) return true;
-      // Evidence on connected milestones
-      if (c.entity_type === "evidence" && c.entity_id && connectedMilestoneIds.has(c.entity_id)) return true;
+      // Evidence on connected milestones (entity_id is now the evidence id; milestone is in new_value)
+      if (c.entity_type === "evidence") {
+        const mId = (c.new_value as Record<string, unknown> | null)?.milestone_id as string | undefined;
+        if (mId && connectedMilestoneIds.has(mId)) return true;
+      }
       return false;
     });
   }, [changes, role, user, myMilestoneAssignments, allProjectTasks, hideViews]);
