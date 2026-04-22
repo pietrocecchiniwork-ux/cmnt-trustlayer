@@ -78,8 +78,13 @@ function describeChange(c: ProjectChange): string {
     }
     case "authorized":
       return `${who} authorized payment for ${entity}`;
-    case "viewed":
-      return `${who} viewed evidence on ${entity}`;
+    case "viewed": {
+      const nv = c.new_value as Record<string, unknown> | null;
+      const code = nv?.evidence_code as string | undefined;
+      const mName = nv?.milestone_name as string | undefined;
+      const ref = code ?? entity;
+      return mName ? `${who} viewed ${ref} (${mName})` : `${who} viewed ${ref}`;
+    }
     case "downloaded":
       return `${who} downloaded ${entity}`;
     case "evidence_submitted": {
