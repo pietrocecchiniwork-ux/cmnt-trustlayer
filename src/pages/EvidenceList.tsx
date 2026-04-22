@@ -45,22 +45,15 @@ export default function EvidenceList() {
   // Log evidence view (lightbox open) for legal defensibility — fire & forget
   const logEvidenceView = (e: any) => {
     if (!currentProjectId || !currentUser) return;
-    const label = e.evidence_code ?? `evidence on ${e.milestone_name ?? "milestone"}`;
     createChange.mutate({
       project_id: currentProjectId,
       entity_type: "evidence",
-      entity_id: e.id, // link directly to the evidence record
-      entity_name: label,
+      entity_id: e.milestone_id, // link to milestone for filtering
+      entity_name: e.milestone_name ?? "evidence",
       change_type: "viewed",
       changed_by: currentUser.id,
       changed_by_name: currentUser.email ?? "user",
-      new_value: {
-        evidence_id: e.id,
-        evidence_code: e.evidence_code ?? null,
-        milestone_id: e.milestone_id,
-        milestone_name: e.milestone_name ?? null,
-        viewer_role: role,
-      },
+      new_value: { evidence_id: e.id, viewer_role: role },
     } as any);
   };
 

@@ -78,13 +78,8 @@ function describeChange(c: ProjectChange): string {
     }
     case "authorized":
       return `${who} authorized payment for ${entity}`;
-    case "viewed": {
-      const nv = c.new_value as Record<string, unknown> | null;
-      const code = nv?.evidence_code as string | undefined;
-      const mName = nv?.milestone_name as string | undefined;
-      const ref = code ?? entity;
-      return mName ? `${who} viewed ${ref} (${mName})` : `${who} viewed ${ref}`;
-    }
+    case "viewed":
+      return `${who} viewed evidence on ${entity}`;
     case "downloaded":
       return `${who} downloaded ${entity}`;
     case "evidence_submitted": {
@@ -155,55 +150,47 @@ export default function ProjectActivity() {
       return hideViews ? changes.filter(c => c.change_type !== "viewed") : changes;
     }
 
-    // Contractor — see everything except other people's view events (noise)
+    // Surveillance events (who looked at what / who pulled what) are PM-only.
+    // Hide them from every other role, even when triggered by the viewer themselves —
+    // we don't want clients/contractors/trades to see "viewed" noise in the audit feed.
+    const isSurveillance = (t: string) => t === "viewed" || t === "downloaded";
+
+    // Contractor — operational events only (creations, updates, approvals, submissions, shifts, disputes)
     if (role === "contractor") {
-      return changes.filter(c =>
-        !(c.change_type === "viewed" && c.changed_by !== user.id)
-      );
+      return changes.filter(c => !isSurveillance(c.change_type));
     }
 
-    // Client — only approvals, payment releases, and own actions
+    // Client — strictly approvals, payment releases, and authorizations. Nothing else.
     if (role === "client") {
       return changes.filter(c =>
         c.change_type === "approved" ||
         c.change_type === "released" ||
-        c.change_type === "authorized" ||
-        c.changed_by === user.id
+        c.change_type === "authorized"
       );
     }
 
-    // Trade — see changes on milestones/tasks they are assigned to
+    // Trade — see changes on milestones/tasks they are assigned to, but never surveillance events
     const userId = user.id;
     const myMilestoneIds = new Set(myMilestoneAssignments);
 
-    // Also include milestones where user has an assigned task
     const myTaskMilestoneIds = new Set(
-      allProjectTasks
-        .filter(t => t.assigned_to === userId)
-        .map(t => t.milestone_id)
-    );
-    const myTaskIds = new Set(
-      allProjectTasks
-        .filter(t => t.assigned_to === userId)
-        .map(t => t.id)
+      allProjectTasks.filter(t => t.assigned_to === userId).map(t => t.milestone_id)
     );
 
-    // All task IDs on milestones the trade is connected to (to see sibling activity)
     const connectedMilestoneIds = new Set([...myMilestoneIds, ...myTaskMilestoneIds]);
     const connectedTaskIds = new Set(
-      allProjectTasks
-        .filter(t => connectedMilestoneIds.has(t.milestone_id))
-        .map(t => t.id)
+      allProjectTasks.filter(t => connectedMilestoneIds.has(t.milestone_id)).map(t => t.id)
     );
 
     return changes.filter(c => {
+      if (isSurveillance(c.change_type)) return false;
       // Own changes always visible
       if (c.changed_by === userId) return true;
       // Milestone changes on connected milestones
       if (c.entity_type === "milestone" && c.entity_id && connectedMilestoneIds.has(c.entity_id)) return true;
       // Task changes on connected milestones
       if (c.entity_type === "task" && c.entity_id && connectedTaskIds.has(c.entity_id)) return true;
-      // Evidence on connected milestones (entity_id is now the evidence id; milestone is in new_value)
+      // Evidence on connected milestones (entity_id is the evidence id; milestone is in new_value)
       if (c.entity_type === "evidence") {
         const mId = (c.new_value as Record<string, unknown> | null)?.milestone_id as string | undefined;
         if (mId && connectedMilestoneIds.has(mId)) return true;
