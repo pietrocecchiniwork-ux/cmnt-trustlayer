@@ -241,14 +241,9 @@ export default function EvidenceConfirm() {
         .single();
       if (msReadErr) throw msReadErr;
       if (currentMs) {
-        if (currentMs.status === "pending") {
-          const { error: upErr } = await supabase
-            .from("milestones")
-            .update({ status: "in_progress" })
-            .eq("id", state.milestoneId);
-          if (upErr) throw upErr;
-        } else if (currentMs.status === "in_progress") {
-          // Move to in_review so PM sees it in "needs your approval"
+        // Both pending and in_progress milestones move directly to in_review
+        // on evidence submission, so PMs see them in "needs your approval".
+        if (currentMs.status === "pending" || currentMs.status === "in_progress") {
           const { error: upErr } = await supabase
             .from("milestones")
             .update({ status: "in_review" })
@@ -264,7 +259,7 @@ export default function EvidenceConfirm() {
               change_type: "milestone_status_change",
               changed_by: user.id,
               changed_by_name: user.email,
-              old_value: { status: "in_progress" },
+              old_value: { status: currentMs.status },
               new_value: { status: "in_review" },
             });
           } catch (logErr) {
