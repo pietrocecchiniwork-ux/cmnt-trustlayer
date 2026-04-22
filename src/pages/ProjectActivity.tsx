@@ -145,8 +145,10 @@ export default function ProjectActivity() {
   const filteredChanges = useMemo(() => {
     if (!user) return [];
 
-    // PM — see everything including evidence views/downloads
-    if (role === "pm") return changes;
+    // PM — see everything including evidence views/downloads (with optional hide-views toggle)
+    if (role === "pm") {
+      return hideViews ? changes.filter(c => c.change_type !== "viewed") : changes;
+    }
 
     // Contractor — see everything except other people's view events (noise)
     if (role === "contractor") {
