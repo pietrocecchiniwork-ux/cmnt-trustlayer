@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects, useCurrentUser } from "@/hooks/useSupabaseProject";
@@ -21,6 +21,7 @@ export function BurgerMenu() {
   const panelRef = useRef<HTMLDivElement>(null);
   const [demoLoading, setDemoLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const { data: projects = [] } = useProjects();
   const { data: currentUser } = useCurrentUser();
@@ -88,6 +89,14 @@ export function BurgerMenu() {
       setDemoLoading(false);
     }
   };
+
+  // Hide on auth-related routes and standalone token pages where a logged-out
+  // user shouldn't see project/account controls.
+  const HIDDEN_ROUTES = ["/auth", "/forgot-password", "/reset-password", "/unsubscribe"];
+  const isHidden = HIDDEN_ROUTES.some(
+    (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
+  );
+  if (isHidden) return null;
 
   return (
     <>

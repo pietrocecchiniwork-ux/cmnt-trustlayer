@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { DemoProjectProvider } from "@/contexts/DemoProjectContext";
 import { AppLayout } from "@/components/AppLayout";
+import { BurgerMenu } from "@/components/BurgerMenu";
 import { supabase } from "@/integrations/supabase/client";
 
 import Home from "./pages/Home";
@@ -66,6 +67,7 @@ const App = () => (
       <DemoProjectProvider>
         <RoleProvider>
           <BrowserRouter>
+            <BurgerMenu />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
