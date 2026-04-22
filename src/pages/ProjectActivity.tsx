@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
 import { exportAuditTrail } from "@/lib/exportCsv";
+import { CsvExportButton } from "@/components/CsvExportButton";
 
 const entityDot: Record<string, string> = {
   task: "bg-accent",
@@ -198,12 +199,10 @@ export default function ProjectActivity() {
           <p className="font-mono text-[11px] text-muted-foreground mt-1 mb-8">full audit trail</p>
         </div>
         {role === "pm" && filteredChanges.length > 0 && (
-          <button
-            onClick={() => exportAuditTrail(filteredChanges, project?.name ?? "project")}
+          <CsvExportButton
+            onExport={(range) => exportAuditTrail(filteredChanges, project?.name ?? "project", range)}
             className="font-mono text-[10px] text-muted-foreground underline underline-offset-4"
-          >
-            export csv
-          </button>
+          />
         )}
       </div>
 

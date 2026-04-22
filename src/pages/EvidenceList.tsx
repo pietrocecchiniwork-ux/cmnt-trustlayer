@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useProjectEvidence, useProject } from "@/hooks/useSupabaseProject";
+import { useProjectEvidence, useProject, useCreateChange, useCurrentUser } from "@/hooks/useSupabaseProject";
 import { format } from "date-fns";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { exportEvidenceList } from "@/lib/exportCsv";
 import { useRole } from "@/contexts/RoleContext";
+import { GpsMapThumb } from "@/components/GpsMapThumb";
+import { CsvExportButton } from "@/components/CsvExportButton";
 
 const PAGE_SIZE = 20;
 const FLAG_FILTERS = ["all", "pass", "concern", "fail"] as const;
@@ -14,6 +16,8 @@ export default function EvidenceList() {
   const { currentProjectId } = useProjectContext();
   const { data: evidence = [], isLoading } = useProjectEvidence(currentProjectId ?? undefined);
   const { data: project } = useProject(currentProjectId ?? undefined);
+  const { data: currentUser } = useCurrentUser();
+  const createChange = useCreateChange();
   const { role } = useRole();
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -38,6 +42,21 @@ export default function EvidenceList() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  // Log evidence view (lightbox open) for legal defensibility — fire & forget
+  const logEvidenceView = (e: any) => {
+    if (!currentProjectId || !currentUser) return;
+    createChange.mutate({
+      project_id: currentProjectId,
+      entity_type: "evidence",
+      entity_id: e.milestone_id, // link to milestone for filtering
+      entity_name: e.milestone_name ?? "evidence",
+      change_type: "viewed",
+      changed_by: currentUser.id,
+      changed_by_name: currentUser.email ?? "user",
+      new_value: { evidence_id: e.id, viewer_role: role },
+    } as any);
+  };
+
   return (
     <div className="min-h-screen screen-cream">
      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
@@ -52,12 +71,38 @@ export default function EvidenceList() {
           {evidence.length} submissions
         </p>
         {(role === "pm" || role === "client") && evidence.length > 0 && (
-          <button
-            onClick={() => exportEvidenceList(evidence, project?.name ?? "project")}
-            className="font-mono text-[10px] text-foreground/50 underline underline-offset-4 mt-2"
-          >
-            export csv
-          </button>
+          <div className="mt-2">
+            <CsvExportButton
+              onExport={(range) => exportEvidenceList(evidence, project?.name ?? "project", range)}
+              className="font-mono text-[10px] text-foreground/50 underline underline-offset-4"
+            />
+          </div>
+        )}
+
+        {/* Search + filter */}
+        {evidence.length > 0 && (
+          <div className="mt-4 flex flex-col gap-2">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              placeholder="search notes, tags, milestone…"
+              className="bg-transparent border-b border-foreground/20 font-mono text-[12px] py-1 focus:outline-none focus:border-foreground/60"
+            />
+            <div className="flex gap-3">
+              {FLAG_FILTERS.map(f => (
+                <button
+                  key={f}
+                  onClick={() => { setFlagFilter(f); setPage(0); }}
+                  className={`font-mono text-[10px] pb-0.5 ${
+                    flagFilter === f ? "text-foreground border-b border-foreground" : "text-foreground/40"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
@@ -69,7 +114,7 @@ export default function EvidenceList() {
 
       {/* Evidence items */}
       <div className="flex-1 px-6 pb-6">
-        {paged.map((e) => {
+        {paged.map((e: any) => {
           const tagsObj = e.ai_tags && typeof e.ai_tags === "object" ? (e.ai_tags as Record<string, unknown>) : {};
           const milestoneMatch = typeof tagsObj.milestone_match === "boolean" ? tagsObj.milestone_match : null;
           const conditionFlag = typeof tagsObj.condition_flag === "string" ? tagsObj.condition_flag : null;
@@ -78,21 +123,33 @@ export default function EvidenceList() {
             .filter(([k]) => k !== "milestone_match" && k !== "ai_comment" && k !== "condition_flag")
             .map(([, v]) => String(v));
 
+          const lat = e.gps_lat ?? e.latitude;
+          const lng = e.gps_lng ?? e.longitude;
+          const hasGps = typeof lat === "number" && typeof lng === "number";
+
           return (
             <div key={e.id} className="flex items-start gap-4 py-4 border-b border-foreground/10">
-              {e.photo_url ? (
-                <button onClick={() => setLightboxUrl(e.photo_url!)} className="flex-shrink-0">
-                  <img
-                    src={e.photo_url}
-                    alt="evidence"
-                    className="w-[48px] h-[48px] object-cover border border-foreground/20 hover:opacity-80 transition-opacity"
-                  />
-                </button>
-              ) : (
-                <div className="w-[48px] h-[48px] border border-foreground/20 flex items-center justify-center flex-shrink-0">
-                  <span className="font-mono text-[10px] text-foreground/30">—</span>
-                </div>
-              )}
+              <div className="flex flex-col gap-1 flex-shrink-0">
+                {e.photo_url ? (
+                  <button
+                    onClick={() => {
+                      setLightboxUrl(e.photo_url!);
+                      logEvidenceView(e);
+                    }}
+                  >
+                    <img
+                      src={e.photo_url}
+                      alt="evidence"
+                      className="w-[48px] h-[48px] object-cover border border-foreground/20 hover:opacity-80 transition-opacity"
+                    />
+                  </button>
+                ) : (
+                  <div className="w-[48px] h-[48px] border border-foreground/20 flex items-center justify-center">
+                    <span className="font-mono text-[10px] text-foreground/30">—</span>
+                  </div>
+                )}
+                {hasGps && <GpsMapThumb lat={Number(lat)} lng={Number(lng)} size={48} />}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-mono text-[12px] text-foreground truncate">{e.milestone_name}</p>
@@ -137,6 +194,9 @@ export default function EvidenceList() {
         })}
         {evidence.length === 0 && !isLoading && (
           <p className="font-mono text-[13px] text-foreground/40 mt-4">no evidence submitted yet</p>
+        )}
+        {evidence.length > 0 && filtered.length === 0 && (
+          <p className="font-mono text-[13px] text-foreground/40 mt-4">no evidence matches filter</p>
         )}
 
         {/* Pagination */}
