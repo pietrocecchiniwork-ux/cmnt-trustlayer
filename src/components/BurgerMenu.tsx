@@ -227,10 +227,7 @@ export function BurgerMenu() {
           {/* PROJECT NAV (only on project routes) */}
           {isProjectRoute && (
             <section aria-labelledby="menu-section-nav">
-              <p
-                id="menu-section-nav"
-                className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-              >
+              <p id="menu-section-nav" className="t-eyebrow mb-2">
                 {t("menu.navigation") || "Navigation"}
               </p>
               {[
@@ -247,6 +244,7 @@ export function BurgerMenu() {
                   className={itemClass(item.path)}
                   aria-current={isActive(item.path) ? "page" : undefined}
                 >
+                  <ActiveMarker path={item.path} />
                   {item.label}
                 </button>
               ))}
