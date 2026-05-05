@@ -58,44 +58,44 @@ export default function EvidenceList() {
   };
 
   return (
-    <div className="min-h-screen screen-cream">
+    <div className="min-h-screen bg-background">
      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
       {/* Header */}
-      <div className="px-6 pt-20 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <span className="font-mono text-[14px] opacity-40">←</span>
-          <span className="font-mono text-[16px] opacity-40">—</span>
+      <div className="px-6 pt-20 pb-6 space-y-3">
+        <div className="bg-card rounded-3xl px-6 py-5">
+          <p className="t-eyebrow">evidence</p>
+          <p className="font-sans text-[26px] tracking-[-0.02em] text-foreground mt-1 lowercase">
+            {evidence.length} submissions
+          </p>
+          {(role === "pm" || role === "client") && evidence.length > 0 && (
+            <div className="mt-2">
+              <CsvExportButton
+                onExport={(range) => exportEvidenceList(evidence, project?.name ?? "project", range)}
+                className="font-mono text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-4"
+              />
+            </div>
+          )}
         </div>
-        <p className="font-mono text-[28px] tracking-tight text-foreground">evidence</p>
-        <p className="font-mono text-[12px] text-foreground/40 mt-1">
-          {evidence.length} submissions
-        </p>
-        {(role === "pm" || role === "client") && evidence.length > 0 && (
-          <div className="mt-2">
-            <CsvExportButton
-              onExport={(range) => exportEvidenceList(evidence, project?.name ?? "project", range)}
-              className="font-mono text-[10px] text-foreground/50 underline underline-offset-4"
-            />
-          </div>
-        )}
 
         {/* Search + filter */}
         {evidence.length > 0 && (
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="bg-card rounded-3xl px-6 py-5 space-y-3">
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0); }}
               placeholder="search notes, tags, milestone…"
-              className="bg-transparent border-b border-foreground/20 font-mono text-[12px] py-1 focus:outline-none focus:border-foreground/60"
+              className="w-full px-4 py-2.5 bg-secondary rounded-full font-mono text-[12px] text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
-            <div className="flex gap-3">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
               {FLAG_FILTERS.map(f => (
                 <button
                   key={f}
                   onClick={() => { setFlagFilter(f); setPage(0); }}
-                  className={`font-mono text-[10px] pb-0.5 ${
-                    flagFilter === f ? "text-foreground border-b border-foreground" : "text-foreground/40"
+                  className={`font-mono text-[10px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
+                    flagFilter === f
+                      ? "bg-foreground text-background"
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {f}
@@ -108,12 +108,14 @@ export default function EvidenceList() {
 
       {isLoading && (
         <div className="px-6">
-          <p className="font-mono text-[13px] text-foreground/40 animate-pulse">loading...</p>
+          <div className="bg-card rounded-3xl px-6 py-5">
+            <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
+          </div>
         </div>
       )}
 
       {/* Evidence items */}
-      <div className="flex-1 px-6 pb-6">
+      <div className="flex-1 px-6 pb-6 space-y-3">
         {paged.map((e: any) => {
           const tagsObj = e.ai_tags && typeof e.ai_tags === "object" ? (e.ai_tags as Record<string, unknown>) : {};
           const milestoneMatch = typeof tagsObj.milestone_match === "boolean" ? tagsObj.milestone_match : null;
@@ -128,7 +130,7 @@ export default function EvidenceList() {
           const hasGps = typeof lat === "number" && typeof lng === "number";
 
           return (
-            <div key={e.id} className="flex items-start gap-4 py-4 border-b border-foreground/10">
+            <div key={e.id} className="bg-card rounded-3xl px-5 py-4 flex items-start gap-4">
               <div className="flex flex-col gap-1 flex-shrink-0">
                 {e.photo_url ? (
                   <button
@@ -140,24 +142,24 @@ export default function EvidenceList() {
                     <img
                       src={e.photo_url}
                       alt="evidence"
-                      className="w-[48px] h-[48px] object-cover border border-foreground/20 hover:opacity-80 transition-opacity"
+                      className="w-[52px] h-[52px] object-cover rounded-2xl hover:opacity-80 transition-opacity"
                     />
                   </button>
                 ) : (
-                  <div className="w-[48px] h-[48px] border border-foreground/20 flex items-center justify-center">
-                    <span className="font-mono text-[10px] text-foreground/30">—</span>
+                  <div className="w-[52px] h-[52px] rounded-2xl bg-secondary flex items-center justify-center">
+                    <span className="font-mono text-[10px] text-muted-foreground">—</span>
                   </div>
                 )}
-                {hasGps && <GpsMapThumb lat={Number(lat)} lng={Number(lng)} size={48} />}
+                {hasGps && <GpsMapThumb lat={Number(lat)} lng={Number(lng)} size={52} />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-mono text-[12px] text-foreground truncate">{e.milestone_name}</p>
+                  <p className="font-sans text-[14px] text-foreground truncate">{e.milestone_name}</p>
                   {conditionFlag && (
-                    <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
-                      conditionFlag === "pass" ? "bg-success/20 text-success" :
-                      conditionFlag === "concern" ? "bg-yellow-500/20 text-yellow-600" :
-                      "bg-destructive/20 text-destructive"
+                    <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      conditionFlag === "pass" ? "bg-success/15 text-success" :
+                      conditionFlag === "concern" ? "bg-warning/15 text-warning" :
+                      "bg-destructive/15 text-destructive"
                     }`}>
                       {conditionFlag}
                     </span>
@@ -168,21 +170,21 @@ export default function EvidenceList() {
                     </span>
                   )}
                 </div>
-                <p className="font-mono text-[10px] text-foreground/40 mt-0.5">
+                <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
                   {format(new Date(e.submitted_at), "dd MMM yyyy · HH:mm")}
                 </p>
                 {aiComment && (
-                  <p className="font-mono text-[10px] text-foreground/50 italic mt-1 leading-relaxed">{aiComment}</p>
+                  <p className="font-sans text-[12px] text-muted-foreground italic mt-1 leading-relaxed">{aiComment}</p>
                 )}
-                {e.note && <p className="font-mono text-[12px] text-foreground/70 mt-1">{e.note}</p>}
+                {e.note && <p className="font-sans text-[13px] text-foreground/80 mt-1">{e.note}</p>}
                 {(e as any).voice_note_url && (
-                  <audio src={(e as any).voice_note_url} controls className="mt-1 h-7 w-44" />
+                  <audio src={(e as any).voice_note_url} controls className="mt-2 h-7 w-44" />
                 )}
-                <div className="flex flex-wrap gap-3 mt-1.5">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {displayTags.map((tag, j) => (
                     <span
                       key={j}
-                      className="font-mono text-[10px] text-foreground/50 border-b border-foreground/20 pb-0.5"
+                      className="font-mono text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5"
                     >
                       {tag.replace(/_/g, " ")}
                     </span>
@@ -193,29 +195,33 @@ export default function EvidenceList() {
           );
         })}
         {evidence.length === 0 && !isLoading && (
-          <p className="font-mono text-[13px] text-foreground/40 mt-4">no evidence submitted yet</p>
+          <div className="bg-card rounded-3xl px-6 py-8">
+            <p className="font-mono text-[13px] text-muted-foreground text-center">no evidence submitted yet</p>
+          </div>
         )}
         {evidence.length > 0 && filtered.length === 0 && (
-          <p className="font-mono text-[13px] text-foreground/40 mt-4">no evidence matches filter</p>
+          <div className="bg-card rounded-3xl px-6 py-8">
+            <p className="font-mono text-[13px] text-muted-foreground text-center">no evidence matches filter</p>
+          </div>
         )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 mt-6">
+          <div className="bg-card rounded-full px-4 py-2 flex items-center justify-center gap-4">
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="font-mono text-[11px] text-foreground/60 disabled:opacity-30"
+              className="font-mono text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-30"
             >
               ← prev
             </button>
-            <span className="font-mono text-[11px] text-foreground/40">
+            <span className="font-mono text-[11px] text-muted-foreground">
               {page + 1} / {totalPages}
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="font-mono text-[11px] text-foreground/60 disabled:opacity-30"
+              className="font-mono text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-30"
             >
               next →
             </button>
