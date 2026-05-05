@@ -586,26 +586,38 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col min-h-0">
-            <h1 className={`font-sans tracking-[-0.01em] leading-[1.1] mb-3 lowercase ${headlineColor} text-[26px] md:text-[30px]`}>
-              {current.headline}
-            </h1>
-            {current.subtitle && (
-              <p className={`font-sans text-[14px] mb-5 leading-relaxed ${subColor}`}>
-                {current.subtitle}
-              </p>
-            )}
-
-            <div className="overflow-auto">
-              {renderCard(current.card)}
+          {current.isFinal ? (
+            <div className="flex-1 flex items-center justify-center">
+              <h1 className={`font-sans tracking-[-0.01em] leading-[1.25] lowercase text-center text-[28px] md:text-[36px] ${headlineColor}`}>
+                {current.headline.split("\n").map((line, i) => (
+                  <span key={i} className="block">{line}</span>
+                ))}
+              </h1>
             </div>
+          ) : (
+            <div className="flex-1 flex flex-col min-h-0">
+              <h1 className={`font-sans tracking-[-0.01em] leading-[1.1] mb-3 lowercase ${headlineColor} text-[26px] md:text-[30px]`}>
+                {current.headline}
+              </h1>
+              {current.subtitle && (
+                <p className={`font-sans text-[14px] mb-5 leading-relaxed ${subColor}`}>
+                  {current.subtitle}
+                </p>
+              )}
 
-            {current.contextLabel && (
-              <p className={`mt-3 font-mono text-[11px] tracking-wider uppercase ${isLight ? "text-white/55" : "text-foreground/55"}`}>
-                {current.contextLabel}
-              </p>
-            )}
-          </div>
+              {current.card && (
+                <div className="overflow-auto">
+                  {renderCard(current.card)}
+                </div>
+              )}
+
+              {current.contextLabel && (
+                <p className={`mt-3 font-mono text-[11px] tracking-wider uppercase ${isLight ? "text-white/55" : "text-foreground/55"}`}>
+                  {current.contextLabel}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Dots */}
           <div className="flex justify-center gap-1.5 mt-6">
