@@ -763,6 +763,7 @@ export default function MilestoneDetailPage() {
             <p className="font-sans text-[13px] text-muted-foreground">{t("evidence.no_evidence")}</p>
           )}
         </div>
+        </div>
       </div>
 
       {/* Fixed action buttons above bottom nav */}
