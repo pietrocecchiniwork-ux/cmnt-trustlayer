@@ -78,12 +78,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Summary card */}
-      <div className="bg-card rounded-3xl px-6 py-5 mb-4">
-        <p className="t-eyebrow">active projects</p>
-        <p className="font-sans text-[44px] leading-none tracking-[-0.03em] text-foreground mt-1">
-          {String(activeProjects.length).padStart(2, "0")}
-        </p>
+      {/* Active projects label */}
+      <div className="mb-4 px-1">
+        <p className="t-eyebrow">active projects · {String(activeProjects.length).padStart(2, "0")}</p>
       </div>
 
       {/* Project cards */}

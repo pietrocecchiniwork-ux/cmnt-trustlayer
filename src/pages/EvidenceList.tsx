@@ -61,7 +61,7 @@ export default function EvidenceList() {
     <div className="min-h-screen screen-cream">
      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
       {/* Header */}
-      <div className="px-6 pt-10 pb-6">
+      <div className="px-6 pt-20 pb-6">
         <div className="flex items-center justify-between mb-6">
           <span className="font-mono text-[14px] opacity-40">←</span>
           <span className="font-mono text-[16px] opacity-40">—</span>

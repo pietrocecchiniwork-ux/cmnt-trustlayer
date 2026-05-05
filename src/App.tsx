@@ -8,6 +8,7 @@ import { RoleProvider } from "@/contexts/RoleContext";
 import { DemoProjectProvider } from "@/contexts/DemoProjectContext";
 import { AppLayout } from "@/components/AppLayout";
 import { BurgerMenu } from "@/components/BurgerMenu";
+import { ProjectPill } from "@/components/ProjectPill";
 import { supabase } from "@/integrations/supabase/client";
 
 import Home from "./pages/Home";
@@ -67,6 +68,7 @@ const App = () => (
       <DemoProjectProvider>
         <RoleProvider>
           <BrowserRouter>
+            <ProjectPill />
             <BurgerMenu />
             <Routes>
               <Route path="/auth" element={<Auth />} />

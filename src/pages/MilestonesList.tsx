@@ -135,7 +135,7 @@ export default function MilestonesList() {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-          <div className="px-6 pt-10 pb-6">
+          <div className="px-6 pt-20 pb-6">
             <div className="flex items-center justify-between mb-6">
               <button onClick={() => navigate("/project/dashboard")} className="font-mono text-[14px] text-muted-foreground hover:text-foreground transition-colors">
                 ←
@@ -192,7 +192,7 @@ export default function MilestonesList() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-        <div className="px-6 pt-10 pb-6">
+        <div className="px-6 pt-20 pb-6">
           <div className="flex items-center justify-between mb-6">
             <button onClick={() => navigate("/project/dashboard")} className="font-mono text-[14px] text-muted-foreground hover:text-foreground transition-colors">
               ←

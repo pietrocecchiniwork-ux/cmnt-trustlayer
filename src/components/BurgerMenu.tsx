@@ -22,10 +22,7 @@ export function BurgerMenu() {
 
   const isProjectRoute = location.pathname.startsWith("/project");
 
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return isProjectRoute && sessionStorage.getItem(OPEN_KEY) === "1";
-  });
+  const [open, setOpen] = useState<boolean>(false);
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [savingName, setSavingName] = useState(false);
@@ -199,16 +196,16 @@ export function BurgerMenu() {
           {isProjectRoute && (
             <section aria-labelledby="menu-section-nav" className="px-2">
               <p id="menu-section-nav" className="t-eyebrow mb-2 px-2">
-                {t("menu.navigation") || "Navigation"}
+                navigation
               </p>
               <div className="flex flex-col gap-0.5">
                 {[
-                  { path: "/project/dashboard", label: t("nav.dashboard") || "Dashboard" },
-                  { path: "/project/milestones", label: t("nav.milestones") || "Milestones" },
-                  { path: "/project/evidence", label: t("nav.evidence") || "Evidence" },
-                  { path: "/project/payments", label: t("nav.payments") || "Payments" },
-                  { path: "/project/team", label: t("nav.team") || "Team" },
-                  { path: "/project/activity", label: t("nav.activity") || "Activity" },
+                  { path: "/project/dashboard", label: "dashboard" },
+                  { path: "/project/milestones", label: t("navigation.milestones") },
+                  { path: "/project/evidence", label: t("navigation.evidence") },
+                  { path: "/project/payments", label: t("navigation.payments") },
+                  { path: "/project/team", label: t("navigation.team") },
+                  { path: "/project/activity", label: t("navigation.activity") },
                 ].map((item) => (
                   <button
                     key={item.path}
