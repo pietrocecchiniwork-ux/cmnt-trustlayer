@@ -159,14 +159,14 @@ function StatusRow({
     status === "done" ? "#7FB069" : status === "progress" ? "#E07A3C" : "rgba(255,255,255,0.45)";
   return (
     <div
-      className="w-full flex items-center justify-between rounded-xl px-4"
+      className="w-full flex items-center gap-3 rounded-xl px-4"
       style={{ height, backgroundColor: "rgba(255,255,255,0.04)" }}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         <StatusDot status={status} />
         <span className="font-sans text-[13px] truncate" style={{ color: labelColor }}>{label}</span>
       </div>
-      <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: stateColor }}>
+      <span className="font-mono text-[9px] uppercase tracking-wider shrink-0" style={{ color: stateColor }}>
         {stateLabel}
       </span>
     </div>
@@ -212,18 +212,18 @@ function ContractorChecklistCard() {
   ];
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>milestone</Eyebrow>
-          <div className="font-sans text-[14px] text-white font-medium mt-1">first fix electrical</div>
+          <span className="font-sans text-[13px] text-white font-medium truncate">first fix electrical</span>
         </div>
-        <div>
+        <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>due</Eyebrow>
-          <div className="font-sans text-[14px] text-white mt-1">8 mar · 2 days</div>
+          <span className="font-sans text-[13px] text-white">8 mar · 2 days</span>
         </div>
-        <div className="text-right">
+        <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>payment</Eyebrow>
-          <div className="font-sans text-[14px] text-white font-bold mt-1">£11,000</div>
+          <span className="font-sans text-[13px] text-white font-bold">£11,000</span>
         </div>
       </div>
       <Hairline />
@@ -260,8 +260,8 @@ function EvidenceSource({
       <div
         className="flex items-center justify-center rounded-md shrink-0"
         style={{
-          width: 36,
-          height: 36,
+          width: 32,
+          height: 32,
           color: "rgba(255,255,255,0.85)",
           border: `1px solid ${HAIRLINE}`,
           backgroundColor: "rgba(255,255,255,0.03)",
@@ -270,11 +270,11 @@ function EvidenceSource({
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-sans text-[13px] text-white font-medium truncate">{title}</div>
-        <div className="font-sans text-[11px] text-white/55 truncate">{sub}</div>
+        <div className="font-sans text-[12px] text-white font-medium leading-snug line-clamp-2">{title}</div>
+        <div className="font-sans text-[10px] text-white/55 truncate mt-0.5">{sub}</div>
       </div>
       <span
-        className="font-mono text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 shrink-0"
+        className="font-mono text-[9px] uppercase tracking-wider rounded-full px-2 py-1 shrink-0"
         style={{ backgroundColor: "rgba(127,176,105,0.12)", color: "#7FB069" }}
       >
         {pill}
@@ -330,18 +330,16 @@ function AiCheckRow({
 }) {
   const accent = pass ? "#5BD3D9" : "#E5C547";
   return (
-    <div className="flex items-center" style={{ height: 42, borderBottom: `1px solid ${HAIRLINE}` }}>
+    <div className="flex items-center gap-2" style={{ height: 40, borderBottom: `1px solid ${HAIRLINE}` }}>
       <span
-        className="w-5 text-center font-mono text-[11px]"
+        className="w-4 text-center font-mono text-[11px] shrink-0"
         style={{ color: accent }}
       >
         {pass ? "✓" : "!"}
       </span>
-      <div className="flex-1 flex items-center gap-3 pl-2 min-w-0">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-white/50 w-20 shrink-0">{label}</span>
-        <span className="font-sans text-[13px] text-white truncate">{value}</span>
-      </div>
-      <span className="font-mono text-[10px] uppercase tracking-wider pl-2" style={{ color: accent }}>
+      <span className="font-mono text-[9px] uppercase tracking-wider text-white/50 w-16 shrink-0">{label}</span>
+      <span className="font-sans text-[12px] text-white flex-1 min-w-0 truncate">{value}</span>
+      <span className="font-mono text-[9px] uppercase tracking-wider shrink-0 whitespace-nowrap" style={{ color: accent }}>
         {result}
       </span>
     </div>
@@ -362,13 +360,13 @@ function AiAnalysisCard() {
         <AiCheckRow pass label="riba stage" value="first fix" result="correct" />
         <AiCheckRow pass={false} label="condition" value="consumer unit" result="needs attention" />
       </div>
-      <div className="mt-4 flex items-center justify-between">
-        <span className="font-sans text-[13px]" style={{ color: "#5BD3D9" }}>4 / 5 checks passed</span>
-        <div className="flex flex-col items-end gap-1">
-          <div className="rounded-full overflow-hidden" style={{ width: 120, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="font-sans text-[13px] whitespace-nowrap shrink-0" style={{ color: "#5BD3D9" }}>4 / 5 checks passed</span>
+        <div className="flex flex-col items-end gap-1 min-w-0">
+          <div className="rounded-full overflow-hidden" style={{ width: 100, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
             <div style={{ width: "80%", height: "100%", backgroundColor: "#5BD3D9" }} />
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">confidence high · 1 flag</span>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-white/50 whitespace-nowrap">confidence high · 1 flag</span>
         </div>
       </div>
       <div className="mt-3">
@@ -432,9 +430,9 @@ function PmApprovalCard() {
 function ClientPaymentCard() {
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <Eyebrow>payment certificate</Eyebrow>
-        <span className="font-mono text-[11px] text-white/80">CMT-2026-0308-A7F2</span>
+        <span className="font-mono text-[10px] text-white/80 truncate">CMT-2026-0308-A7F2</span>
       </div>
       <div className="mt-3">
         {[
@@ -444,12 +442,12 @@ function ClientPaymentCard() {
         ].map((row, i) => (
           <div
             key={row.l}
-            className="flex items-center justify-between"
-            style={{ height: 40, borderTop: i === 0 ? `1px solid ${HAIRLINE}` : undefined, borderBottom: `1px solid ${HAIRLINE}` }}
+            className="flex items-center justify-between gap-3"
+            style={{ minHeight: 40, paddingTop: 8, paddingBottom: 8, borderTop: i === 0 ? `1px solid ${HAIRLINE}` : undefined, borderBottom: `1px solid ${HAIRLINE}` }}
           >
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55">{row.l}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55 shrink-0">{row.l}</span>
             <span
-              className={`font-sans text-white ${row.big ? "text-[24px] font-bold" : "text-[13px]"}`}
+              className={`font-sans text-white text-right ${row.big ? "text-[22px] font-bold" : "text-[12px]"}`}
             >
               {row.v}
             </span>
