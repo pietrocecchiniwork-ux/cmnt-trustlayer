@@ -67,35 +67,27 @@ export default function Home() {
   const activeProjects = projects.filter((p) => !(p as any).cancelled_at);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-10 pb-6">
+    <div className="flex flex-col min-h-screen bg-background px-5 pt-12 pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <p className="font-mono text-[18px] text-foreground">cemento</p>
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            navigate("/auth");
-          }}
-          className="font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          sign out
-        </button>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-foreground flex items-center justify-center">
+            <span className="font-mono text-[14px] text-background">C</span>
+          </div>
+          <p className="font-sans text-[18px] text-foreground tracking-[-0.02em] lowercase">cemento</p>
+        </div>
       </div>
 
-      {/* Summary */}
-      <div className="mb-6">
-        <p className="font-mono text-[42px] leading-none tracking-tight text-foreground">
+      {/* Summary card */}
+      <div className="bg-card rounded-3xl px-6 py-5 mb-4">
+        <p className="t-eyebrow">active projects</p>
+        <p className="font-sans text-[44px] leading-none tracking-[-0.03em] text-foreground mt-1">
           {String(activeProjects.length).padStart(2, "0")}
         </p>
-        <p className="font-mono text-[13px] text-muted-foreground mt-1">
-          active project{activeProjects.length !== 1 ? "s" : ""}
-        </p>
       </div>
 
-      <div className="w-full h-px bg-border mb-6" />
-
       {/* Project cards */}
-      <div className="flex-1 space-y-4 overflow-y-auto">
+      <div className="flex-1 space-y-3 overflow-y-auto">
         {activeProjects.map((project) => (
           <ProjectCard
             key={project.id}
@@ -109,33 +101,38 @@ export default function Home() {
         ))}
 
         {activeProjects.length === 0 && !isLoading && (
-          <div className="py-8 text-center">
-            <p className="font-mono text-[13px] text-muted-foreground">no active projects</p>
+          <div className="bg-card rounded-3xl py-10 text-center">
+            <p className="t-label">no active projects</p>
           </div>
         )}
       </div>
 
       {/* Bottom actions */}
-      <div className="space-y-3 mt-6">
+      <div className="space-y-2.5 mt-6">
         {activeProjects.length === 0 && (
-          <Button variant="dark" size="full" onClick={handleSeedDemo} disabled={seeding}>
-            <span className="font-sans text-[16px]">
-              {seeding ? "loading demo..." : "load demo project"}
-            </span>
-          </Button>
+          <button
+            onClick={handleSeedDemo}
+            disabled={seeding}
+            className="w-full h-12 bg-foreground text-background rounded-full font-sans text-[14px] font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+          >
+            {seeding ? "loading demo…" : "load demo project"}
+          </button>
         )}
-        <Button
-          variant={activeProjects.length === 0 ? "outline" : "dark"}
-          size="full"
+        <button
           onClick={() => navigate("/create-project")}
+          className={`w-full h-12 rounded-full font-sans text-[14px] font-medium transition-colors ${
+            activeProjects.length === 0
+              ? "bg-secondary text-foreground hover:bg-secondary/80"
+              : "bg-foreground text-background hover:bg-foreground/90"
+          }`}
         >
-          <span className="font-sans text-[16px]">new project</span>
-        </Button>
+          new project
+        </button>
         <button
           onClick={() => navigate("/join")}
-          className="w-full text-center font-mono text-[13px] text-accent"
+          className="w-full h-10 text-muted-foreground rounded-full font-mono text-[12px] hover:text-foreground transition-colors"
         >
-          join a project
+          join a project →
         </button>
       </div>
     </div>
@@ -167,30 +164,27 @@ function ProjectCard({
   return (
     <button
       onClick={onSelect}
-      className={`w-full text-left p-5 border transition-colors ${
-        isSelected ? "border-foreground/40" : "border-border hover:border-foreground/20"
+      className={`w-full text-left p-5 bg-card rounded-3xl transition-all active:scale-[0.99] ${
+        isSelected ? "ring-2 ring-foreground/15" : ""
       }`}
     >
-      {/* Project name and code */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="font-sans text-[16px] text-foreground truncate">{project.name}</p>
+          <p className="font-sans text-[17px] text-foreground tracking-[-0.01em] truncate">{project.name}</p>
           {project.project_code && (
-            <p className="font-mono text-[10px] text-muted-foreground mt-0.5">{project.project_code}</p>
+            <p className="t-eyebrow mt-1">{project.project_code}</p>
           )}
         </div>
-        <span className="font-mono text-[12px] text-muted-foreground flex-shrink-0">→</span>
+        <span className="font-mono text-[14px] text-muted-foreground flex-shrink-0">→</span>
       </div>
 
-      {/* Mini progress bar */}
-      <div className="mt-4 w-full h-px bg-border relative">
+      <div className="mt-4 w-full h-1 rounded-full bg-secondary overflow-hidden">
         <div
-          className="h-px bg-foreground absolute left-0 top-0 transition-all duration-500"
+          className="h-full bg-foreground transition-all duration-500 rounded-full"
           style={{ width: `${progressPct}%` }}
         />
       </div>
 
-      {/* Stats row */}
       <div className="flex items-center gap-4 mt-3">
         <span className="font-mono text-[11px] text-muted-foreground">
           {completed}/{total} milestones
@@ -202,7 +196,6 @@ function ProjectCard({
         )}
       </div>
 
-      {/* Alerts */}
       {(overdue > 0 || inReview > 0) && (
         <div className="flex items-center gap-3 mt-3">
           {overdue > 0 && (
