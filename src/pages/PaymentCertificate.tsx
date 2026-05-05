@@ -105,45 +105,47 @@ export default function PaymentCertificate() {
   if (!milestone) return null;
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Dark top half */}
-      <div className="bg-surface-dark px-6 pt-12 pb-8">
-        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-surface-dark-muted mb-8">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen px-6 pt-20 pb-6 space-y-3">
+        <button onClick={() => navigate(-1)} className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors text-left">
           ← back
         </button>
 
-        <p className="font-mono text-[44px] leading-none tracking-tight text-surface-dark-foreground">
-          £{Number(milestone.payment_value ?? 0).toLocaleString()}
-        </p>
-        <p className="font-sans text-[14px] text-surface-dark-muted mt-2">{milestone.name}</p>
+        {/* Certificate card */}
+        <div className="bg-card rounded-3xl px-6 py-6">
+          <p className="t-eyebrow">payment certificate</p>
+          <p className="font-sans text-[44px] tracking-[-0.02em] text-foreground mt-2 leading-none">
+            £{Number(milestone.payment_value ?? 0).toLocaleString()}
+          </p>
+          <p className="font-sans text-[15px] text-muted-foreground mt-2 lowercase">{milestone.name}</p>
 
-        <div className="w-full h-px bg-surface-dark-muted mt-6 mb-4" />
+          <div className="h-px bg-border/60 my-5" />
 
-        <div className="space-y-3">
-          <div className="flex justify-between">
-            <span className="font-mono text-[11px] text-surface-dark-muted">project</span>
-            <span className="font-mono text-[11px] text-surface-dark-foreground">{project?.name ?? "—"}</span>
+          <div className="space-y-3">
+            <div className="flex justify-between items-baseline">
+              <span className="t-eyebrow">project</span>
+              <span className="font-sans text-[13px] text-foreground">{project?.name ?? "—"}</span>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="t-eyebrow">approved by</span>
+              <span className="font-sans text-[13px] text-foreground">{approverMember?.name ?? "—"}</span>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="t-eyebrow">date</span>
+              <span className="font-sans text-[13px] text-foreground">{approvedDate}</span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span className="font-mono text-[11px] text-surface-dark-muted">approved by</span>
-            <span className="font-mono text-[11px] text-surface-dark-foreground">
-              {approverMember?.name ?? "—"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="font-mono text-[11px] text-surface-dark-muted">date</span>
-            <span className="font-mono text-[11px] text-surface-dark-foreground">{approvedDate}</span>
-          </div>
+
+          <div className="h-px bg-border/60 my-5" />
+
+          <p className="font-mono text-[10px] text-muted-foreground tracking-wider">{certRef}</p>
         </div>
 
-        <p className="font-mono text-[10px] text-surface-dark-muted mt-6">{certRef}</p>
-      </div>
-
-      {/* Light bottom half */}
-      <div className="flex-1 bg-background px-6 pt-8 pb-6 flex flex-col">
-        <p className="font-sans text-[14px] text-muted-foreground">
-          the team will be notified via whatsapp
-        </p>
+        <div className="bg-card rounded-3xl px-6 py-5">
+          <p className="font-sans text-[13px] text-muted-foreground">
+            the team will be notified via whatsapp
+          </p>
+        </div>
 
         <div className="flex-1" />
 
