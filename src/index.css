@@ -4,46 +4,47 @@
 
 @layer base {
   :root {
-    --background: 60 4% 93%;
+    --background: 60 6% 96%;
     --foreground: 60 3% 10%;
 
-    --card: 60 4% 93%;
+    --card: 60 6% 96%;
     --card-foreground: 60 3% 10%;
 
-    --popover: 60 4% 93%;
+    --popover: 60 6% 96%;
     --popover-foreground: 60 3% 10%;
 
-    --primary: 60 3% 10%;
-    --primary-foreground: 60 4% 93%;
+    --primary: 60 4% 13%;
+    --primary-foreground: 60 6% 96%;
 
-    --secondary: 60 4% 84%;
-    --secondary-foreground: 60 3% 10%;
+    --secondary: 60 5% 88%;
+    --secondary-foreground: 60 4% 13%;
 
-    --muted: 60 4% 84%;
-    --muted-foreground: 60 1% 53%;
+    --muted: 60 5% 88%;
+    --muted-foreground: 60 2% 46%;
 
-    --accent: 220 75% 54%;
+    --accent: 220 70% 52%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 22 65% 47%;
+    --destructive: 22 55% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 33% 36%;
+    --success: 150 28% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 22 65% 47%;
+    --warning: 22 55% 48%;
 
-    /* Screen-specific surfaces */
-    --surface-orange: 27 80% 60%;
-    --surface-orange-foreground: 60 3% 10%;
-    --surface-dark: 60 3% 10%;
-    --surface-dark-foreground: 60 4% 93%;
-    --surface-dark-muted: 60 2% 34%;
-    --surface-cream: 48 30% 92%;
-    --surface-cream-foreground: 60 3% 10%;
+    /* Screen-specific surfaces — softened, lower saturation */
+    --surface-orange: 22 55% 66%;
+    --surface-orange-foreground: 60 4% 13%;
+    --surface-dark: 60 4% 13%;
+    --surface-dark-foreground: 60 6% 96%;
+    --surface-dark-muted: 60 3% 42%;
+    --surface-cream: 44 22% 94%;
+    --surface-cream-foreground: 60 4% 13%;
 
-    --border: 60 3% 10%;
-    --border-light: 60 4% 78%;
+    --border: 60 4% 13%;
+    --border-light: 60 4% 80%;
+    --hairline: 60 4% 80%;
     --input: 60 4% 84%;
     --ring: 220 75% 54%;
 
@@ -112,6 +113,25 @@
   .status-dot-review {
     @apply status-dot bg-accent;
   }
+
+  /* Type scale */
+  .t-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+  .t-label { font-family: var(--font-mono); font-size: 11px; color: hsl(var(--muted-foreground)); }
+  .t-body { font-family: var(--font-sans); font-size: 14px; line-height: 1.45; }
+  .t-title { font-family: var(--font-sans); font-size: 22px; letter-spacing: -0.01em; }
+  .t-display { font-family: var(--font-sans); font-size: 32px; letter-spacing: -0.02em; line-height: 1.1; }
+
+  .surface-raised {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--hairline));
+  }
+  .hairline-bg { background-color: hsl(var(--hairline)); }
 
   .underline-input {
     @apply w-full bg-transparent border-0 border-b border-foreground/30 px-0 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground transition-colors;

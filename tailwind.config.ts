@@ -20,6 +20,7 @@ export default {
       colors: {
         border: "hsl(var(--border))",
         "border-light": "hsl(var(--border-light))",
+        hairline: "hsl(var(--hairline))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",

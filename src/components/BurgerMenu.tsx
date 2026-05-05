@@ -166,11 +166,18 @@ export function BurgerMenu() {
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const itemClass = (path: string) =>
-    `w-full text-left font-mono text-[13px] py-2 transition-colors ${
-      isActive(path)
-        ? "text-accent"
-        : "text-foreground hover:text-accent"
+    `group relative w-full text-left font-mono text-[13px] py-2 pl-4 transition-colors ${
+      isActive(path) ? "text-accent" : "text-foreground hover:text-accent"
     }`;
+
+  const ActiveMarker = ({ path }: { path: string }) => (
+    <span
+      aria-hidden="true"
+      className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 w-[2px] ${
+        isActive(path) ? "bg-accent" : "bg-transparent"
+      }`}
+    />
+  );
 
   return (
     <>
@@ -178,7 +185,7 @@ export function BurgerMenu() {
       <button
         ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
-        className="fixed top-0 right-0 z-50 p-4 flex flex-col gap-[5px] items-end focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="fixed top-0 right-0 z-50 p-3 flex flex-col gap-[5px] items-end focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-label={open ? t("menu.close") || "Close menu" : t("menu.open") || "Open menu"}
         aria-expanded={open}
         aria-controls="burger-menu-panel"
@@ -198,18 +205,18 @@ export function BurgerMenu() {
         aria-modal="true"
         aria-labelledby="burger-menu-title"
         aria-hidden={!open}
-        className={`fixed top-0 right-0 h-full z-50 w-[280px] bg-background border-l border-border flex flex-col transition-transform duration-200 ${
+        className={`fixed top-0 right-0 h-full z-50 w-[300px] bg-surface-cream border-l border-hairline flex flex-col transition-transform duration-200 ${
           open ? "translate-x-0" : "translate-x-full pointer-events-none"
         }`}
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border">
-          <span id="burger-menu-title" className="font-mono text-[18px] text-foreground">
+        <div className="flex items-center justify-between px-5 h-14 border-b border-hairline">
+          <span id="burger-menu-title" className="t-title">
             {t("menu.title")}
           </span>
           <button
             onClick={() => setOpen(false)}
-            className="font-mono text-[18px] text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 flex items-center justify-center border border-hairline font-mono text-[14px] text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
             aria-label={t("menu.close") || "Close menu"}
           >
             ✕
@@ -220,10 +227,7 @@ export function BurgerMenu() {
           {/* PROJECT NAV (only on project routes) */}
           {isProjectRoute && (
             <section aria-labelledby="menu-section-nav">
-              <p
-                id="menu-section-nav"
-                className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-              >
+              <p id="menu-section-nav" className="t-eyebrow mb-2">
                 {t("menu.navigation") || "Navigation"}
               </p>
               {[
@@ -240,6 +244,7 @@ export function BurgerMenu() {
                   className={itemClass(item.path)}
                   aria-current={isActive(item.path) ? "page" : undefined}
                 >
+                  <ActiveMarker path={item.path} />
                   {item.label}
                 </button>
               ))}
@@ -248,10 +253,7 @@ export function BurgerMenu() {
 
           {/* PROJECTS */}
           <section aria-labelledby="menu-section-projects">
-            <p
-              id="menu-section-projects"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-projects" className="t-eyebrow mb-2">
               {t("menu.projects")}
             </p>
             <button
@@ -259,6 +261,7 @@ export function BurgerMenu() {
               className={itemClass("/create-project")}
               aria-current={isActive("/create-project") ? "page" : undefined}
             >
+              <ActiveMarker path="/create-project" />
               {t("project.new_project")}
             </button>
             {projects.length > 1 && (
@@ -267,6 +270,7 @@ export function BurgerMenu() {
                 className={itemClass("/")}
                 aria-current={location.pathname === "/" ? "page" : undefined}
               >
+                <ActiveMarker path="/" />
                 {t("project.switch_project")}
               </button>
             )}
@@ -274,14 +278,11 @@ export function BurgerMenu() {
 
           {/* ACCOUNT */}
           <section aria-labelledby="menu-section-account">
-            <p
-              id="menu-section-account"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-account" className="t-eyebrow mb-2">
               {t("menu.account")}
             </p>
             {currentUser?.email && (
-              <p className="font-mono text-[11px] text-muted-foreground py-1">{currentUser.email}</p>
+              <p className="t-label py-1">{currentUser.email}</p>
             )}
             {editingName ? (
               <div className="space-y-2 mt-2">
@@ -291,7 +292,7 @@ export function BurgerMenu() {
                 <input
                   id="display-name-input"
                   autoFocus
-                  className="w-full bg-secondary border border-border rounded px-3 py-1.5 font-mono text-[13px] text-foreground"
+                  className="w-full bg-background border border-hairline px-3 py-1.5 font-mono text-[13px] text-foreground focus:outline-none focus:border-foreground"
                   placeholder={t("menu.display_name")}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
@@ -301,7 +302,7 @@ export function BurgerMenu() {
                   <button
                     onClick={handleSaveName}
                     disabled={savingName}
-                    className="font-mono text-[12px] text-foreground border border-foreground rounded px-3 py-1"
+                    className="font-mono text-[12px] text-foreground border border-foreground px-3 py-1"
                     aria-label={t("common.save")}
                   >
                     {savingName ? t("common.loading") : t("common.save")}
@@ -321,7 +322,7 @@ export function BurgerMenu() {
                   setDisplayName(currentUser?.user_metadata?.display_name ?? "");
                   setEditingName(true);
                 }}
-                className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors"
+                className="w-full text-left font-mono text-[13px] text-foreground py-2 pl-4 hover:text-accent transition-colors"
                 aria-label={t("menu.profile_settings")}
               >
                 {t("menu.profile_settings")}
@@ -331,13 +332,10 @@ export function BurgerMenu() {
 
           {/* PREFERENCES */}
           <section aria-labelledby="menu-section-prefs">
-            <p
-              id="menu-section-prefs"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-prefs" className="t-eyebrow mb-2">
               {t("menu.preferences")}
             </p>
-            <p id="lang-group-label" className="font-mono text-[11px] text-muted-foreground mb-2">
+            <p id="lang-group-label" className="t-label mb-2">
               {t("menu.language")}
             </p>
             <div className="flex gap-2" role="group" aria-labelledby="lang-group-label">
@@ -347,10 +345,10 @@ export function BurgerMenu() {
                   onClick={() => handleLang(lang)}
                   aria-pressed={activeLang === lang}
                   aria-label={`${t("menu.language")}: ${lang.toUpperCase()}`}
-                  className={`font-mono text-[13px] px-3 py-1 rounded transition-colors ${
+                  className={`font-mono text-[12px] px-2.5 py-1 rounded-full transition-colors ${
                     activeLang === lang
                       ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:text-foreground border border-border"
+                      : "text-muted-foreground hover:text-foreground border border-hairline"
                   }`}
                 >
                   {lang.toUpperCase()}
@@ -361,27 +359,26 @@ export function BurgerMenu() {
 
           {/* SUPPORT */}
           <section aria-labelledby="menu-section-support">
-            <p
-              id="menu-section-support"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-support" className="t-eyebrow mb-2">
               {t("menu.support")}
             </p>
             <button
               onClick={handleExploreDemo}
               disabled={demoLoading}
-              className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors disabled:opacity-50"
+              className="w-full text-left font-mono text-[13px] text-foreground py-2 pl-4 hover:text-accent transition-colors disabled:opacity-50"
               aria-label={t("auth.explore_demo")}
             >
               {demoLoading ? "loading demo..." : t("auth.explore_demo")}
             </button>
-            <button
-              onClick={handleSignOut}
-              className="w-full text-left font-mono text-[13px] text-muted-foreground py-2 hover:text-foreground transition-colors"
-              aria-label={t("auth.sign_out")}
-            >
-              {t("auth.sign_out")}
-            </button>
+            <div className="mt-2 pt-2 border-t border-hairline">
+              <button
+                onClick={handleSignOut}
+                className="w-full text-left font-mono text-[13px] text-muted-foreground py-2 pl-4 hover:text-foreground transition-colors"
+                aria-label={t("auth.sign_out")}
+              >
+                {t("auth.sign_out")}
+              </button>
+            </div>
           </section>
         </nav>
       </div>
