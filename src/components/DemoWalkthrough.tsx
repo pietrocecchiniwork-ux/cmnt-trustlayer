@@ -383,13 +383,18 @@ function PmApprovalCard() {
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="grid grid-cols-3 gap-2">
-        {["3 photos", "1 voice", "gps"].map((p) => (
+        {[
+          { icon: <Camera size={12} strokeWidth={1.75} />, label: "3 photos" },
+          { icon: <Mic size={12} strokeWidth={1.75} />, label: "1 voice" },
+          { icon: <MapPin size={12} strokeWidth={1.75} />, label: "gps" },
+        ].map((p) => (
           <span
-            key={p}
-            className="font-mono text-[10px] uppercase tracking-wider text-white/80 text-center rounded-full h-8 inline-flex items-center justify-center whitespace-nowrap"
+            key={p.label}
+            className="font-mono text-[10px] uppercase tracking-wider text-white/80 text-center rounded-full h-8 inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
             style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
           >
-            {p}
+            {p.icon}
+            {p.label}
           </span>
         ))}
       </div>
