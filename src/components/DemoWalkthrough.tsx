@@ -562,10 +562,6 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
         </span>
       </div>
 
-      {/* Static tagline above carousel */}
-      <p className="text-center font-sans text-[14px] md:text-[15px] text-foreground/55 px-6 pb-3 lowercase">
-        cemento turns site photos into verified payment certificates.
-      </p>
 
       {/* Card */}
       <div className="flex-1 flex flex-col px-4 min-h-0">
