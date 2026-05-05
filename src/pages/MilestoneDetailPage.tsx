@@ -437,7 +437,8 @@ export default function MilestoneDetailPage() {
           {t("tasks.tasks")}: £{tasks.reduce((s, task) => s + (task.budget ?? 0), 0).toLocaleString()} of £{Number(milestone?.payment_value ?? 0).toLocaleString()} allocated
         </p>
       )}
-    </>
+    </div>
+
   );
 
   // ─── Contractor view ───
