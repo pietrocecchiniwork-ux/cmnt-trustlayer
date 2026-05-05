@@ -312,13 +312,13 @@ function PMDashboard() {
         )}
 
         {/* Action queue */}
-        <div className="px-6 mt-8 flex-1">
+        <div className="px-6 mt-4 flex-1">
           {allClear ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="bg-card rounded-3xl px-6 py-12 flex items-center justify-center">
               <p className="font-sans text-[16px] text-muted-foreground">all clear — no actions needed</p>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-3">
               {needsApproval.length > 0 && (
                 <BulkApproveQueue
                   milestones={needsApproval}
@@ -329,19 +329,19 @@ function PMDashboard() {
               )}
 
               {delays.length > 0 && (
-                <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">delays to review</p>
-                  <div className="space-y-2">
-                    {delays.map(m => {
+                <div className="bg-card rounded-3xl px-6 py-5">
+                  <p className="t-eyebrow mb-3">delays to review</p>
+                  <div className="flex flex-col">
+                    {delays.map((m, i) => {
                       const daysOverdue = m.due_date ? differenceInDays(new Date(), new Date(m.due_date)) : 0;
                       return (
                         <button
                           key={m.id}
                           onClick={() => navigate("/project/cascade-review")}
-                          className="w-full flex items-center justify-between py-3 border-b border-border text-left"
+                          className={`w-full flex items-center justify-between py-3 text-left ${i !== delays.length - 1 ? "border-b border-border/60" : ""}`}
                         >
-                          <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
-                          <span className="font-mono text-[11px] text-destructive">{daysOverdue}d overdue</span>
+                          <span className="font-sans text-[14px] text-foreground truncate pr-3">{m.name?.toLowerCase()}</span>
+                          <span className="font-mono text-[11px] text-destructive flex-shrink-0">{daysOverdue}d overdue</span>
                         </button>
                       );
                     })}
@@ -350,17 +350,17 @@ function PMDashboard() {
               )}
 
               {inProgress.length > 0 && (
-                <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">waiting for evidence</p>
-                  <div className="space-y-2">
-                    {inProgress.map(m => (
+                <div className="bg-card rounded-3xl px-6 py-5">
+                  <p className="t-eyebrow mb-3">waiting for evidence</p>
+                  <div className="flex flex-col">
+                    {inProgress.map((m, i) => (
                       <button
                         key={m.id}
                         onClick={() => navigate(`/project/milestone/${m.id}`)}
-                        className="w-full flex items-center justify-between py-3 border-b border-border text-left"
+                        className={`w-full flex items-center justify-between py-3 text-left ${i !== inProgress.length - 1 ? "border-b border-border/60" : ""}`}
                       >
-                        <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
-                        <span className="font-mono text-[11px] text-muted-foreground">
+                        <span className="font-sans text-[14px] text-foreground truncate pr-3">{m.name?.toLowerCase()}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground flex-shrink-0">
                           {(m as any).assigned_to_name ?? "unassigned"}
                         </span>
                       </button>
@@ -370,17 +370,17 @@ function PMDashboard() {
               )}
 
               {pending.length > 0 && (
-                <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">not started</p>
-                  <div className="space-y-2">
-                    {pending.map(m => (
+                <div className="bg-card rounded-3xl px-6 py-5">
+                  <p className="t-eyebrow mb-3">not started</p>
+                  <div className="flex flex-col">
+                    {pending.map((m, i) => (
                       <button
                         key={m.id}
                         onClick={() => navigate(`/project/milestone/${m.id}`)}
-                        className="w-full flex items-center justify-between py-3 border-b border-border text-left"
+                        className={`w-full flex items-center justify-between py-3 text-left ${i !== pending.length - 1 ? "border-b border-border/60" : ""}`}
                       >
-                        <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
-                        <span className="font-mono text-[11px] text-muted-foreground">
+                        <span className="font-sans text-[14px] text-foreground truncate pr-3">{m.name?.toLowerCase()}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground flex-shrink-0">
                           {(m as any).assigned_to_name ?? "unassigned"}
                         </span>
                       </button>
@@ -390,17 +390,17 @@ function PMDashboard() {
               )}
 
               {disputed.length > 0 && (
-                <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">disputed</p>
-                  <div className="space-y-2">
-                    {disputed.map(m => (
+                <div className="bg-card rounded-3xl px-6 py-5">
+                  <p className="t-eyebrow mb-3">disputed</p>
+                  <div className="flex flex-col">
+                    {disputed.map((m, i) => (
                       <button
                         key={m.id}
                         onClick={() => navigate(`/project/milestone/${m.id}`)}
-                        className="w-full flex items-center justify-between py-3 border-b border-border text-left"
+                        className={`w-full flex items-center justify-between py-3 text-left ${i !== disputed.length - 1 ? "border-b border-border/60" : ""}`}
                       >
-                        <span className="font-sans text-[14px] text-foreground">{m.name?.toLowerCase()}</span>
-                        <span className="font-mono text-[11px] text-destructive">disputed</span>
+                        <span className="font-sans text-[14px] text-foreground truncate pr-3">{m.name?.toLowerCase()}</span>
+                        <span className="font-mono text-[11px] text-destructive flex-shrink-0">disputed</span>
                       </button>
                     ))}
                   </div>
@@ -409,13 +409,13 @@ function PMDashboard() {
 
               {/* PM: payment certificate status */}
               {role === "pm" && awaitingCerts.length > 0 && (
-                <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">awaiting client authorization</p>
-                  <div className="space-y-2">
-                    {awaitingCerts.map((c: any) => (
-                      <div key={c.id} className="flex items-center justify-between py-3 border-b border-border">
-                        <span className="font-sans text-[14px] text-foreground">{c.milestone_name?.toLowerCase()}</span>
-                        <span className="font-mono text-[11px] text-muted-foreground">£{Number(c.amount).toLocaleString()}</span>
+                <div className="bg-card rounded-3xl px-6 py-5">
+                  <p className="t-eyebrow mb-3">awaiting client authorization</p>
+                  <div className="flex flex-col">
+                    {awaitingCerts.map((c: any, i: number) => (
+                      <div key={c.id} className={`flex items-center justify-between py-3 ${i !== awaitingCerts.length - 1 ? "border-b border-border/60" : ""}`}>
+                        <span className="font-sans text-[14px] text-foreground truncate pr-3">{c.milestone_name?.toLowerCase()}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground flex-shrink-0">£{Number(c.amount).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -424,14 +424,14 @@ function PMDashboard() {
 
               {/* Client: authorize payments */}
               {role === "client" && clientPaymentCerts.length > 0 && (
-                <div>
-                  <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">payments awaiting your authorization</p>
-                  <div className="space-y-2">
+                <div className="bg-card rounded-3xl px-6 py-5">
+                  <p className="t-eyebrow mb-3">payments awaiting your authorization</p>
+                  <div className="flex flex-col gap-3">
                     {clientPaymentCerts.map((c: any) => (
-                      <div key={c.id} className="space-y-2 py-3 border-b border-border">
+                      <div key={c.id} className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="font-sans text-[14px] text-foreground">{c.milestone_name?.toLowerCase()}</span>
-                          <span className="font-mono text-[11px] text-muted-foreground">£{Number(c.amount).toLocaleString()}</span>
+                          <span className="font-sans text-[14px] text-foreground truncate pr-3">{c.milestone_name?.toLowerCase()}</span>
+                          <span className="font-mono text-[11px] text-muted-foreground flex-shrink-0">£{Number(c.amount).toLocaleString()}</span>
                         </div>
                         <Button variant="dark" size="full" onClick={() => handleAuthorize(c)} disabled={authorizing === c.id}>
                           <span className="font-sans text-[16px]">{authorizing === c.id ? "authorizing..." : "authorize payment"}</span>
