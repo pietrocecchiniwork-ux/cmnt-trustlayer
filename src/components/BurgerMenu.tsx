@@ -166,11 +166,18 @@ export function BurgerMenu() {
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const itemClass = (path: string) =>
-    `w-full text-left font-mono text-[13px] py-2 transition-colors ${
-      isActive(path)
-        ? "text-accent"
-        : "text-foreground hover:text-accent"
+    `group relative w-full text-left font-mono text-[13px] py-2 pl-4 transition-colors ${
+      isActive(path) ? "text-accent" : "text-foreground hover:text-accent"
     }`;
+
+  const ActiveMarker = ({ path }: { path: string }) => (
+    <span
+      aria-hidden="true"
+      className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 w-[2px] ${
+        isActive(path) ? "bg-accent" : "bg-transparent"
+      }`}
+    />
+  );
 
   return (
     <>
@@ -178,7 +185,7 @@ export function BurgerMenu() {
       <button
         ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
-        className="fixed top-0 right-0 z-50 p-4 flex flex-col gap-[5px] items-end focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="fixed top-0 right-0 z-50 p-3 flex flex-col gap-[5px] items-end focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-label={open ? t("menu.close") || "Close menu" : t("menu.open") || "Open menu"}
         aria-expanded={open}
         aria-controls="burger-menu-panel"
@@ -198,18 +205,18 @@ export function BurgerMenu() {
         aria-modal="true"
         aria-labelledby="burger-menu-title"
         aria-hidden={!open}
-        className={`fixed top-0 right-0 h-full z-50 w-[280px] bg-background border-l border-border flex flex-col transition-transform duration-200 ${
+        className={`fixed top-0 right-0 h-full z-50 w-[300px] bg-surface-cream border-l border-hairline flex flex-col transition-transform duration-200 ${
           open ? "translate-x-0" : "translate-x-full pointer-events-none"
         }`}
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border">
-          <span id="burger-menu-title" className="font-mono text-[18px] text-foreground">
+        <div className="flex items-center justify-between px-5 h-14 border-b border-hairline">
+          <span id="burger-menu-title" className="t-title">
             {t("menu.title")}
           </span>
           <button
             onClick={() => setOpen(false)}
-            className="font-mono text-[18px] text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 flex items-center justify-center border border-hairline font-mono text-[14px] text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
             aria-label={t("menu.close") || "Close menu"}
           >
             ✕
