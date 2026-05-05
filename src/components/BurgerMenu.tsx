@@ -22,10 +22,7 @@ export function BurgerMenu() {
 
   const isProjectRoute = location.pathname.startsWith("/project");
 
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return isProjectRoute && sessionStorage.getItem(OPEN_KEY) === "1";
-  });
+  const [open, setOpen] = useState<boolean>(false);
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [savingName, setSavingName] = useState(false);
