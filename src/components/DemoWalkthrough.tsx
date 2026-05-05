@@ -275,7 +275,7 @@ function EvidenceSource({
       </div>
       <span
         className="font-mono text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 shrink-0"
-        style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.70)" }}
+        style={{ backgroundColor: "rgba(127,176,105,0.12)", color: "#7FB069" }}
       >
         {pill}
       </span>
