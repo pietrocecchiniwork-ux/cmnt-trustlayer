@@ -679,11 +679,12 @@ export default function MilestoneDetailPage() {
             )}
           </>
         )}
+        </div>
 
         {tasksSection}
 
-        <div className="divider mt-6" />
-        <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">{t("evidence.evidence")} ({completedCount})</p>
+        <div className="bg-card rounded-3xl px-6 py-5">
+        <p className="t-eyebrow mb-4">{t("evidence.evidence")} ({completedCount})</p>
 
         <div className="space-y-4">
           {evidenceItems.map((item) => (
