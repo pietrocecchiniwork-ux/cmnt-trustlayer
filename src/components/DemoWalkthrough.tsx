@@ -330,18 +330,16 @@ function AiCheckRow({
 }) {
   const accent = pass ? "#5BD3D9" : "#E5C547";
   return (
-    <div className="flex items-center" style={{ height: 42, borderBottom: `1px solid ${HAIRLINE}` }}>
+    <div className="flex items-center gap-2" style={{ height: 40, borderBottom: `1px solid ${HAIRLINE}` }}>
       <span
-        className="w-5 text-center font-mono text-[11px]"
+        className="w-4 text-center font-mono text-[11px] shrink-0"
         style={{ color: accent }}
       >
         {pass ? "✓" : "!"}
       </span>
-      <div className="flex-1 flex items-center gap-3 pl-2 min-w-0">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-white/50 w-20 shrink-0">{label}</span>
-        <span className="font-sans text-[13px] text-white truncate">{value}</span>
-      </div>
-      <span className="font-mono text-[10px] uppercase tracking-wider pl-2" style={{ color: accent }}>
+      <span className="font-mono text-[9px] uppercase tracking-wider text-white/50 w-16 shrink-0">{label}</span>
+      <span className="font-sans text-[12px] text-white flex-1 min-w-0 truncate">{value}</span>
+      <span className="font-mono text-[9px] uppercase tracking-wider shrink-0 whitespace-nowrap" style={{ color: accent }}>
         {result}
       </span>
     </div>
