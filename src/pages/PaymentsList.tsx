@@ -47,17 +47,44 @@ export default function PaymentsList() {
                 />
               )}
             </div>
-            <p className="font-sans text-[36px] tracking-[-0.02em] text-foreground mt-2 leading-none">
-              £{totalReleased.toLocaleString()}
-            </p>
-            <p className="font-mono text-[11px] text-muted-foreground mt-2">
-              released of £{totalBudget.toLocaleString()} total
-            </p>
-            <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden mt-4">
-              <div
-                className="h-full bg-success transition-all rounded-full"
-                style={{ width: `${releasedPct}%` }}
-              />
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="t-eyebrow">total budget</p>
+                <p className="font-sans text-[28px] tracking-[-0.02em] text-foreground mt-1 leading-none">
+                  £{totalBudget.toLocaleString()}
+                </p>
+              </div>
+
+              <div className="h-px bg-border/60" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="t-eyebrow">released</p>
+                  <p className="font-sans text-[22px] tracking-[-0.02em] text-success mt-1 leading-none">
+                    £{totalReleased.toLocaleString()}
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground mt-1.5">
+                    {releasedPct}% of budget
+                  </p>
+                </div>
+                <div>
+                  <p className="t-eyebrow">remaining</p>
+                  <p className="font-sans text-[22px] tracking-[-0.02em] text-foreground mt-1 leading-none">
+                    £{(totalBudget - totalReleased).toLocaleString()}
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground mt-1.5">
+                    across {milestones.filter(m => m.status !== "complete").length} milestones
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-success transition-all rounded-full"
+                  style={{ width: `${releasedPct}%` }}
+                />
+              </div>
             </div>
           </div>
         </div>
