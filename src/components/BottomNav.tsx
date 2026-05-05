@@ -39,14 +39,14 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-3 left-3 right-3 z-40 pointer-events-none">
-      <div className="max-w-md mx-auto pointer-events-auto bg-card rounded-full px-2 py-2 flex justify-between items-center">
+      <div className="max-w-md mx-auto pointer-events-auto bg-card rounded-full px-1.5 py-1.5 flex justify-between items-center gap-0.5">
         {links.map((link) => {
           const isActive = location.pathname === link.path;
           return (
             <button
               key={link.path}
               onClick={() => navigate(link.path)}
-              className={`flex-1 h-9 rounded-full font-mono text-[11px] tracking-wide transition-all ${
+              className={`flex-1 min-w-0 h-9 px-1 rounded-full font-mono text-[10px] leading-none tracking-tight truncate transition-all ${
                 isActive
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:text-foreground"
