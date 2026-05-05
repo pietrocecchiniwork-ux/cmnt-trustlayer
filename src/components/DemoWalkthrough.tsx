@@ -363,7 +363,7 @@ function AiAnalysisCard() {
         <AiCheckRow pass={false} label="condition" value="consumer unit" result="needs attention" />
       </div>
       <div className="mt-4 flex items-center justify-between">
-        <span className="font-sans text-[13px] text-white">4 / 5 checks passed</span>
+        <span className="font-sans text-[13px]" style={{ color: "#5BD3D9" }}>4 / 5 checks passed</span>
         <div className="flex flex-col items-end gap-1">
           <div className="rounded-full overflow-hidden" style={{ width: 120, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
             <div style={{ width: "80%", height: "100%", backgroundColor: "#5BD3D9" }} />
