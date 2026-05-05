@@ -260,8 +260,8 @@ function EvidenceSource({
       <div
         className="flex items-center justify-center rounded-md shrink-0"
         style={{
-          width: 36,
-          height: 36,
+          width: 32,
+          height: 32,
           color: "rgba(255,255,255,0.85)",
           border: `1px solid ${HAIRLINE}`,
           backgroundColor: "rgba(255,255,255,0.03)",
@@ -270,11 +270,11 @@ function EvidenceSource({
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-sans text-[13px] text-white font-medium truncate">{title}</div>
-        <div className="font-sans text-[11px] text-white/55 truncate">{sub}</div>
+        <div className="font-sans text-[12px] text-white font-medium leading-snug line-clamp-2">{title}</div>
+        <div className="font-sans text-[10px] text-white/55 truncate mt-0.5">{sub}</div>
       </div>
       <span
-        className="font-mono text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 shrink-0"
+        className="font-mono text-[9px] uppercase tracking-wider rounded-full px-2 py-1 shrink-0"
         style={{ backgroundColor: "rgba(127,176,105,0.12)", color: "#7FB069" }}
       >
         {pill}
