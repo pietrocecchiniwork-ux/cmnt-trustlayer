@@ -564,14 +564,14 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
         >
           {/* Role marker — only colored element on the slide */}
           {current.role && (
-            <div className="self-start mb-5">
-              <div className="inline-flex items-center gap-2 pb-1.5" style={{ borderBottom: `1px solid ${current.dotColor}` }}>
+            <div className="self-start mb-6">
+              <div className="inline-flex items-center gap-2.5 pb-2" style={{ borderBottom: `2px solid ${current.dotColor}` }}>
                 <span
                   className="inline-block rounded-full"
-                  style={{ width: 8, height: 8, backgroundColor: current.dotColor }}
+                  style={{ width: 11, height: 11, backgroundColor: current.dotColor }}
                 />
                 <span
-                  className="font-mono text-[10px] tracking-[0.18em] uppercase"
+                  className="font-mono text-[13px] tracking-[0.18em] uppercase font-medium"
                   style={{ color: current.dotColor }}
                 >
                   {current.roleLabel}
