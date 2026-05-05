@@ -345,9 +345,9 @@ export default function MilestoneDetailPage() {
 
   // ─── Tasks section ───
   const tasksSection = (
-    <>
-      <div className="divider mt-6" />
-      <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">{t("tasks.tasks")}</p>
+    <div className="bg-card rounded-3xl px-6 py-5">
+      <p className="t-eyebrow mb-3">{t("tasks.tasks")}</p>
+
       {tasksLoading && (
         <p className="font-mono text-[11px] text-muted-foreground">{t("common.loading")}</p>
       )}
