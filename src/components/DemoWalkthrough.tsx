@@ -25,7 +25,7 @@ const FINAL_BG = "#F5F3EE";         // cream
 // Role colors — only used for the dot + eyebrow + underline at the top of each slide
 const ROLE_PM = "#C1531E";
 const ROLE_CONTRACTOR = "#60A5FA";
-const ROLE_AI = "#FFFFFF";
+const ROLE_AI = "#B794F4";
 const ROLE_CLIENT = "#3D7A5A";
 
 const slides: Slide[] = [
