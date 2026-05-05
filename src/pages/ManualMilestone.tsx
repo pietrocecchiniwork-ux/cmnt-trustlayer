@@ -135,106 +135,112 @@ export default function ManualMilestone() {
     }
   };
 
+  const inputClass = "w-full bg-secondary rounded-2xl px-4 py-3 font-sans text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none";
+  const selectClass = "w-full bg-secondary rounded-2xl px-4 py-3 font-sans text-[14px] text-foreground focus:outline-none appearance-none";
+
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-6">
-      <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-8">← back</button>
-      <h1 className="font-sans text-[22px] text-foreground mb-8">add milestone</h1>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-md mx-auto w-full px-6 pt-20 pb-32 space-y-3">
+        <button onClick={() => navigate(-1)} className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors">← back</button>
 
-      <div className="flex-1 space-y-6 overflow-y-auto">
-        <input type="text" placeholder="milestone name" value={formData.name} onChange={(e) => updateField("name", e.target.value)} className="underline-input" />
-        <input type="date" placeholder="due date" value={formData.dueDate} onChange={(e) => updateField("dueDate", e.target.value)} className="underline-input" />
-        <div className="relative">
-          <span className="absolute left-0 top-3 font-mono text-[16px] text-muted-foreground">£</span>
-          <input type="number" placeholder="payment value" value={formData.paymentValue} onChange={(e) => updateField("paymentValue", e.target.value)} className="underline-input pl-4" />
+        <div className="bg-card rounded-3xl px-6 py-5">
+          <p className="t-eyebrow">new</p>
+          <p className="font-sans text-[26px] tracking-[-0.02em] text-foreground mt-1 lowercase">add milestone</p>
         </div>
 
-        <div>
-          <p className="font-mono text-[10px] text-muted-foreground mb-2">assign to <span className="text-destructive">*</span></p>
-          {membersLoading ? (
-            <select disabled className="underline-input text-muted-foreground font-mono text-[13px] bg-transparent w-full">
-              <option>loading team...</option>
-            </select>
-          ) : assignableMembers.length === 0 ? (
-            <p className="font-sans text-[13px] text-muted-foreground border-b border-border py-2">
-              no team members yet — you will be assigned as PM.{" "}
-              <button
-                type="button"
-                onClick={() => navigate("/project/team")}
-                className="text-accent underline underline-offset-4"
-              >
-                invite team
-              </button>
-            </p>
-          ) : (
-            <select
-              value={selectedMemberId}
-              onChange={(e) => setSelectedMemberId(e.target.value)}
-              className="underline-input font-mono text-[13px] bg-transparent w-full"
-            >
-              <option value="">— select assignee —</option>
-              {assignableMembers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} — {m.role}
-                </option>
-              ))}
-            </select>
-          )}
+        <div className="bg-card rounded-3xl px-6 py-5 space-y-3">
+          <div>
+            <p className="t-eyebrow mb-2">name</p>
+            <input type="text" placeholder="milestone name" value={formData.name} onChange={(e) => updateField("name", e.target.value)} className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="t-eyebrow mb-2">due date</p>
+              <input type="date" value={formData.dueDate} onChange={(e) => updateField("dueDate", e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <p className="t-eyebrow mb-2">payment</p>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-[14px] text-muted-foreground">£</span>
+                <input type="number" placeholder="0" value={formData.paymentValue} onChange={(e) => updateField("paymentValue", e.target.value)} className={`${inputClass} pl-7`} />
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className="t-eyebrow mb-2">assign to <span className="text-destructive">*</span></p>
+            {membersLoading ? (
+              <select disabled className={selectClass}><option>loading team...</option></select>
+            ) : assignableMembers.length === 0 ? (
+              <p className="font-sans text-[13px] text-muted-foreground py-2">
+                no team members yet — you will be assigned as PM.{" "}
+                <button type="button" onClick={() => navigate("/project/team")} className="text-accent underline underline-offset-4">
+                  invite team
+                </button>
+              </p>
+            ) : (
+              <select value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)} className={selectClass}>
+                <option value="">— select assignee —</option>
+                {assignableMembers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
-        <div>
-          <p className="font-mono text-[10px] text-muted-foreground mb-3">tasks</p>
-          <div className="space-y-4">
-            {taskDrafts.map((task, i) => (
-              <div key={i} className="space-y-2">
-                <div className="flex items-center gap-2">
+        <div className="bg-card rounded-3xl px-6 py-5 space-y-4">
+          <p className="t-eyebrow">tasks</p>
+          {taskDrafts.map((task, i) => (
+            <div key={i} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder={`task ${i + 1}`}
+                  value={task.name}
+                  onChange={(e) => updateTaskDraft(i, "name", e.target.value)}
+                  className={`${inputClass} flex-1`}
+                />
+                {taskDrafts.length > 1 && (
+                  <button onClick={() => removeTaskDraft(i)} className="font-mono text-[16px] text-destructive flex-shrink-0 w-8 h-8 rounded-full bg-secondary">×</button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={task.assigneeId}
+                  onChange={(e) => updateTaskDraft(i, "assigneeId", e.target.value)}
+                  className={`${selectClass} flex-1 min-w-0`}
+                >
+                  <option value="">— assign to —</option>
+                  {assignableMembers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1 flex-1 min-w-0 bg-secondary rounded-2xl px-3">
+                  <span className="font-mono text-[13px] text-muted-foreground">£</span>
                   <input
-                    type="text"
-                    placeholder={`task ${i + 1}`}
-                    value={task.name}
-                    onChange={(e) => updateTaskDraft(i, "name", e.target.value)}
-                    className="underline-input flex-1"
+                    type="number"
+                    placeholder="budget"
+                    value={task.budget}
+                    onChange={(e) => updateTaskDraft(i, "budget", e.target.value)}
+                    className="flex-1 min-w-0 w-full bg-transparent font-sans text-[14px] text-foreground py-3 outline-none"
                   />
-                  {taskDrafts.length > 1 && (
-                    <button onClick={() => removeTaskDraft(i)} className="font-mono text-[14px] text-destructive">×</button>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <select
-                    value={task.assigneeId}
-                    onChange={(e) => updateTaskDraft(i, "assigneeId", e.target.value)}
-                    className="flex-1 bg-transparent border-b border-border font-mono text-[12px] text-foreground py-1"
-                  >
-                    <option value="">— assign to —</option>
-                    {assignableMembers.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name} — {m.role}</option>
-                    ))}
-                  </select>
-                  <div className="flex items-center gap-1 w-24">
-                    <span className="font-mono text-[12px] text-muted-foreground">£</span>
-                    <input
-                      type="number"
-                      placeholder="budget"
-                      value={task.budget}
-                      onChange={(e) => updateTaskDraft(i, "budget", e.target.value)}
-                      className="flex-1 bg-transparent border-b border-border font-mono text-[12px] text-foreground py-1 w-full"
-                    />
-                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-          <button onClick={addTaskDraft} className="font-mono text-[12px] text-accent mt-3">+ add task</button>
+            </div>
+          ))}
+          <button onClick={addTaskDraft} className="font-mono text-[11px] text-accent">+ add task</button>
         </div>
-      </div>
 
-      <div className="space-y-3 pt-4">
-        <Button variant="dark" size="full" onClick={() => handleSave(false)} disabled={createMilestone.isPending}>
-          <span className="font-sans text-[16px]">{createMilestone.isPending ? "saving…" : "save milestone"}</span>
-        </Button>
-        <Button variant="outline" size="full" onClick={() => handleSave(true)} disabled={createMilestone.isPending}>
-          <span className="font-sans text-[16px]">save and add another</span>
-        </Button>
+        <div className="space-y-3 pt-2">
+          <Button variant="dark" size="full" onClick={() => handleSave(false)} disabled={createMilestone.isPending}>
+            <span className="font-sans text-[16px]">{createMilestone.isPending ? "saving…" : "save milestone"}</span>
+          </Button>
+          <Button variant="outline" size="full" onClick={() => handleSave(true)} disabled={createMilestone.isPending}>
+            <span className="font-sans text-[16px]">save and add another</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
+
