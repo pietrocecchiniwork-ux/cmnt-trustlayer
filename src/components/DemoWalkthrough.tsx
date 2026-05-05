@@ -366,7 +366,7 @@ function AiAnalysisCard() {
         <span className="font-sans text-[13px] text-white">4 / 5 checks passed</span>
         <div className="flex flex-col items-end gap-1">
           <div className="rounded-full overflow-hidden" style={{ width: 120, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
-            <div style={{ width: "80%", height: "100%", backgroundColor: "#FFFFFF" }} />
+            <div style={{ width: "80%", height: "100%", backgroundColor: "#5BD3D9" }} />
           </div>
           <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">confidence high · 1 flag</span>
         </div>
