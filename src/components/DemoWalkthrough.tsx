@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, ReactNode } from "react";
+import { Mic, Camera, MapPin } from "lucide-react";
 
 type Role = "pm" | "contractor" | "ai" | "client" | null;
 type CardKind = "pm-milestones" | "contractor-checklist" | "evidence-sources" | "ai-analysis" | "pm-approval" | "client-payment";
@@ -244,12 +245,12 @@ function ContractorChecklistCard() {
 }
 
 function EvidenceSource({
-  tag,
+  icon,
   title,
   sub,
   pill,
 }: {
-  tag: string;
+  icon: ReactNode;
   title: string;
   sub: string;
   pill: string;
@@ -257,18 +258,16 @@ function EvidenceSource({
   return (
     <div className="flex items-center gap-3">
       <div
-        className="flex items-center justify-center rounded-md shrink-0 font-mono uppercase"
+        className="flex items-center justify-center rounded-md shrink-0"
         style={{
           width: 36,
           height: 36,
-          fontSize: 9,
-          letterSpacing: "0.1em",
-          color: "rgba(255,255,255,0.70)",
+          color: "rgba(255,255,255,0.85)",
           border: `1px solid ${HAIRLINE}`,
           backgroundColor: "rgba(255,255,255,0.03)",
         }}
       >
-        {tag}
+        {icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-sans text-[13px] text-white font-medium truncate">{title}</div>
@@ -289,19 +288,19 @@ function EvidenceSourcesCard() {
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="flex flex-col gap-3">
         <EvidenceSource
-          tag="VOX"
+          icon={<Mic size={16} strokeWidth={1.75} />}
           title={'voice note · "all cables run, consumer unit fitted"'}
           sub="sent via whatsapp · 14:29"
           pill="captured"
         />
         <EvidenceSource
-          tag="IMG"
+          icon={<Camera size={16} strokeWidth={1.75} />}
           title="3 site photographs · ground floor"
           sub="geotagged · 42 pembroke rd W8 4PT · 14:32"
           pill="3 files"
         />
         <EvidenceSource
-          tag="GPS"
+          icon={<MapPin size={16} strokeWidth={1.75} />}
           title="location confirmed on site"
           sub="within 15m of project address"
           pill="verified"
