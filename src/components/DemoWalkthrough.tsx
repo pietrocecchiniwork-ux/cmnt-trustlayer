@@ -212,18 +212,18 @@ function ContractorChecklistCard() {
   ];
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>milestone</Eyebrow>
-          <div className="font-sans text-[14px] text-white font-medium mt-1">first fix electrical</div>
+          <span className="font-sans text-[13px] text-white font-medium truncate">first fix electrical</span>
         </div>
-        <div>
+        <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>due</Eyebrow>
-          <div className="font-sans text-[14px] text-white mt-1">8 mar · 2 days</div>
+          <span className="font-sans text-[13px] text-white">8 mar · 2 days</span>
         </div>
-        <div className="text-right">
+        <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>payment</Eyebrow>
-          <div className="font-sans text-[14px] text-white font-bold mt-1">£11,000</div>
+          <span className="font-sans text-[13px] text-white font-bold">£11,000</span>
         </div>
       </div>
       <Hairline />
