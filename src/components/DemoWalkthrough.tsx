@@ -640,9 +640,9 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* CTA */}
-      <div className="px-4 pt-4 pb-6">
+      <div className="px-4 pt-4 pb-6 space-y-2">
         <button
-          onClick={handleNext}
+          onClick={current.isFinal ? onClose : handleNext}
           className={`w-full h-12 rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.96] ${
             current.ctaTone === "white"
               ? "bg-white text-[#111111]"
@@ -651,6 +651,14 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
         >
           {current.cta}
         </button>
+        {current.isFinal && (
+          <button
+            onClick={onClose}
+            className="w-full h-12 rounded-full bg-transparent border border-foreground/25 text-foreground font-sans text-[14px] font-medium transition-transform active:scale-[0.98]"
+          >
+            request a demo
+          </button>
+        )}
       </div>
     </div>
   );
