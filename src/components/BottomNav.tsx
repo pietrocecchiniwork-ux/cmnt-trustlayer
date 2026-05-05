@@ -3,16 +3,16 @@ import { useRole } from "@/contexts/RoleContext";
 import { useTranslation } from "react-i18next";
 
 const routeColorMap: Record<string, { bg: string; text: string; activeText: string; borderColor: string }> = {
-  "/project/dashboard":  { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
-  "/project/milestones": { bg: "bg-surface-dark", text: "text-surface-dark-foreground/40", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
-  "/project/evidence":   { bg: "bg-surface-cream", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
-  "/project/payments":   { bg: "bg-surface-dark", text: "text-surface-dark-foreground/40", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
-  "/project/activity":   { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
-  "/project/team":       { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
-  "/project/submit":     { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" },
+  "/project/dashboard":  { bg: "bg-background", text: "text-muted-foreground", activeText: "text-foreground", borderColor: "border-foreground" },
+  "/project/milestones": { bg: "bg-surface-dark", text: "text-surface-dark-muted", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
+  "/project/evidence":   { bg: "bg-surface-cream", text: "text-muted-foreground", activeText: "text-foreground", borderColor: "border-foreground" },
+  "/project/payments":   { bg: "bg-surface-dark", text: "text-surface-dark-muted", activeText: "text-surface-dark-foreground", borderColor: "border-surface-dark-foreground" },
+  "/project/activity":   { bg: "bg-background", text: "text-muted-foreground", activeText: "text-foreground", borderColor: "border-foreground" },
+  "/project/team":       { bg: "bg-background", text: "text-muted-foreground", activeText: "text-foreground", borderColor: "border-foreground" },
+  "/project/submit":     { bg: "bg-background", text: "text-muted-foreground", activeText: "text-foreground", borderColor: "border-foreground" },
 };
 
-const defaultColors = { bg: "bg-background", text: "text-foreground/40", activeText: "text-foreground", borderColor: "border-foreground" };
+const defaultColors = { bg: "bg-background", text: "text-muted-foreground", activeText: "text-foreground", borderColor: "border-foreground" };
 
 export function BottomNav() {
   const { role } = useRole();
