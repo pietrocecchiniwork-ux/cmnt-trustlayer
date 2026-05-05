@@ -35,8 +35,9 @@ export default function Auth() {
     if (!email.trim() || !password.trim()) return;
     setLoading(true);
     setError(null);
-    const fn = isSignUp ? supabase.auth.signUp : supabase.auth.signInWithPassword;
-    const { error } = await fn({ email, password });
+    const { error } = isSignUp
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) setError(error.message);
     else if (isSignUp) setSent(true);
