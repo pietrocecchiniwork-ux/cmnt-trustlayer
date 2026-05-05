@@ -345,9 +345,9 @@ export default function MilestoneDetailPage() {
 
   // ─── Tasks section ───
   const tasksSection = (
-    <>
-      <div className="divider mt-6" />
-      <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-3">{t("tasks.tasks")}</p>
+    <div className="bg-card rounded-3xl px-6 py-5">
+      <p className="t-eyebrow mb-3">{t("tasks.tasks")}</p>
+
       {tasksLoading && (
         <p className="font-mono text-[11px] text-muted-foreground">{t("common.loading")}</p>
       )}
@@ -437,7 +437,8 @@ export default function MilestoneDetailPage() {
           {t("tasks.tasks")}: £{tasks.reduce((s, task) => s + (task.budget ?? 0), 0).toLocaleString()} of £{Number(milestone?.payment_value ?? 0).toLocaleString()} allocated
         </p>
       )}
-    </>
+    </div>
+
   );
 
   // ─── Contractor view ───
@@ -532,10 +533,11 @@ export default function MilestoneDetailPage() {
   // ─── PM / in-review / complete view ───
   return (
     <div className="flex flex-col bg-background">
-      <div className="px-6 pt-12 pb-40">
-        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-4">{t("common.back")}</button>
+      <div className="px-5 pt-20 pb-40 space-y-3">
+        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-1 px-1">{t("common.back")}</button>
 
-        <p className={`font-mono text-[96px] leading-none tracking-tight ${numColor}`}>
+        <div className="bg-card rounded-3xl px-6 py-6">
+        <p className={`font-mono text-[64px] leading-none tracking-tight ${numColor}`}>
           {String(milestone.position).padStart(2, "0")}
         </p>
 
@@ -677,11 +679,12 @@ export default function MilestoneDetailPage() {
             )}
           </>
         )}
+        </div>
 
         {tasksSection}
 
-        <div className="divider mt-6" />
-        <p className="font-mono text-[10px] text-muted-foreground mt-6 mb-4">{t("evidence.evidence")} ({completedCount})</p>
+        <div className="bg-card rounded-3xl px-6 py-5">
+        <p className="t-eyebrow mb-4">{t("evidence.evidence")} ({completedCount})</p>
 
         <div className="space-y-4">
           {evidenceItems.map((item) => (
@@ -759,6 +762,7 @@ export default function MilestoneDetailPage() {
           {evidenceItems.length === 0 && (
             <p className="font-sans text-[13px] text-muted-foreground">{t("evidence.no_evidence")}</p>
           )}
+        </div>
         </div>
       </div>
 
