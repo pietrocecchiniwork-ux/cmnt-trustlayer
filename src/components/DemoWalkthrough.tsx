@@ -4,7 +4,6 @@ type Role = "pm" | "contractor" | "ai" | "client" | null;
 type CardKind = "pm-milestones" | "contractor-checklist" | "evidence-sources" | "ai-analysis" | "pm-approval" | "client-payment";
 
 interface Slide {
-  bg: string;
   text: "light" | "dark";
   role: Role;
   roleLabel?: string;
@@ -14,159 +13,106 @@ interface Slide {
   card?: CardKind;
   contextLabel?: string;
   cta: string;
-  ctaTone: "black" | "white";
   isFinal?: boolean;
 }
 
+// Shared muted palette
+const SLIDE_BG = "#2A2520";        // dark mud-beige
+const CARD_BG = "#332E28";          // slightly lifted card surface
+const HAIRLINE = "rgba(255,255,255,0.08)";
+const FINAL_BG = "#F5F3EE";         // cream
+
+// Role colors — only used for the dot + eyebrow + underline at the top of each slide
+const ROLE_PM = "#C1531E";
+const ROLE_CONTRACTOR = "#60A5FA";
+const ROLE_AI = "#FFFFFF";
+const ROLE_CLIENT = "#3D7A5A";
+
 const slides: Slide[] = [
   {
-    bg: "#C1531E",
     text: "light",
     role: "pm",
     roleLabel: "PROJECT MANAGER",
-    dotColor: "#FFFFFF",
+    dotColor: ROLE_PM,
     headline: "every milestone, one source of truth.",
     subtitle: "anna runs a £280k rear extension. each milestone gates a payment.",
     card: "pm-milestones",
     contextLabel: "6 milestones · 2 verified · 1 in progress",
     cta: "see how a milestone gets verified →",
-    ctaTone: "black",
   },
   {
-    bg: "#1F3A5C",
     text: "light",
     role: "contractor",
     roleLabel: "CONTRACTOR",
-    dotColor: "#60A5FA",
+    dotColor: ROLE_CONTRACTOR,
     headline: "the job, before submitting evidence.",
     subtitle: "tom needs to mark the milestone complete and capture proof.",
     card: "contractor-checklist",
     contextLabel: "first fix electrical · day 12 of 14",
     cta: "submit evidence →",
-    ctaTone: "white",
   },
   {
-    bg: "#1A1A1A",
     text: "light",
     role: "contractor",
     roleLabel: "CONTRACTOR",
-    dotColor: "#60A5FA",
+    dotColor: ROLE_CONTRACTOR,
     headline: "evidence captured on site.",
     subtitle: "photos, voice note and gps — pulled in from the tools tom already uses.",
     card: "evidence-sources",
     contextLabel: "captured 14:29 — 14:32 · 8 mar 2026",
     cta: "send for verification →",
-    ctaTone: "white",
   },
   {
-    bg: "#111111",
     text: "light",
     role: "ai",
     roleLabel: "AI ANALYSIS",
-    dotColor: "#FFFFFF",
+    dotColor: ROLE_AI,
     headline: "verifying against the milestone.",
     subtitle: "cemento checks the evidence against riba stage and the project checklist.",
     card: "ai-analysis",
     contextLabel: "analysis completed in 6 seconds",
     cta: "send result to project manager →",
-    ctaTone: "white",
   },
   {
-    bg: "#C1531E",
     text: "light",
     role: "pm",
     roleLabel: "PROJECT MANAGER",
-    dotColor: "#FFFFFF",
+    dotColor: ROLE_PM,
     headline: "approve with one tap.",
     subtitle: "anna sees the verified evidence, the AI flag and the recommendation.",
     card: "pm-approval",
     contextLabel: "decision logged · certificate generated",
     cta: "release to client →",
-    ctaTone: "black",
   },
   {
-    bg: "#3A6B47",
     text: "light",
     role: "client",
     roleLabel: "CLIENT",
-    dotColor: "#FFFFFF",
+    dotColor: ROLE_CLIENT,
     headline: "authorise payment.",
     subtitle: "james sees the certificate, the evidence and where the money sits.",
     card: "client-payment",
     contextLabel: "verified in 4 minutes · 0 disputes",
     cta: "release £11,000 →",
-    ctaTone: "black",
   },
   {
-    bg: "#F5F3EE",
     text: "dark",
     role: null,
     headline: "every party informed.\nevery payment justified.\nevery project on record.",
     cta: "sign in to get started →",
-    ctaTone: "black",
     isFinal: true,
   },
 ];
 
 const SWIPE_THRESHOLD = 50;
 
-// ---------- Card subcomponents ----------
+// ---------- Card primitives ----------
 
-const CARD_BG = "rgba(255,255,255,0.12)";
-const HAIRLINE = "rgba(255,255,255,0.12)";
-
-function Eyebrow({ children, color = "rgba(255,255,255,0.55)" }: { children: ReactNode; color?: string }) {
+function Eyebrow({ children, color = "rgba(255,255,255,0.50)" }: { children: ReactNode; color?: string }) {
   return (
-    <span className="font-sans tracking-[0.18em] uppercase" style={{ fontSize: 10, color }}>
+    <span className="font-mono tracking-[0.18em] uppercase" style={{ fontSize: 10, color }}>
       {children}
     </span>
-  );
-}
-
-function StatusPill({
-  label,
-  status,
-  height = 48,
-}: {
-  label: string;
-  status: "done" | "progress" | "todo";
-  height?: number;
-}) {
-  const styles = {
-    done: { bg: "#1A3D2B", text: "#FFFFFF", badgeText: "#4ADE80", badge: "✓ verified · paid" },
-    progress: { bg: "#3D2A0A", text: "#FFFFFF", badgeText: "#FBBF24", badge: "→ in progress" },
-    todo: { bg: "rgba(255,255,255,0.10)", text: "rgba(255,255,255,0.60)", badgeText: "rgba(255,255,255,0.40)", badge: "○ not started" },
-  } as const;
-  const s = styles[status];
-  return (
-    <div
-      className="w-full flex items-center justify-between rounded-2xl px-4"
-      style={{ height, backgroundColor: s.bg }}
-    >
-      <span className="font-sans text-[14px]" style={{ color: s.text }}>{label}</span>
-      <span className="font-sans text-[12px]" style={{ color: s.badgeText }}>{s.badge}</span>
-    </div>
-  );
-}
-
-function ChecklistPill({
-  label,
-  status,
-}: {
-  label: string;
-  status: "done" | "progress" | "todo";
-}) {
-  const styles = {
-    done: { bg: "#1A3D2B", text: "#FFFFFF", badgeText: "#4ADE80", badge: "✓ done" },
-    progress: { bg: "#3D2A0A", text: "#FFFFFF", badgeText: "#FBBF24", badge: "→ in progress" },
-    todo: { bg: "rgba(255,255,255,0.10)", text: "rgba(255,255,255,0.60)", badgeText: "rgba(255,255,255,0.40)", badge: "○ to do" },
-  } as const;
-  const s = styles[status];
-  return (
-    <div className="w-full flex items-center justify-between rounded-xl px-4" style={{ height: 40, backgroundColor: s.bg }}>
-      <span className="font-sans text-[13px]" style={{ color: s.text }}>{label}</span>
-      <span className="font-sans text-[11px]" style={{ color: s.badgeText }}>{s.badge}</span>
-    </div>
   );
 }
 
@@ -174,8 +120,60 @@ function Hairline() {
   return <div className="w-full my-3" style={{ height: 1, backgroundColor: HAIRLINE }} />;
 }
 
+type RowStatus = "done" | "progress" | "todo";
+
+function StatusDot({ status }: { status: RowStatus }) {
+  if (status === "todo") {
+    return (
+      <span
+        className="inline-block rounded-full"
+        style={{ width: 7, height: 7, border: "1px solid rgba(255,255,255,0.30)" }}
+      />
+    );
+  }
+  return (
+    <span
+      className="inline-block rounded-full"
+      style={{
+        width: 7,
+        height: 7,
+        backgroundColor: status === "progress" ? "#FFFFFF" : "rgba(255,255,255,0.45)",
+      }}
+    />
+  );
+}
+
+function StatusRow({
+  label,
+  status,
+  height = 44,
+}: {
+  label: string;
+  status: RowStatus;
+  height?: number;
+}) {
+  const stateLabel = status === "done" ? "done" : status === "progress" ? "in progress" : "to do";
+  const labelColor = status === "todo" ? "rgba(255,255,255,0.55)" : "#FFFFFF";
+  return (
+    <div
+      className="w-full flex items-center justify-between rounded-xl px-4"
+      style={{ height, backgroundColor: "rgba(255,255,255,0.04)" }}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <StatusDot status={status} />
+        <span className="font-sans text-[13px] truncate" style={{ color: labelColor }}>{label}</span>
+      </div>
+      <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.45)" }}>
+        {stateLabel}
+      </span>
+    </div>
+  );
+}
+
+// ---------- Cards ----------
+
 function PmMilestonesCard() {
-  const items: Array<{ name: string; status: "done" | "progress" | "todo" }> = [
+  const items: Array<{ name: string; status: RowStatus }> = [
     { name: "foundations & drainage", status: "done" },
     { name: "structural frame", status: "done" },
     { name: "first fix electrical", status: "progress" },
@@ -184,17 +182,17 @@ function PmMilestonesCard() {
     { name: "second fix & finishes", status: "todo" },
   ];
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="flex flex-col gap-1.5">
         {items.map((it) => (
-          <StatusPill key={it.name} label={it.name} status={it.status} />
+          <StatusRow key={it.name} label={it.name} status={it.status} />
         ))}
       </div>
       <Hairline />
       <div className="flex items-center justify-between">
-        <span className="font-sans text-[12px] text-white/80">next payment</span>
-        <span className="font-sans text-[12px] text-white/80">
-          <span className="text-white font-medium">£11,000</span> · releases when first fix electrical is verified
+        <span className="font-sans text-[12px] text-white/70">next payment</span>
+        <span className="font-sans text-[12px] text-white/70">
+          <span className="text-white font-medium">£11,000</span> · on first fix verified
         </span>
       </div>
     </div>
@@ -202,7 +200,7 @@ function PmMilestonesCard() {
 }
 
 function ContractorChecklistCard() {
-  const items: Array<{ name: string; status: "done" | "progress" | "todo" }> = [
+  const items: Array<{ name: string; status: RowStatus }> = [
     { name: "consumer unit location agreed", status: "done" },
     { name: "cable routes marked", status: "done" },
     { name: "wiring run to all circuits", status: "progress" },
@@ -210,8 +208,7 @@ function ContractorChecklistCard() {
     { name: "plumbing rough-in complete", status: "todo" },
   ];
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG }}>
-      {/* Header row */}
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="grid grid-cols-3 gap-3">
         <div>
           <Eyebrow>milestone</Eyebrow>
@@ -219,7 +216,7 @@ function ContractorChecklistCard() {
         </div>
         <div>
           <Eyebrow>due</Eyebrow>
-          <div className="font-sans text-[14px] mt-1" style={{ color: "#FBBF24" }}>8 mar · 2 days</div>
+          <div className="font-sans text-[14px] text-white mt-1">8 mar · 2 days</div>
         </div>
         <div className="text-right">
           <Eyebrow>payment</Eyebrow>
@@ -229,52 +226,55 @@ function ContractorChecklistCard() {
       <Hairline />
       <div className="flex flex-col gap-1.5">
         {items.map((it) => (
-          <ChecklistPill key={it.name} label={it.name} status={it.status} />
+          <StatusRow key={it.name} label={it.name} status={it.status} height={40} />
         ))}
       </div>
-      {/* Progress bar */}
       <div className="mt-4">
-        <div className="w-full rounded-full overflow-hidden" style={{ height: 4, backgroundColor: "rgba(255,255,255,0.15)" }}>
-          <div style={{ width: "40%", height: "100%", backgroundColor: "#4ADE80" }} />
+        <div className="w-full rounded-full overflow-hidden" style={{ height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
+          <div style={{ width: "40%", height: "100%", backgroundColor: "#FFFFFF" }} />
         </div>
-        <div className="text-right font-sans text-[11px] text-white/70 mt-1.5">2 of 5 complete</div>
+        <div className="text-right font-mono text-[10px] uppercase tracking-wider text-white/55 mt-1.5">
+          2 of 5 complete
+        </div>
       </div>
     </div>
   );
 }
 
 function EvidenceSource({
-  iconBg,
-  icon,
+  tag,
   title,
   sub,
   pill,
-  pillBg = "rgba(255,255,255,0.10)",
-  pillColor = "#FFFFFF",
 }: {
-  iconBg: string;
-  icon: string;
+  tag: string;
   title: string;
   sub: string;
   pill: string;
-  pillBg?: string;
-  pillColor?: string;
 }) {
   return (
     <div className="flex items-center gap-3">
       <div
-        className="flex items-center justify-center rounded-lg shrink-0"
-        style={{ width: 32, height: 32, backgroundColor: iconBg, fontSize: 16 }}
+        className="flex items-center justify-center rounded-md shrink-0 font-mono uppercase"
+        style={{
+          width: 36,
+          height: 36,
+          fontSize: 9,
+          letterSpacing: "0.1em",
+          color: "rgba(255,255,255,0.70)",
+          border: `1px solid ${HAIRLINE}`,
+          backgroundColor: "rgba(255,255,255,0.03)",
+        }}
       >
-        {icon}
+        {tag}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-sans text-[13px] text-white font-medium truncate">{title}</div>
-        <div className="font-sans text-[11px] text-white/60 truncate">{sub}</div>
+        <div className="font-sans text-[11px] text-white/55 truncate">{sub}</div>
       </div>
       <span
-        className="font-sans text-[11px] rounded-full px-2.5 py-1 shrink-0"
-        style={{ backgroundColor: pillBg, color: pillColor }}
+        className="font-mono text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 shrink-0"
+        style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.70)" }}
       >
         {pill}
       </span>
@@ -284,36 +284,31 @@ function EvidenceSource({
 
 function EvidenceSourcesCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="flex flex-col gap-3">
         <EvidenceSource
-          iconBg="#25D366"
-          icon="💬"
+          tag="VOX"
           title={'voice note · "all cables run, consumer unit fitted"'}
-          sub="sent via WhatsApp · 14:29"
+          sub="sent via whatsapp · 14:29"
           pill="captured"
         />
         <EvidenceSource
-          iconBg="#1E40AF"
-          icon="📷"
+          tag="IMG"
           title="3 site photographs · ground floor"
           sub="geotagged · 42 pembroke rd W8 4PT · 14:32"
           pill="3 files"
         />
         <EvidenceSource
-          iconBg="#B91C1C"
-          icon="📍"
+          tag="GPS"
           title="location confirmed on site"
           sub="within 15m of project address"
           pill="verified"
-          pillBg="#1A3D2B"
-          pillColor="#4ADE80"
         />
       </div>
       <Hairline />
       <div className="flex items-center justify-between">
-        <span className="font-sans text-[12px] text-white/80">submitting against</span>
-        <span className="font-sans text-[12px] text-white/80">
+        <span className="font-sans text-[12px] text-white/70">submitting against</span>
+        <span className="font-sans text-[12px] text-white/70">
           first fix electrical · <span className="text-white font-medium">£11,000</span>
         </span>
       </div>
@@ -332,19 +327,19 @@ function AiCheckRow({
   value: string;
   result: string;
 }) {
-  const color = pass ? "#4ADE80" : "#FBBF24";
-  const pillBg = pass ? "#1A3D2B" : "#3D2A0A";
   return (
-    <div className="flex items-center" style={{ height: 44, borderBottom: "1px solid #222" }}>
-      <span className="w-6 text-center font-sans text-[14px]" style={{ color }}>{pass ? "✓" : "△"}</span>
-      <div className="flex-1 flex items-center gap-3 pl-2">
-        <span className="font-sans text-[12px] text-white/55 w-24">{label}</span>
-        <span className="font-sans text-[13px] text-white font-medium">{value}</span>
-      </div>
+    <div className="flex items-center" style={{ height: 42, borderBottom: `1px solid ${HAIRLINE}` }}>
       <span
-        className="font-sans text-[11px] rounded-full px-2.5 py-1"
-        style={{ backgroundColor: pillBg, color }}
+        className="w-5 text-center font-mono text-[11px]"
+        style={{ color: pass ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.55)" }}
       >
+        {pass ? "✓" : "!"}
+      </span>
+      <div className="flex-1 flex items-center gap-3 pl-2 min-w-0">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-white/50 w-20 shrink-0">{label}</span>
+        <span className="font-sans text-[13px] text-white truncate">{value}</span>
+      </div>
+      <span className="font-mono text-[10px] uppercase tracking-wider text-white/55 pl-2">
         {result}
       </span>
     </div>
@@ -353,13 +348,10 @@ function AiCheckRow({
 
 function AiAnalysisCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: "#1A1A1A", border: "1px solid #333333" }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="flex items-center justify-between mb-3">
-        <Eyebrow color="#666666">cemento analysis</Eyebrow>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block rounded-full animate-pulse" style={{ width: 6, height: 6, backgroundColor: "#4ADE80" }} />
-          <span className="font-sans uppercase" style={{ fontSize: 10, color: "#4ADE80" }}>live</span>
-        </span>
+        <Eyebrow>cemento analysis</Eyebrow>
+        <Eyebrow>6s</Eyebrow>
       </div>
       <div>
         <AiCheckRow pass label="work type" value="electrical" result="matched" />
@@ -371,15 +363,14 @@ function AiAnalysisCard() {
       <div className="mt-4 flex items-center justify-between">
         <span className="font-sans text-[13px] text-white">4 / 5 checks passed</span>
         <div className="flex flex-col items-end gap-1">
-          <div className="rounded-full overflow-hidden flex" style={{ width: 120, height: 6, backgroundColor: "rgba(255,255,255,0.10)" }}>
-            <div style={{ width: "80%", backgroundColor: "#4ADE80" }} />
-            <div style={{ width: "20%", backgroundColor: "#FBBF24" }} />
+          <div className="rounded-full overflow-hidden" style={{ width: 120, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
+            <div style={{ width: "80%", height: "100%", backgroundColor: "#FFFFFF" }} />
           </div>
-          <span className="font-sans text-[10px] text-white/55">confidence: high</span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">confidence high · 1 flag</span>
         </div>
       </div>
       <div className="mt-3">
-        <span className="font-sans text-[12px] text-white/90 italic">
+        <span className="font-sans text-[12px] text-white/75 italic">
           recommendation: approve with note on consumer unit placement
         </span>
       </div>
@@ -389,13 +380,13 @@ function AiAnalysisCard() {
 
 function PmApprovalCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="grid grid-cols-3 gap-2">
-        {["📷 3 photos", "🎙 1 voice", "📍 gps"].map((p) => (
+        {["3 photos", "1 voice", "gps"].map((p) => (
           <span
             key={p}
-            className="font-sans text-[11px] text-white text-center rounded-full h-8 inline-flex items-center justify-center whitespace-nowrap"
-            style={{ backgroundColor: "rgba(255,255,255,0.10)" }}
+            className="font-mono text-[10px] uppercase tracking-wider text-white/80 text-center rounded-full h-8 inline-flex items-center justify-center whitespace-nowrap"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
           >
             {p}
           </span>
@@ -403,11 +394,11 @@ function PmApprovalCard() {
       </div>
       <div className="mt-4 space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="font-sans text-[12px] text-white/70">AI result</span>
-          <span className="font-sans text-[12px]" style={{ color: "#FBBF24" }}>4/5 · 1 flag</span>
+          <span className="font-sans text-[12px] text-white/65">ai result</span>
+          <span className="font-sans text-[12px] text-white">4 / 5 · 1 flag</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="font-sans text-[12px] text-white/70">time to review</span>
+          <span className="font-sans text-[12px] text-white/65">time to review</span>
           <span className="font-sans text-[12px] text-white">4 minutes</span>
         </div>
       </div>
@@ -415,17 +406,17 @@ function PmApprovalCard() {
       <div>
         <Eyebrow>pm note</Eyebrow>
         <div
-          className="mt-2 rounded-xl px-3 py-2.5 font-sans text-[12px] text-white leading-relaxed"
-          style={{ backgroundColor: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.20)" }}
+          className="mt-2 rounded-xl px-3 py-2.5 font-sans text-[12px] text-white/90 leading-relaxed"
+          style={{ backgroundColor: "rgba(255,255,255,0.04)", border: `1px solid ${HAIRLINE}` }}
         >
           "consumer unit positioning noted — mark to adjust before second fix"
         </div>
       </div>
       <div
-        className="mt-4 w-full flex items-center justify-center rounded-2xl font-sans text-[12px] font-medium px-4 text-center leading-tight"
-        style={{ minHeight: 48, paddingTop: 10, paddingBottom: 10, backgroundColor: "#1A3D2B", color: "#4ADE80" }}
+        className="mt-4 w-full flex items-center justify-center rounded-2xl font-mono text-[11px] uppercase tracking-wider text-white px-4 text-center"
+        style={{ minHeight: 44, border: `1px solid ${HAIRLINE}`, backgroundColor: "rgba(255,255,255,0.04)" }}
       >
-        ✓&nbsp;&nbsp;approved with condition
+        approved with condition
       </div>
     </div>
   );
@@ -433,15 +424,15 @@ function PmApprovalCard() {
 
 function ClientPaymentCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
       <div className="flex items-center justify-between">
-        <Eyebrow color="#A7D5B5">payment certificate</Eyebrow>
-        <span className="font-mono text-[12px] text-white">CMT-2026-0308-A7F2</span>
+        <Eyebrow>payment certificate</Eyebrow>
+        <span className="font-mono text-[11px] text-white/80">CMT-2026-0308-A7F2</span>
       </div>
       <div className="mt-3">
         {[
           { l: "milestone", v: "first fix electrical & plumbing", big: false },
-          { l: "evidence", v: "verified by AI · confirmed by PM", big: false },
+          { l: "evidence", v: "verified by ai · confirmed by pm", big: false },
           { l: "amount", v: "£11,000", big: true },
         ].map((row, i) => (
           <div
@@ -449,7 +440,7 @@ function ClientPaymentCard() {
             className="flex items-center justify-between"
             style={{ height: 40, borderTop: i === 0 ? `1px solid ${HAIRLINE}` : undefined, borderBottom: `1px solid ${HAIRLINE}` }}
           >
-            <span className="font-sans text-[12px] text-white/65">{row.l}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55">{row.l}</span>
             <span
               className={`font-sans text-white ${row.big ? "text-[24px] font-bold" : "text-[13px]"}`}
             >
@@ -463,21 +454,20 @@ function ClientPaymentCard() {
         <Eyebrow>project financial summary</Eyebrow>
         <div className="grid grid-cols-3 gap-2 mt-2">
           <div>
-            <div className="font-sans text-[16px] font-semibold" style={{ color: "#4ADE80" }}>£63,000</div>
-            <div className="font-sans text-[10px] text-white/55 mt-0.5">paid</div>
+            <div className="font-sans text-[16px] font-semibold text-white">£63,000</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-0.5">paid</div>
           </div>
           <div>
-            <div className="font-sans text-[16px] font-semibold" style={{ color: "#FBBF24" }}>£11,000</div>
-            <div className="font-sans text-[10px] text-white/55 mt-0.5">this payment</div>
+            <div className="font-sans text-[16px] font-semibold text-white">£11,000</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-0.5">this</div>
           </div>
           <div>
-            <div className="font-sans text-[16px] font-semibold text-white/60">£206,000</div>
-            <div className="font-sans text-[10px] text-white/55 mt-0.5">remaining</div>
+            <div className="font-sans text-[16px] font-semibold text-white/55">£206,000</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-0.5">remaining</div>
           </div>
         </div>
-        <div className="mt-3 w-full rounded-full overflow-hidden flex" style={{ height: 6, backgroundColor: "rgba(255,255,255,0.15)" }}>
-          <div style={{ width: "22.5%", backgroundColor: "#4ADE80" }} />
-          <div style={{ width: "4%", backgroundColor: "#FBBF24" }} />
+        <div className="mt-3 w-full rounded-full overflow-hidden" style={{ height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
+          <div style={{ width: "26.5%", height: "100%", backgroundColor: "#FFFFFF" }} />
         </div>
       </div>
     </div>
@@ -539,6 +529,7 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
     touchEndX.current = null;
   };
 
+  const slideBg = current.isFinal ? FINAL_BG : SLIDE_BG;
   const headlineColor = isLight ? "text-white" : "text-foreground";
   const subColor = isLight ? "text-white/60" : "text-foreground/60";
 
@@ -567,18 +558,23 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
       <div className="flex-1 flex flex-col px-4 min-h-0">
         <div
           className="rounded-3xl p-6 flex-1 flex flex-col transition-colors duration-500 overflow-hidden"
-          style={{ backgroundColor: current.bg }}
+          style={{ backgroundColor: slideBg }}
         >
-          {/* Role pill */}
+          {/* Role marker — only colored element on the slide */}
           {current.role && (
-            <div className="inline-flex self-start items-center gap-2 mb-5">
-              <span
-                className="inline-block rounded-full"
-                style={{ width: 8, height: 8, backgroundColor: current.dotColor }}
-              />
-              <span className={`font-mono text-[11px] tracking-[0.18em] uppercase ${isLight ? "text-white/85" : "text-foreground/80"}`}>
-                {current.roleLabel}
-              </span>
+            <div className="self-start mb-5">
+              <div className="inline-flex items-center gap-2 pb-1.5" style={{ borderBottom: `1px solid ${current.dotColor}` }}>
+                <span
+                  className="inline-block rounded-full"
+                  style={{ width: 8, height: 8, backgroundColor: current.dotColor }}
+                />
+                <span
+                  className="font-mono text-[10px] tracking-[0.18em] uppercase"
+                  style={{ color: current.dotColor }}
+                >
+                  {current.roleLabel}
+                </span>
+              </div>
             </div>
           )}
 
@@ -608,7 +604,7 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
               )}
 
               {current.contextLabel && (
-                <p className={`mt-3 font-mono text-[11px] tracking-wider uppercase ${isLight ? "text-white/55" : "text-foreground/55"}`}>
+                <p className={`mt-3 font-mono text-[10px] tracking-wider uppercase ${isLight ? "text-white/50" : "text-foreground/55"}`}>
                   {current.contextLabel}
                 </p>
               )}
@@ -640,9 +636,9 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
         <button
           onClick={current.isFinal ? onClose : handleNext}
           className={`w-full h-12 rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.96] ${
-            current.ctaTone === "white"
-              ? "bg-white text-[#111111]"
-              : "bg-foreground text-background"
+            current.isFinal
+              ? "bg-foreground text-background"
+              : "bg-white text-[#2A2520]"
           }`}
         >
           {current.cta}

@@ -1,73 +1,53 @@
-## UI refinement pass — Auth + shell
+## Demo walkthrough — minimal color refinement
 
-Stay brutalist (sharp corners, no shadows, no gradients, 1px dividers, DM Mono/Sans). The goal is "more polished" through better hierarchy, spacing, type scale, and softer surface tints — not by importing rounded cards / shadows.
+Scope: `src/components/DemoWalkthrough.tsx` only. No app, token, or memory changes.
 
-### 1. Design tokens (`src/index.css`, `tailwind.config.ts`)
+### New surface palette
 
-Soften per-route surfaces (lower saturation, lighter tints) while keeping the same hue family:
+Replace per-slide bright backgrounds with a single muted dark-beige/mud across all slides except the final cream one.
 
-- `--background` 60 4% 93% → **60 6% 96%** (warmer, lighter base)
-- `--surface-cream` 48 30% 92% → **44 22% 94%** (calmer)
-- `--surface-orange` 27 80% 60% → **22 55% 66%** (less neon, kept as accent surface)
-- `--surface-dark` 60 3% 10% → **60 4% 13%** (slightly lifted off pure black)
-- `--surface-dark-muted` 60 2% 34% → **60 3% 42%**
-- `--border` (heavy) stays 1px but use new `--hairline: 60 4% 80%` for in-content dividers; keep `--border` for emphasis only
-- `--muted-foreground` slightly lifted for readability
-- Add a single elevation primitive: `.surface-raised` = 1px solid hairline + 1px inset highlight (no shadow, no radius) — used for cards/sheets
+- Slide background: `#2A2520` (dark mud-beige), text light
+- Card on slide: `#332E28` with 1px hairline `rgba(255,255,255,0.08)`
+- Final slide: keep cream `#F5F3EE`, text dark
 
-Type scale tightening (utility classes in `@layer components`):
-- `.t-eyebrow` font-mono 10px / +0.08em tracking / uppercase
-- `.t-label` font-mono 11px / muted
-- `.t-body` font-sans 14px / 1.45
-- `.t-title` font-sans 22px / -0.01em
-- `.t-display` font-sans 32px / -0.02em
+### Role color (kept, minimal)
 
-No radius changes (stays 0). Toggles keep their existing radius exception.
+Color appears only in the role marker at the top of each slide — the dot + the eyebrow label + a 1px underline beneath the role label. Nothing else on the slide carries hue.
 
-### 2. Auth screen (`src/pages/Auth.tsx`)
+- PM → orange `#C1531E`
+- Contractor → blue `#60A5FA`
+- AI → neutral white (no hue, AI is the system voice)
+- Client → green `#3D7A5A`
 
-Refinement, not redesign:
-- Logo block: replace solid square with a 1px-bordered square + DM Mono "C" inside; tighten the `cemento` wordmark (lowercase, -0.02em tracking, 16px).
-- Vertical rhythm: pt-24 → pt-20; mb-20 between logo and form → mb-14; consistent 24px gaps in form column.
-- Primary CTA ("Continue with Google"): keep dark fill, but use a 1px outer hairline + inner 1px focus ring on focus-visible; height 48px (was ~52px).
-- "or" divider: change full-width line into two short 24px hairlines flanking the label.
-- Secondary actions ("continue with email", "sign in with password", "explore demo"): unify into a single column with 12px gaps, all `t-label`, underline only on hover (not by default).
-- Email/password inputs: reuse `.underline-input` but left-align (centered text on inputs reads as quirky, not polished); add a subtle `t-eyebrow` label above each.
-- Inline errors: small destructive dot + `t-label` text (no full-width red bar).
-- "check email" success state: use `t-display` for headline, `t-body` for sub.
-- Add a tiny footer line at bottom: `cemento · trust infrastructure` in `t-eyebrow` muted.
+`dotColor` field already exists per slide; we extend it to also tint the eyebrow text and the small underline.
 
-### 3. App shell
+### Inside cards — strip color
 
-**`AppLayout.tsx`** — add a fixed top hairline header rail (40px) that hosts the burger trigger on the right and (when on a project route) the project code + active section eyebrow on the left. Content scroll region gets `pt-10 pb-16`.
+- StatusPill / ChecklistPill: drop green `#1A3D2B` / amber `#3D2A0A` filled backgrounds. Use a single muted row style `rgba(255,255,255,0.05)` with a small leading dot:
+  - done → muted dot `rgba(255,255,255,0.45)` + label "done"
+  - in progress → white dot + label "in progress"
+  - todo → hollow ring + label "to do"
+- Progress bars: single white fill on `rgba(255,255,255,0.12)` track. Drop dual-color (green + amber) split.
+- AI check rows: drop colored ✓/△ and colored result pills. Use neutral mono labels; the one flag becomes "1 flag" muted text at the bottom. Remove the pulsing green "LIVE" indicator.
+- Approval card: replace the green "approved with condition" filled block with a hairline-bordered row, neutral text.
+- Client payment card: numbers all in white/muted — drop green `£63,000` and amber `£11,000` accents. The "this payment" amount stays larger via type weight, not color.
 
-**`BottomNav.tsx`** — refinements only:
-- Reduce vertical padding `py-4` → `py-3`; nav height ~52px.
-- Active-state border-b currently 1px / accent-text — keep, but add 8px padding under text so the underline doesn't touch labels.
-- Inactive labels: opacity 40% → 50% for legibility; remove `border-t border-current/5` (use the new `--hairline`).
-- On dark surfaces, use surface-dark-muted instead of `/40` opacity for inactive text.
+### Iconography
 
-**`BurgerMenu.tsx`** — keep behavior (focus trap, escape, persistence) untouched. Visual refinements only:
-- Trigger: bars get 1px thicker only on hover; current is fine.
-- Panel: width 280 → 300, `bg-background` → `bg-surface-cream` for separation from page (still no shadow); left edge keeps `border-l` but use `--hairline`.
-- Header row: increase to 56px, title becomes `t-title`, close uses an icon-sized button (32×32) with hairline border.
-- Section eyebrows: switch to `.t-eyebrow` utility for consistency.
-- Active nav item: keep accent text, add a 2px-wide accent-color block (4px tall, no radius) before the label as a left marker; inactive items get a transparent marker (preserves indent).
-- Language pills keep their pill shape (existing toggle exception); reduce padding 1px.
-- Sign-out becomes the only button styled with a top hairline separator above it.
+Remove all emoji (💬 📷 📍 🎙 ✓ △ ○ →). Replace with text labels and small hairline-bordered squares where an icon slot is structurally needed (evidence sources).
 
-### 4. Memory updates
+### CTAs
 
-Update `mem://style/color-palette` and `mem://style/design-principles` with the softened surface values and the new `t-eyebrow / t-label / t-body / t-title / t-display` type-scale convention. Keep the brutalist Core rule unchanged.
+One pill style per surface:
+- Dark slides → cream pill, dark text
+- Cream final slide → dark pill, cream text
 
-### Out of scope (this pass)
-Home, Dashboard, Milestones, Evidence, Payments, Activity, Team, Submit, Camera, Onboarding, CreateProject, Cascade. Those will reuse the new tokens/utilities once approved on the shell.
+Drop the per-slide `ctaTone` branching.
+
+### Result
+
+Seven slides reading as one continuous muted-mud sequence. The only color on each slide is the small role marker at the top (orange/blue/white/green dot + eyebrow + underline). Final cream slide acts as the tonal reset and CTA moment.
 
 ### Files touched
-- `src/index.css` (tokens + utilities)
-- `tailwind.config.ts` (hairline color)
-- `src/pages/Auth.tsx`
-- `src/components/AppLayout.tsx`
-- `src/components/BottomNav.tsx`
-- `src/components/BurgerMenu.tsx`
-- `mem://style/color-palette`, `mem://style/design-principles`, `mem://index.md`
+
+- `src/components/DemoWalkthrough.tsx`
