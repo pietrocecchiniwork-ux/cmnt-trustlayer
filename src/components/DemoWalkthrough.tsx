@@ -137,7 +137,7 @@ function StatusDot({ status }: { status: RowStatus }) {
       style={{
         width: 7,
         height: 7,
-        backgroundColor: status === "progress" ? "#FFFFFF" : "rgba(255,255,255,0.45)",
+        backgroundColor: status === "progress" ? "#FFFFFF" : "#7FB069",
       }}
     />
   );
@@ -165,7 +165,7 @@ function StatusRow({
         <StatusDot status={status} />
         <span className="font-sans text-[13px] truncate" style={{ color: labelColor }}>{label}</span>
       </div>
-      <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.45)" }}>
+      <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: stateColor }}>
         {stateLabel}
       </span>
     </div>
