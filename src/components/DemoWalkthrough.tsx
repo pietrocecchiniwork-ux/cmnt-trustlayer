@@ -381,17 +381,17 @@ function PmApprovalCard() {
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG }}>
       <div className="grid grid-cols-3 gap-2">
-        {["📷 3 photos", "🎙 1 voice note", "📍 GPS confirmed"].map((p) => (
+        {["📷 3 photos", "🎙 1 voice", "📍 gps"].map((p) => (
           <span
             key={p}
-            className="font-sans text-[11px] text-white text-center rounded-full py-2"
+            className="font-sans text-[11px] text-white text-center rounded-full h-8 inline-flex items-center justify-center whitespace-nowrap"
             style={{ backgroundColor: "rgba(255,255,255,0.10)" }}
           >
             {p}
           </span>
         ))}
       </div>
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="font-sans text-[12px] text-white/70">AI result</span>
           <span className="font-sans text-[12px]" style={{ color: "#FBBF24" }}>4/5 · 1 flag</span>
@@ -405,17 +405,17 @@ function PmApprovalCard() {
       <div>
         <Eyebrow>pm note</Eyebrow>
         <div
-          className="mt-2 rounded-xl px-3 py-2.5 font-sans text-[12px] text-white"
+          className="mt-2 rounded-xl px-3 py-2.5 font-sans text-[12px] text-white leading-relaxed"
           style={{ backgroundColor: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.20)" }}
         >
           "consumer unit positioning noted — mark to adjust before second fix"
         </div>
       </div>
       <div
-        className="mt-4 w-full flex items-center justify-center rounded-2xl font-sans text-[13px] font-medium"
-        style={{ height: 52, backgroundColor: "#1A3D2B", color: "#4ADE80" }}
+        className="mt-4 w-full flex items-center justify-center rounded-2xl font-sans text-[12px] font-medium px-4 text-center leading-tight"
+        style={{ minHeight: 48, paddingTop: 10, paddingBottom: 10, backgroundColor: "#1A3D2B", color: "#4ADE80" }}
       >
-        ✓&nbsp;&nbsp;approved with condition · CMT-2026-0308-A7F2
+        ✓&nbsp;&nbsp;approved with condition
       </div>
     </div>
   );
