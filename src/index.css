@@ -4,46 +4,47 @@
 
 @layer base {
   :root {
-    --background: 60 4% 93%;
+    --background: 60 6% 96%;
     --foreground: 60 3% 10%;
 
-    --card: 60 4% 93%;
+    --card: 60 6% 96%;
     --card-foreground: 60 3% 10%;
 
-    --popover: 60 4% 93%;
+    --popover: 60 6% 96%;
     --popover-foreground: 60 3% 10%;
 
-    --primary: 60 3% 10%;
-    --primary-foreground: 60 4% 93%;
+    --primary: 60 4% 13%;
+    --primary-foreground: 60 6% 96%;
 
-    --secondary: 60 4% 84%;
-    --secondary-foreground: 60 3% 10%;
+    --secondary: 60 5% 88%;
+    --secondary-foreground: 60 4% 13%;
 
-    --muted: 60 4% 84%;
-    --muted-foreground: 60 1% 53%;
+    --muted: 60 5% 88%;
+    --muted-foreground: 60 2% 46%;
 
-    --accent: 220 75% 54%;
+    --accent: 220 70% 52%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 22 65% 47%;
+    --destructive: 22 55% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 33% 36%;
+    --success: 150 28% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 22 65% 47%;
+    --warning: 22 55% 48%;
 
-    /* Screen-specific surfaces */
-    --surface-orange: 27 80% 60%;
-    --surface-orange-foreground: 60 3% 10%;
-    --surface-dark: 60 3% 10%;
-    --surface-dark-foreground: 60 4% 93%;
-    --surface-dark-muted: 60 2% 34%;
-    --surface-cream: 48 30% 92%;
-    --surface-cream-foreground: 60 3% 10%;
+    /* Screen-specific surfaces — softened, lower saturation */
+    --surface-orange: 22 55% 66%;
+    --surface-orange-foreground: 60 4% 13%;
+    --surface-dark: 60 4% 13%;
+    --surface-dark-foreground: 60 6% 96%;
+    --surface-dark-muted: 60 3% 42%;
+    --surface-cream: 44 22% 94%;
+    --surface-cream-foreground: 60 4% 13%;
 
-    --border: 60 3% 10%;
-    --border-light: 60 4% 78%;
+    --border: 60 4% 13%;
+    --border-light: 60 4% 80%;
+    --hairline: 60 4% 80%;
     --input: 60 4% 84%;
     --ring: 220 75% 54%;
 

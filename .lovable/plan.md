@@ -1,83 +1,73 @@
-# WhatsApp Evidence Ingestion
+## UI refinement pass — Auth + shell
 
-Replace the in-app `WhatsAppSim` mock with a real two-way WhatsApp pipeline: contractors text/photo a Twilio WhatsApp number, Claude (the same model already used in `tag-evidence`) interprets the message in the context of their project, and the bot writes evidence/updates back to the DB and replies in the same chat.
+Stay brutalist (sharp corners, no shadows, no gradients, 1px dividers, DM Mono/Sans). The goal is "more polished" through better hierarchy, spacing, type scale, and softer surface tints — not by importing rounded cards / shadows.
 
-## Architecture
+### 1. Design tokens (`src/index.css`, `tailwind.config.ts`)
 
-```text
-WhatsApp user
-   │  text / image
-   ▼
-Twilio WhatsApp number
-   │  webhook (POST form-encoded)
-   ▼
-Edge fn: whatsapp-webhook        ── verifies Twilio signature
-   │                                 ── identifies user via phone_number
-   │                                 ── loads active project + milestones/tasks
-   │                                 ── downloads media from Twilio (basic auth)
-   │                                 ── upload to evidence-photos bucket
-   │                                 ── call Claude (vision) for tagging + intent
-   │                                 ── insert evidence / update milestone
-   │                                 ── update whatsapp_sessions state
-   ▼
-Edge fn: whatsapp-send (helper)  ── POSTs reply via Twilio gateway
-```
+Soften per-route surfaces (lower saturation, lighter tints) while keeping the same hue family:
 
-## Phone-number → user link
+- `--background` 60 4% 93% → **60 6% 96%** (warmer, lighter base)
+- `--surface-cream` 48 30% 92% → **44 22% 94%** (calmer)
+- `--surface-orange` 27 80% 60% → **22 55% 66%** (less neon, kept as accent surface)
+- `--surface-dark` 60 3% 10% → **60 4% 13%** (slightly lifted off pure black)
+- `--surface-dark-muted` 60 2% 34% → **60 3% 42%**
+- `--border` (heavy) stays 1px but use new `--hairline: 60 4% 80%` for in-content dividers; keep `--border` for emphasis only
+- `--muted-foreground` slightly lifted for readability
+- Add a single elevation primitive: `.surface-raised` = 1px solid hairline + 1px inset highlight (no shadow, no radius) — used for cards/sheets
 
-Schema already has `project_members.phone_number` and a `whatsapp_sessions` table. Two small additions:
+Type scale tightening (utility classes in `@layer components`):
+- `.t-eyebrow` font-mono 10px / +0.08em tracking / uppercase
+- `.t-label` font-mono 11px / muted
+- `.t-body` font-sans 14px / 1.45
+- `.t-title` font-sans 22px / -0.01em
+- `.t-display` font-sans 32px / -0.02em
 
-1. New table `whatsapp_identities` (one row per verified WhatsApp number → user_id) so a single number can map across projects, with a 6-digit OTP verification flow triggered from the Team screen.
-2. Add `last_milestone_id` and `last_evidence_id` columns to `whatsapp_sessions` so follow-up messages ("add a note: leak fixed") attach to the right record.
+No radius changes (stays 0). Toggles keep their existing radius exception.
 
-Verification flow:
-- User opens Team → "Connect WhatsApp", enters their number.
-- App calls `whatsapp-verify-start` edge fn → sends a 6-digit code via Twilio.
-- User replies in WhatsApp with the code → `whatsapp-webhook` matches it → row inserted in `whatsapp_identities`.
+### 2. Auth screen (`src/pages/Auth.tsx`)
 
-## Inbound message handling (`whatsapp-webhook`)
+Refinement, not redesign:
+- Logo block: replace solid square with a 1px-bordered square + DM Mono "C" inside; tighten the `cemento` wordmark (lowercase, -0.02em tracking, 16px).
+- Vertical rhythm: pt-24 → pt-20; mb-20 between logo and form → mb-14; consistent 24px gaps in form column.
+- Primary CTA ("Continue with Google"): keep dark fill, but use a 1px outer hairline + inner 1px focus ring on focus-visible; height 48px (was ~52px).
+- "or" divider: change full-width line into two short 24px hairlines flanking the label.
+- Secondary actions ("continue with email", "sign in with password", "explore demo"): unify into a single column with 12px gaps, all `t-label`, underline only on hover (not by default).
+- Email/password inputs: reuse `.underline-input` but left-align (centered text on inputs reads as quirky, not polished); add a subtle `t-eyebrow` label above each.
+- Inline errors: small destructive dot + `t-label` text (no full-width red bar).
+- "check email" success state: use `t-display` for headline, `t-body` for sub.
+- Add a tiny footer line at bottom: `cemento · trust infrastructure` in `t-eyebrow` muted.
 
-1. Validate `X-Twilio-Signature` against `TWILIO_AUTH_TOKEN` (reject if missing/invalid).
-2. Parse `From` (`whatsapp:+E164`), `Body`, `NumMedia`, `MediaUrl0..N`, `MediaContentType0..N`.
-3. Look up `whatsapp_identities` → `user_id`. If unknown, treat as OTP candidate or send onboarding reply.
-4. Resolve project: most recent active project for this user, or whichever project the session is currently focused on. If user belongs to >1 project and no session, reply with a numbered list ("reply 1 for Kensington Mews, 2 for …").
-5. For each media item, fetch the binary with HTTP Basic auth (`TWILIO_ACCOUNT_SID:TWILIO_AUTH_TOKEN`), upload to `evidence-photos` bucket under `whatsapp/{user_id}/{uuid}.jpg`, capture the storage path.
-6. Call Claude with one combined prompt (reuse the `tag-evidence` system prompt + an `intent` field). Inputs: image(s) base64, message text, project context (milestones list, current session focus). Output JSON:
-   ```json
-   {
-     "intent": "submit_evidence" | "status_update" | "question" | "milestone_select" | "noop",
-     "milestone_id": "uuid|null",
-     "task_id": "uuid|null",
-     "tags": { ...same shape as tag-evidence... },
-     "note": "string",
-     "reply": "human-friendly WhatsApp reply"
-   }
-   ```
-7. Branch on `intent`:
-   - `submit_evidence` → insert into `evidence` (channel = `whatsapp`, photo_url, ai_tags, note, submitted_by = user_id, gps fields null), insert `project_changes` row, update milestone status using existing state machine rules.
-   - `status_update` → update milestone/task; insert `project_changes`.
-   - `question` → read-only; Claude generates the reply from project context.
-   - `milestone_select` → store choice in `whatsapp_sessions.milestone_id`.
-8. Send `reply` back via Twilio (`Messages.json`, `From` = our WhatsApp sender, `To` = `From`).
-9. Always return `200` with empty TwiML so Twilio doesn't retry on partial failures (errors get logged + a friendly reply is sent).
+### 3. App shell
 
-## Outbound helper (`whatsapp-send`)
+**`AppLayout.tsx`** — add a fixed top hairline header rail (40px) that hosts the burger trigger on the right and (when on a project route) the project code + active section eyebrow on the left. Content scroll region gets `pt-10 pb-16`.
 
-Thin wrapper used by both the webhook and other backend events (e.g. milestone approved → notify contractor). Uses the Twilio connector via the gateway pattern documented for `connector_id: twilio` so we never hard-code credentials.
+**`BottomNav.tsx`** — refinements only:
+- Reduce vertical padding `py-4` → `py-3`; nav height ~52px.
+- Active-state border-b currently 1px / accent-text — keep, but add 8px padding under text so the underline doesn't touch labels.
+- Inactive labels: opacity 40% → 50% for legibility; remove `border-t border-current/5` (use the new `--hairline`).
+- On dark surfaces, use surface-dark-muted instead of `/40` opacity for inactive text.
 
-## Frontend changes
+**`BurgerMenu.tsx`** — keep behavior (focus trap, escape, persistence) untouched. Visual refinements only:
+- Trigger: bars get 1px thicker only on hover; current is fine.
+- Panel: width 280 → 300, `bg-background` → `bg-surface-cream` for separation from page (still no shadow); left edge keeps `border-l` but use `--hairline`.
+- Header row: increase to 56px, title becomes `t-title`, close uses an icon-sized button (32×32) with hairline border.
+- Section eyebrows: switch to `.t-eyebrow` utility for consistency.
+- Active nav item: keep accent text, add a 2px-wide accent-color block (4px tall, no radius) before the label as a left marker; inactive items get a transparent marker (preserves indent).
+- Language pills keep their pill shape (existing toggle exception); reduce padding 1px.
+- Sign-out becomes the only button styled with a top hairline separator above it.
 
-- Replace `WhatsAppSim.tsx` route with a real "WhatsApp" panel: shows linked number, QR/deeplink to `https://wa.me/<our-number>?text=hi`, recent inbound messages (read-only log from `project_changes` filtered by `channel=whatsapp`), and a "Disconnect" button.
-- Team screen: add "Connect WhatsApp" button calling the verification edge fn.
+### 4. Memory updates
 
-## Setup the user must do
+Update `mem://style/color-palette` and `mem://style/design-principles` with the softened surface values and the new `t-eyebrow / t-label / t-body / t-title / t-display` type-scale convention. Keep the brutalist Core rule unchanged.
 
-1. Approve the Twilio connector when prompted (built-in connector, no manual secrets).
-2. In Twilio console: enable a WhatsApp sender (Sandbox is fine for dev, approved sender for prod), enable **SMS Pumping Protection** + **Geo Permissions** on the messaging service.
-3. Set the WhatsApp inbound webhook to the deployed URL of `whatsapp-webhook` (we'll surface it after deploy).
+### Out of scope (this pass)
+Home, Dashboard, Milestones, Evidence, Payments, Activity, Team, Submit, Camera, Onboarding, CreateProject, Cascade. Those will reuse the new tokens/utilities once approved on the shell.
 
-## Out of scope for this iteration
-
-- Voice notes (transcription) — can be added later by routing media with `audio/*` MIME to a transcription model.
-- Multi-language replies — Claude handles it automatically; no extra plumbing needed.
-- WhatsApp Business templates for proactive notifications outside the 24h window — flagged as a follow-up.
+### Files touched
+- `src/index.css` (tokens + utilities)
+- `tailwind.config.ts` (hairline color)
+- `src/pages/Auth.tsx`
+- `src/components/AppLayout.tsx`
+- `src/components/BottomNav.tsx`
+- `src/components/BurgerMenu.tsx`
+- `mem://style/color-palette`, `mem://style/design-principles`, `mem://index.md`
