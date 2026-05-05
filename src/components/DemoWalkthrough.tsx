@@ -430,9 +430,9 @@ function PmApprovalCard() {
 function ClientPaymentCard() {
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <Eyebrow>payment certificate</Eyebrow>
-        <span className="font-mono text-[11px] text-white/80">CMT-2026-0308-A7F2</span>
+        <span className="font-mono text-[10px] text-white/80 truncate">CMT-2026-0308-A7F2</span>
       </div>
       <div className="mt-3">
         {[
@@ -442,12 +442,12 @@ function ClientPaymentCard() {
         ].map((row, i) => (
           <div
             key={row.l}
-            className="flex items-center justify-between"
-            style={{ height: 40, borderTop: i === 0 ? `1px solid ${HAIRLINE}` : undefined, borderBottom: `1px solid ${HAIRLINE}` }}
+            className="flex items-center justify-between gap-3"
+            style={{ minHeight: 40, paddingTop: 8, paddingBottom: 8, borderTop: i === 0 ? `1px solid ${HAIRLINE}` : undefined, borderBottom: `1px solid ${HAIRLINE}` }}
           >
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55">{row.l}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55 shrink-0">{row.l}</span>
             <span
-              className={`font-sans text-white ${row.big ? "text-[24px] font-bold" : "text-[13px]"}`}
+              className={`font-sans text-white text-right ${row.big ? "text-[22px] font-bold" : "text-[12px]"}`}
             >
               {row.v}
             </span>
