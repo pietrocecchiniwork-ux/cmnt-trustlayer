@@ -104,7 +104,7 @@ export default function PaymentsList() {
             const isExpanded = expandedId === m.id;
             const cert = certificates.find((c: any) => c.milestone_id === m.id);
             return (
-              <div key={m.id} className="bg-card rounded-3xl px-6 py-4">
+              <div key={m.id} className={`rounded-3xl px-6 py-4 transition-colors ${isExpanded ? "bg-card" : "bg-card/40 hover:bg-card/60"}`}>
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : m.id)}
                   className="w-full flex items-center justify-between text-left"
