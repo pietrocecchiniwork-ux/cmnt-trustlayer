@@ -234,34 +234,62 @@ export default function MilestonesList() {
         </div>
 
         <div className="flex-1 px-6 pb-6 space-y-3">
-          {filteredMilestones.length > 0 && (
-            <div className="bg-card rounded-3xl px-6 py-2">
-              <div className="flex flex-col">
-                {filteredMilestones.map((m, i) => (
-                  <button
-                    key={m.id}
-                    onClick={() => navigate(`/project/milestone/${m.id}`)}
-                    className={`w-full flex items-center justify-between py-4 text-left group ${
-                      i !== filteredMilestones.length - 1 ? "border-b border-border/60" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <span className="font-mono text-[16px] text-muted-foreground group-hover:text-foreground transition-opacity flex-shrink-0">
-                        {String(m.position).padStart(2, "0")}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-sans text-[14px] text-foreground truncate">{m.name}</p>
-                        <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
-                          {m.due_date ?? "no date"} · £{Number(m.payment_value ?? 0).toLocaleString()}
+          {filteredMilestones.map((m) => {
+            const isExpanded = expandedId === m.id;
+            const statusLabel = (m.status ?? "").replace(/_/g, " ");
+            return (
+              <div key={m.id} className="bg-card rounded-3xl px-6 py-4">
+                <button
+                  onClick={() => setExpandedId(isExpanded ? null : m.id)}
+                  className="w-full flex items-center justify-between text-left group"
+                >
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <span className="font-mono text-[16px] text-muted-foreground flex-shrink-0">
+                      {String(m.position).padStart(2, "0")}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-sans text-[14px] text-foreground truncate">{m.name}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                        {m.due_date ?? "no date"} · £{Number(m.payment_value ?? 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ml-3 ${statusDotClass[m.status]}`} />
+                </button>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-border/60 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="t-eyebrow">due date</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1">{m.due_date ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="t-eyebrow">payment</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1">£{Number(m.payment_value ?? 0).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="t-eyebrow">status</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1 lowercase">{statusLabel}</p>
+                      </div>
+                      <div>
+                        <p className="t-eyebrow">assigned</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1 truncate">
+                          {(m as any).assigned_to_name ?? "unassigned"}
                         </p>
                       </div>
                     </div>
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDotClass[m.status]}`} />
-                  </button>
-                ))}
+                    <button
+                      onClick={() => navigate(`/project/milestone/${m.id}`)}
+                      className="w-full py-3 bg-foreground text-background rounded-full font-sans text-[14px]"
+                    >
+                      open milestone
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })}
 
           {filteredMilestones.length === 0 && milestones.length > 0 && (
             <div className="bg-card rounded-3xl px-6 py-8">
