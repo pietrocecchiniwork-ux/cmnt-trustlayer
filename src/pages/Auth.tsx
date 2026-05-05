@@ -1,29 +1,21 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useState, useEffect } from "react";
-import { useProjectContext } from "@/contexts/DemoProjectContext";
-import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { DemoWalkthrough } from "@/components/DemoWalkthrough";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { setCurrentProjectId } = useProjectContext();
   const { t } = useTranslation();
-  const [showEmail, setShowEmail] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<"choose" | "email" | "password">("choose");
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [passwordLoading, setPasswordLoading] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
-  const [googleError, setGoogleError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -32,37 +24,23 @@ export default function Auth() {
   }, [navigate]);
 
   const handleGoogle = async () => {
-    setGoogleError(null);
+    setError(null);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin + "/project/dashboard",
     });
-    if (result?.error) setGoogleError(result.error.message);
+    if (result?.error) setError(result.error.message);
   };
-
-  const handleDemo = () => setShowDemo(true);
 
   const handlePasswordAuth = async () => {
     if (!email.trim() || !password.trim()) return;
-    setPasswordLoading(true);
-    setPasswordError(null);
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
-      setPasswordLoading(false);
-      if (error) setPasswordError(error.message);
-      else setSent(true);
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setPasswordLoading(false);
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          setPasswordError("Invalid email or password.");
-        } else if (error.message.includes("Email not confirmed")) {
-          setPasswordError("Please confirm your email before signing in.");
-        } else {
-          setPasswordError(error.message);
-        }
-      } else navigate("/");
-    }
+    setLoading(true);
+    setError(null);
+    const fn = isSignUp ? supabase.auth.signUp : supabase.auth.signInWithPassword;
+    const { error } = await fn({ email, password });
+    setLoading(false);
+    if (error) setError(error.message);
+    else if (isSignUp) setSent(true);
+    else navigate("/");
   };
 
   const handleEmailOtp = async () => {
@@ -74,166 +52,141 @@ export default function Auth() {
     });
     setLoading(false);
     if (!error) setSent(true);
-    else console.error("Email OTP error:", error);
+    else setError(error.message);
   };
 
   if (showDemo) return <DemoWalkthrough onClose={() => setShowDemo(false)} />;
 
-  const ErrorLine = ({ msg }: { msg: string }) => (
-    <div className="flex items-start gap-2 mt-2 w-full">
-      <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-destructive flex-shrink-0" aria-hidden />
-      <p className="t-label text-destructive">{msg}</p>
-    </div>
-  );
-
-  const FieldLabel = ({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) => (
-    <label htmlFor={htmlFor} className="t-eyebrow self-start mb-1">
-      {children}
-    </label>
-  );
-
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-20 pb-6 items-center">
-      {/* Logo */}
-      <div className="flex flex-col items-center mb-14">
-        <div className="w-10 h-10 border border-foreground flex items-center justify-center mb-4">
-          <span className="font-mono text-[14px] text-foreground">C</span>
+    <div className="min-h-screen bg-background flex flex-col px-5 pt-16 pb-10">
+      {/* Brand */}
+      <div className="flex flex-col items-center mb-10">
+        <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center mb-4">
+          <span className="font-mono text-[18px] text-background">C</span>
         </div>
-        <p className="font-mono text-[15px] text-foreground tracking-[-0.02em] lowercase">cemento</p>
+        <p className="font-sans text-[20px] text-foreground tracking-[-0.02em] lowercase">cemento</p>
+        <p className="t-label mt-1">trust infrastructure for construction</p>
       </div>
 
-      {!sent && (
-        <div className="w-full max-w-[300px] flex flex-col items-center">
-          <button
-            onClick={handleGoogle}
-            className="w-full h-12 bg-foreground text-background font-sans text-[15px] font-medium border border-foreground hover:bg-foreground/90 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {t("auth.continue_google")}
-          </button>
-
-          {googleError && <ErrorLine msg={googleError} />}
-
-          {/* divider */}
-          <div className="flex items-center justify-center w-full my-6 gap-3">
-            <span className="block w-6 h-px hairline-bg" />
-            <span className="t-eyebrow">{t("common.or")}</span>
-            <span className="block w-6 h-px hairline-bg" />
+      {/* Card */}
+      <div className="w-full max-w-[380px] mx-auto bg-card rounded-3xl px-6 pt-7 pb-6 flex flex-col">
+        {sent ? (
+          <div className="text-center py-6">
+            <p className="t-title mb-2">{t("auth.check_email")}</p>
+            <p className="t-body text-muted-foreground">
+              {t("auth.magic_link_sent", { email })}
+            </p>
           </div>
+        ) : (
+          <>
+            <h1 className="font-sans text-[22px] text-foreground tracking-[-0.01em] mb-1">
+              {mode === "choose" ? "Welcome back" : mode === "email" ? "Magic link" : isSignUp ? "Create account" : "Sign in"}
+            </h1>
+            <p className="t-label mb-6">
+              {mode === "choose" ? "Sign in to continue to your projects." : "Enter your details below."}
+            </p>
 
-          {!showEmail && !showPassword && (
-            <div className="flex flex-col items-center gap-3 w-full">
-              <button
-                onClick={() => setShowEmail(true)}
-                className="t-label hover:text-foreground hover:underline underline-offset-4 transition-colors"
-              >
-                {t("auth.continue_email")}
-              </button>
-              <button
-                onClick={() => setShowPassword(true)}
-                className="t-label hover:text-foreground hover:underline underline-offset-4 transition-colors"
-              >
-                sign in with password
-              </button>
-              <button
-                onClick={handleDemo}
-                className="t-label mt-5 hover:text-foreground hover:underline underline-offset-4 transition-colors"
-              >
-                {t("auth.explore_demo")}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            {mode === "choose" && (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleGoogle}
+                  className="w-full h-12 bg-foreground text-background rounded-full font-sans text-[14px] font-medium hover:bg-foreground/90 transition-colors"
+                >
+                  Continue with Google
+                </button>
+                <button
+                  onClick={() => setMode("password")}
+                  className="w-full h-12 bg-secondary text-foreground rounded-full font-sans text-[14px] font-medium hover:bg-secondary/80 transition-colors"
+                >
+                  Continue with email
+                </button>
+                <button
+                  onClick={() => setShowDemo(true)}
+                  className="w-full h-10 text-muted-foreground rounded-full font-mono text-[12px] hover:text-foreground transition-colors"
+                >
+                  Explore the demo →
+                </button>
+              </div>
+            )}
 
-      {showEmail && !sent && (
-        <div className="w-full max-w-[300px] flex flex-col items-stretch">
-          <FieldLabel htmlFor="email-otp">email</FieldLabel>
-          <input
-            id="email-otp"
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="underline-input mb-8"
-          />
-          <Button variant="dark" size="full" onClick={handleEmailOtp} disabled={loading}>
-            <span className="font-sans text-[15px]">
-              {loading ? t("auth.sending") : t("auth.send_magic_link")}
-            </span>
-          </Button>
-          <button
-            onClick={() => setShowEmail(false)}
-            className="t-label mt-6 self-center hover:text-foreground hover:underline underline-offset-4 transition-colors"
-          >
-            {t("common.back")}
-          </button>
-        </div>
-      )}
+            {mode === "email" && (
+              <div className="flex flex-col gap-4">
+                <Field id="email" label="email" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
+                <PrimaryBtn loading={loading} onClick={handleEmailOtp}>
+                  {loading ? "Sending…" : "Send magic link"}
+                </PrimaryBtn>
+              </div>
+            )}
 
-      {showPassword && !sent && (
-        <div className="w-full max-w-[300px] flex flex-col items-stretch">
-          <FieldLabel htmlFor="email-pw">email</FieldLabel>
-          <input
-            id="email-pw"
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="underline-input mb-4"
-          />
-          <FieldLabel htmlFor="pw">password</FieldLabel>
-          <input
-            id="pw"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="underline-input mb-6"
-          />
-          {passwordError && <ErrorLine msg={passwordError} />}
-          <Button variant="dark" size="full" onClick={handlePasswordAuth} disabled={passwordLoading}>
-            <span className="font-sans text-[15px]">
-              {passwordLoading ? "…" : isSignUp ? "create account" : "sign in"}
-            </span>
-          </Button>
+            {mode === "password" && (
+              <div className="flex flex-col gap-4">
+                <Field id="email-pw" label="email" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
+                <Field id="pw" label="password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
+                <PrimaryBtn loading={loading} onClick={handlePasswordAuth}>
+                  {loading ? "…" : isSignUp ? "Create account" : "Sign in"}
+                </PrimaryBtn>
+                <div className="flex justify-between t-label">
+                  <button onClick={() => setIsSignUp(!isSignUp)} className="hover:text-foreground transition-colors">
+                    {isSignUp ? "have an account?" : "create account"}
+                  </button>
+                  {!isSignUp && (
+                    <button onClick={() => navigate("/forgot-password")} className="hover:text-foreground transition-colors">
+                      forgot password?
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
-          <div className="flex flex-col items-center gap-2 mt-5">
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="t-label hover:text-foreground hover:underline underline-offset-4 transition-colors"
-            >
-              {isSignUp ? "already have an account?" : "create account"}
-            </button>
-            {!isSignUp && (
+            {error && (
+              <div className="mt-4 px-3 py-2 rounded-xl bg-destructive/10 t-label text-destructive">
+                {error}
+              </div>
+            )}
+
+            {mode !== "choose" && (
               <button
-                onClick={() => navigate("/forgot-password")}
-                className="t-label hover:text-foreground hover:underline underline-offset-4 transition-colors"
+                onClick={() => { setMode("choose"); setError(null); }}
+                className="t-label mt-6 self-center hover:text-foreground transition-colors"
               >
-                forgot password?
+                ← back
               </button>
             )}
-            <button
-              onClick={() => { setShowPassword(false); setPasswordError(null); }}
-              className="t-label mt-3 hover:text-foreground hover:underline underline-offset-4 transition-colors"
-            >
-              {t("common.back")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {sent && (
-        <div className="flex flex-col items-center max-w-[300px]">
-          <p className="t-display text-foreground mb-3 text-center">{t("auth.check_email")}</p>
-          <p className="t-body text-muted-foreground text-center">
-            {t("auth.magic_link_sent", { email })}
-          </p>
-        </div>
-      )}
-
-      <div className="mt-auto pt-10">
-        <p className="t-eyebrow">cemento · trust infrastructure</p>
+          </>
+        )}
       </div>
+
+      <p className="t-eyebrow text-center mt-auto pt-10">cemento © 2026</p>
     </div>
+  );
+}
+
+function Field({ id, label, type, value, onChange, placeholder }: {
+  id: string; label: string; type: string; value: string; onChange: (v: string) => void; placeholder: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="t-eyebrow">{label}</label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-11 px-4 rounded-full bg-secondary text-foreground placeholder:text-muted-foreground font-sans text-[14px] focus:outline-none focus:ring-2 focus:ring-accent/40 transition-shadow"
+      />
+    </div>
+  );
+}
+
+function PrimaryBtn({ children, onClick, loading }: { children: React.ReactNode; onClick: () => void; loading?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="w-full h-12 bg-foreground text-background rounded-full font-sans text-[14px] font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+    >
+      {children}
+    </button>
   );
 }
