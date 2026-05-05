@@ -66,7 +66,7 @@ export default function Auth() {
           <span className="font-mono text-[18px] text-background">C</span>
         </div>
         <p className="font-sans text-[20px] text-foreground tracking-[-0.02em] lowercase">cemento</p>
-        <p className="t-label mt-1">trust infrastructure for construction</p>
+        <p className="t-label mt-1 whitespace-pre-line">THE CONSTRUCTION TRUST LAYER{"\n\n"}</p>
       </div>
 
       {/* Card */}
