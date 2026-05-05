@@ -97,6 +97,15 @@ const slides: Slide[] = [
     cta: "release £11,000 →",
     ctaTone: "black",
   },
+  {
+    bg: "#F5F3EE",
+    text: "dark",
+    role: null,
+    headline: "every party informed.\nevery payment justified.\nevery project on record.",
+    cta: "sign in to get started →",
+    ctaTone: "black",
+    isFinal: true,
+  },
 ];
 
 const SWIPE_THRESHOLD = 50;
