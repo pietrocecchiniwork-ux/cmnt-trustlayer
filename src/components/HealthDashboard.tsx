@@ -77,25 +77,25 @@ export function HealthDashboard({ milestones, needsApprovalCount }: Props) {
   if (milestones.length === 0) return null;
 
   return (
-    <div className="px-6 mt-6">
-      {/* Project-wide progress bar */}
-      <div className="mb-6">
-        <div className="flex items-baseline justify-between mb-2">
-          <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">
-            project progress
+    <div className="px-6 mt-4 space-y-3">
+      {/* Project-wide progress */}
+      <div className="bg-card rounded-3xl px-6 py-5">
+        <div className="flex items-baseline justify-between">
+          <p className="t-eyebrow">project progress</p>
+          <p className="font-sans text-[28px] tracking-[-0.02em] text-foreground leading-none">
+            {percentComplete}%
           </p>
-          <p className="font-mono text-[12px] text-foreground">{percentComplete}%</p>
         </div>
-        <div className="h-1 w-full bg-secondary overflow-hidden">
+        <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden mt-4">
           <div
-            className="h-full bg-foreground transition-all"
+            className="h-full bg-foreground transition-all rounded-full"
             style={{ width: `${percentComplete}%` }}
           />
         </div>
       </div>
 
       {/* Traffic-light health summary */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3">
         <HealthCell tone="green" label="on track" count={green} />
         <HealthCell tone="amber" label="watch" count={amber} />
         <HealthCell tone="red" label="at risk" count={red} />
@@ -103,16 +103,18 @@ export function HealthDashboard({ milestones, needsApprovalCount }: Props) {
 
       {/* Needs attention today */}
       {attention.length > 0 && (
-        <div className="mb-2">
-          <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-3">
+        <div className="bg-card rounded-3xl px-6 py-5">
+          <p className="t-eyebrow mb-3">
             needs attention today ({attention.length})
           </p>
-          <div className="space-y-1.5">
-            {attention.slice(0, 5).map(item => (
+          <div className="flex flex-col">
+            {attention.slice(0, 5).map((item, i) => (
               <button
                 key={item.id}
                 onClick={() => navigate(`/project/milestone/${item.id}`)}
-                className="w-full flex items-center justify-between py-2 border-b border-border text-left group"
+                className={`w-full flex items-center justify-between py-3 text-left group ${
+                  i !== Math.min(attention.length, 5) - 1 ? "border-b border-border/60" : ""
+                }`}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <span
@@ -120,7 +122,7 @@ export function HealthDashboard({ milestones, needsApprovalCount }: Props) {
                       item.tone === "red" ? "bg-destructive" : "bg-warning"
                     }`}
                   />
-                  <p className="font-sans text-[13px] text-foreground truncate">{item.name}</p>
+                  <p className="font-sans text-[14px] text-foreground truncate">{item.name}</p>
                 </div>
                 <p className="font-mono text-[10px] text-muted-foreground flex-shrink-0 ml-3">
                   {item.reason}
@@ -128,7 +130,7 @@ export function HealthDashboard({ milestones, needsApprovalCount }: Props) {
               </button>
             ))}
             {attention.length > 5 && (
-              <p className="font-mono text-[10px] text-muted-foreground pt-2">
+              <p className="font-mono text-[10px] text-muted-foreground pt-3">
                 +{attention.length - 5} more
               </p>
             )}
@@ -143,14 +145,12 @@ function HealthCell({ tone, label, count }: { tone: Health; label: string; count
   const dotClass =
     tone === "green" ? "bg-success" : tone === "amber" ? "bg-warning" : "bg-destructive";
   return (
-    <div className="border border-border p-3">
-      <div className="flex items-center gap-2 mb-1">
+    <div className="bg-card rounded-3xl px-4 py-4">
+      <div className="flex items-center gap-2 mb-2">
         <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-        <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-          {label}
-        </p>
+        <p className="t-eyebrow">{label}</p>
       </div>
-      <p className="font-mono text-[24px] text-foreground leading-none">{count}</p>
+      <p className="font-sans text-[28px] text-foreground leading-none tracking-[-0.02em]">{count}</p>
     </div>
   );
 }
