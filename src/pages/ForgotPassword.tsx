@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function ForgotPassword() {
@@ -23,53 +22,69 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-24 pb-6 items-center">
-      <div className="flex flex-col items-center mb-20">
-        <div className="w-10 h-10 bg-foreground rounded-sm mb-4" />
-        <p className="font-mono text-[18px] text-foreground tracking-tight">cemento</p>
+    <div className="min-h-screen bg-background flex flex-col px-5 pt-16 pb-10">
+      <div className="flex flex-col items-center mb-10">
+        <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center mb-4">
+          <span className="font-mono text-[18px] text-background">C</span>
+        </div>
+        <p className="font-sans text-[20px] text-foreground tracking-[-0.02em] lowercase">cemento</p>
       </div>
 
-      {!sent ? (
-        <div className="w-full max-w-[300px] flex flex-col items-center">
-          <p className="font-sans text-[16px] text-foreground mb-6 text-center">
-            enter your email to receive a password reset link
-          </p>
-          <input
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="underline-input text-center mb-8"
-          />
-          {error && (
-            <p className="font-mono text-[11px] text-destructive mb-4 w-full">{error}</p>
-          )}
-          <Button variant="dark" size="full" onClick={handleReset} disabled={loading}>
-            <span className="font-sans text-[16px]">
-              {loading ? "sending..." : "send reset link"}
-            </span>
-          </Button>
-          <button
-            onClick={() => navigate("/auth")}
-            className="font-mono text-[13px] text-muted-foreground mt-6 underline underline-offset-4 hover:text-foreground transition-colors"
-          >
-            back to sign in
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center">
-          <p className="font-sans text-[22px] text-foreground mb-4 text-center">check your email</p>
-          <p className="font-sans text-[14px] text-muted-foreground text-center">
-            we sent a reset link to <strong>{email}</strong>
-          </p>
-          <button
-            onClick={() => navigate("/auth")}
-            className="font-mono text-[13px] text-muted-foreground mt-8 underline underline-offset-4 hover:text-foreground transition-colors"
-          >
-            back to sign in
-          </button>
-        </div>
-      )}
+      <div className="w-full max-w-[380px] mx-auto bg-card rounded-3xl px-6 pt-7 pb-6 flex flex-col">
+        {!sent ? (
+          <>
+            <h1 className="font-sans text-[22px] text-foreground tracking-[-0.01em] mb-1">Reset password</h1>
+            <p className="t-label mb-6">We'll email you a reset link.</p>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="reset-email" className="t-eyebrow">email</label>
+                <input
+                  id="reset-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="h-11 px-4 rounded-full bg-secondary text-foreground placeholder:text-muted-foreground font-sans text-[14px] focus:outline-none focus:ring-2 focus:ring-accent/40 transition-shadow"
+                />
+              </div>
+              <button
+                onClick={handleReset}
+                disabled={loading}
+                className="w-full h-12 bg-foreground text-background rounded-full font-sans text-[14px] font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+              >
+                {loading ? "Sending…" : "Send reset link"}
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-4 px-3 py-2 rounded-xl bg-destructive/10 t-label text-destructive">{error}</div>
+            )}
+
+            <button
+              onClick={() => navigate("/auth")}
+              className="t-label mt-6 self-center hover:text-foreground transition-colors"
+            >
+              ← back to sign in
+            </button>
+          </>
+        ) : (
+          <div className="text-center py-6">
+            <p className="t-title mb-2">Check your email</p>
+            <p className="t-body text-muted-foreground">
+              We sent a reset link to <strong className="text-foreground">{email}</strong>
+            </p>
+            <button
+              onClick={() => navigate("/auth")}
+              className="t-label mt-8 hover:text-foreground transition-colors"
+            >
+              ← back to sign in
+            </button>
+          </div>
+        )}
+      </div>
+
+      <p className="t-eyebrow text-center mt-auto pt-10">cemento © 2026</p>
     </div>
   );
 }
