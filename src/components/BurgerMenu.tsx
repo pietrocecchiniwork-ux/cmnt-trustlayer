@@ -35,15 +35,9 @@ export function BurgerMenu() {
   const [demoLoading, setDemoLoading] = useState(false);
 
   useEffect(() => {
-    if (!isProjectRoute && open) {
-      setOpen(false);
-      sessionStorage.removeItem(OPEN_KEY);
-      return;
-    }
-    if (isProjectRoute) {
-      sessionStorage.setItem(OPEN_KEY, open ? "1" : "0");
-    }
-  }, [open, isProjectRoute, location.pathname]);
+    setOpen(false);
+  }, [location.pathname]);
+
 
   useEffect(() => {
     if (!open) return;
