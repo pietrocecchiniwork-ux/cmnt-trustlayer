@@ -420,8 +420,8 @@ function PmApprovalCard() {
         </div>
       </div>
       <div
-        className="mt-4 w-full flex items-center justify-center rounded-2xl font-mono text-[11px] uppercase tracking-wider text-white px-4 text-center"
-        style={{ minHeight: 44, border: `1px solid ${HAIRLINE}`, backgroundColor: "rgba(255,255,255,0.04)" }}
+        className="mt-4 w-full flex items-center justify-center rounded-2xl font-mono text-[11px] uppercase tracking-wider px-4 text-center"
+        style={{ minHeight: 44, border: "1px solid rgba(127,176,105,0.35)", backgroundColor: "rgba(127,176,105,0.10)", color: "#7FB069" }}
       >
         approved with condition
       </div>
