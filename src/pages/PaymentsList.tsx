@@ -33,7 +33,7 @@ export default function PaymentsList() {
     <div className="min-h-screen screen-dark">
      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
       {/* Header */}
-      <div className="px-6 pt-10">
+      <div className="px-6 pt-20">
         <div className="flex items-center justify-between mb-6">
           <span className="font-mono text-[14px] text-surface-dark-foreground/40">←</span>
           <span className="font-mono text-[16px] text-surface-dark-foreground/40">—</span>

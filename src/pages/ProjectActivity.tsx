@@ -203,7 +203,7 @@ export default function ProjectActivity() {
   const showEmpty = (!showLoading && filteredChanges.length === 0) || (!currentProjectId && timedOut);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-32">
+    <div className="flex flex-col min-h-screen bg-background px-6 pt-20 pb-32">
       <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-6">← back</button>
       <div className="flex items-center justify-between">
         <div>
