@@ -152,7 +152,7 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className={`fixed inset-0 z-[100] ${current.bg} transition-colors duration-500 flex flex-col text-white`}
+      className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -161,31 +161,33 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
       <div className="flex items-center justify-between px-5 pt-6 pb-4">
         <button
           onClick={onClose}
-          className="h-9 px-4 rounded-full bg-white/15 hover:bg-white/25 transition-colors font-mono text-[11px]"
+          className="h-9 px-4 rounded-full bg-secondary hover:bg-secondary/80 transition-colors font-mono text-[11px] text-foreground"
         >
           ← sign in
         </button>
-        <span className="h-9 px-4 inline-flex items-center rounded-full bg-white/15 font-mono text-[11px] tracking-widest uppercase">
+        <span className="h-9 px-4 inline-flex items-center rounded-full bg-secondary font-mono text-[11px] tracking-widest uppercase text-muted-foreground">
           {step + 1}/{steps.length}
         </span>
       </div>
 
-      {/* Card */}
+      {/* Colored card */}
       <div className="flex-1 flex flex-col px-4">
-        <div className="bg-card text-foreground rounded-3xl p-6 flex-1 flex flex-col">
-          <span className="t-eyebrow">viewing as · {current.roleLabel}</span>
+        <div className={`${current.bg} text-white rounded-3xl p-6 flex-1 flex flex-col transition-colors duration-500`}>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-white/70">
+            viewing as · {current.roleLabel}
+          </span>
 
           <div className="mt-5 flex-1 flex flex-col">
             <h1 className="font-sans text-[26px] tracking-[-0.01em] leading-tight mb-2">
               {current.title}
             </h1>
-            <p className="font-sans text-[14px] text-muted-foreground mb-6 leading-relaxed">
+            <p className="font-sans text-[14px] text-white/75 mb-6 leading-relaxed">
               {current.description}
             </p>
 
-            <div className="rounded-2xl bg-secondary p-4 space-y-2">
+            <div className="rounded-2xl bg-white/15 p-4 space-y-2 backdrop-blur-sm">
               {current.detail.map((line, i) => (
-                <p key={i} className="font-mono text-[12px] text-foreground leading-relaxed">
+                <p key={i} className="font-mono text-[12px] text-white leading-relaxed">
                   {line}
                 </p>
               ))}
@@ -198,7 +200,7 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === step ? "w-5 bg-foreground" : "w-1.5 bg-foreground/20"
+                  i === step ? "w-5 bg-white" : "w-1.5 bg-white/30"
                 }`}
               />
             ))}
@@ -210,7 +212,7 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
       <div className="px-4 pt-4 pb-6">
         <button
           onClick={handleNext}
-          className="w-full h-12 bg-white text-[#1C1C1A] rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.98]"
+          className="w-full h-12 bg-foreground text-background rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.98]"
         >
           {isLast ? "sign in to get started" : current.cta}
         </button>
