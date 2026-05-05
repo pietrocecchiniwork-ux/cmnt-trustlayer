@@ -131,8 +131,8 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
   };
 
   return (
-    <div>
-      <div className="flex items-baseline justify-between mb-3">
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between px-2">
         <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">
           needs approval
         </p>
@@ -174,11 +174,13 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
                 key={m.id}
                 onClick={() => toggle(m.id)}
                 disabled={submitting}
-                className="w-full flex items-center justify-between py-3 border-b border-border text-left disabled:opacity-50"
+                className={`w-full flex items-center justify-between rounded-3xl px-5 py-4 text-left transition-colors disabled:opacity-50 ${
+                  isSelected ? "bg-card" : "bg-card/40 hover:bg-card/60"
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className={`w-4 h-4 border flex items-center justify-center ${
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
                       isSelected
                         ? "bg-foreground border-foreground"
                         : "border-muted-foreground/40"
@@ -202,7 +204,7 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
             <button
               key={m.id}
               onClick={() => navigate(`/project/milestone/${m.id}`)}
-              className="w-full flex items-center justify-between py-3 border-b border-border text-left"
+              className="w-full flex items-center justify-between bg-card/40 hover:bg-card/60 rounded-3xl px-5 py-4 text-left transition-colors"
             >
               <span className="font-sans text-[14px] text-foreground">
                 {m.name?.toLowerCase()}
@@ -217,14 +219,14 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
 
       {/* Bulk action bar */}
       {selectMode && selected.size > 0 && !qaPrompt && (
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
+        <div className="bg-card rounded-3xl px-5 py-4 flex items-center justify-between gap-3">
           <p className="font-mono text-[12px] text-muted-foreground">
             {selected.size} selected
           </p>
           <button
             onClick={() => setQaPrompt(true)}
             disabled={submitting}
-            className="font-mono text-[12px] text-success border border-success rounded px-4 py-2 disabled:opacity-50"
+            className="font-mono text-[12px] text-success border border-success rounded-full px-4 py-2 disabled:opacity-50"
           >
             approve {selected.size}
           </button>
@@ -233,22 +235,22 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
 
       {/* QA prompt for the whole batch */}
       {qaPrompt && (
-        <div className="mt-4 space-y-2 border-t border-border pt-4">
-          <p className="font-mono text-[11px] text-muted-foreground">
+        <div className="bg-card rounded-3xl px-5 py-4 space-y-3">
+          <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">
             quality assessment (applied to all {selected.size})
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => confirmBulkApprove("satisfactory")}
               disabled={submitting}
-              className="flex-1 font-mono text-[12px] text-success border border-success rounded py-2 disabled:opacity-50"
+              className="flex-1 font-mono text-[12px] text-success border border-success rounded-full py-2 disabled:opacity-50"
             >
               {submitting ? "approving..." : "satisfactory"}
             </button>
             <button
               onClick={() => confirmBulkApprove("requires_attention")}
               disabled={submitting}
-              className="flex-1 font-mono text-[12px] text-destructive border border-destructive rounded py-2 disabled:opacity-50"
+              className="flex-1 font-mono text-[12px] text-destructive border border-destructive rounded-full py-2 disabled:opacity-50"
             >
               {submitting ? "approving..." : "requires attention"}
             </button>
