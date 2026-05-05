@@ -154,6 +154,8 @@ function StatusRow({
 }) {
   const stateLabel = status === "done" ? "done" : status === "progress" ? "in progress" : "to do";
   const labelColor = status === "todo" ? "rgba(255,255,255,0.55)" : "#FFFFFF";
+  const stateColor =
+    status === "done" ? "#7FB069" : status === "progress" ? "#FFFFFF" : "rgba(255,255,255,0.45)";
   return (
     <div
       className="w-full flex items-center justify-between rounded-xl px-4"
