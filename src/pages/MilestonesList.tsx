@@ -28,6 +28,7 @@ export default function MilestonesList() {
   const { data: user } = useCurrentUser();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const isWorker = role === "contractor" || role === "trade";
 
