@@ -130,33 +130,17 @@ export default function EvidenceList() {
           const hasGps = typeof lat === "number" && typeof lng === "number";
 
           return (
-            <div key={e.id} className="bg-card rounded-3xl px-5 py-4 flex items-start gap-4">
-              <div className="flex flex-col gap-1 flex-shrink-0">
-                {e.photo_url ? (
-                  <button
-                    onClick={() => {
-                      setLightboxUrl(e.photo_url!);
-                      logEvidenceView(e);
-                    }}
-                  >
-                    <img
-                      src={e.photo_url}
-                      alt="evidence"
-                      className="w-[52px] h-[52px] object-cover rounded-2xl hover:opacity-80 transition-opacity"
-                    />
-                  </button>
-                ) : (
-                  <div className="w-[52px] h-[52px] rounded-2xl bg-secondary flex items-center justify-center">
-                    <span className="font-mono text-[10px] text-muted-foreground">—</span>
-                  </div>
-                )}
-                {hasGps && <GpsMapThumb lat={Number(lat)} lng={Number(lng)} size={52} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-sans text-[14px] text-foreground truncate">{e.milestone_name}</p>
+            <div key={e.id} className="bg-card rounded-3xl px-5 py-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="t-eyebrow">milestone</p>
+                  <p className="font-sans text-[15px] text-foreground mt-1 lowercase truncate">
+                    {e.milestone_name}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {conditionFlag && (
-                    <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${
+                    <span className={`font-mono text-[10px] px-2.5 py-1 rounded-full ${
                       conditionFlag === "pass" ? "bg-success/15 text-success" :
                       conditionFlag === "concern" ? "bg-warning/15 text-warning" :
                       "bg-destructive/15 text-destructive"
@@ -165,32 +149,68 @@ export default function EvidenceList() {
                     </span>
                   )}
                   {milestoneMatch != null && (
-                    <span className={`font-mono text-[10px] flex-shrink-0 ${milestoneMatch ? "text-success" : "text-destructive"}`}>
+                    <span className={`font-mono text-[10px] ${milestoneMatch ? "text-success" : "text-destructive"}`}>
                       {milestoneMatch ? "✓" : "✕"}
                     </span>
                   )}
                 </div>
-                <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
-                  {format(new Date(e.submitted_at), "dd MMM yyyy · HH:mm")}
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                {e.photo_url ? (
+                  <button
+                    onClick={() => {
+                      setLightboxUrl(e.photo_url!);
+                      logEvidenceView(e);
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    <img
+                      src={e.photo_url}
+                      alt="evidence"
+                      className="w-[88px] h-[88px] object-cover rounded-2xl hover:opacity-80 transition-opacity"
+                    />
+                  </button>
+                ) : (
+                  <div className="w-[88px] h-[88px] rounded-2xl bg-secondary flex items-center justify-center flex-shrink-0">
+                    <span className="font-mono text-[10px] text-muted-foreground">—</span>
+                  </div>
+                )}
+                {hasGps && (
+                  <div className="flex-shrink-0">
+                    <GpsMapThumb lat={Number(lat)} lng={Number(lng)} size={88} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    {format(new Date(e.submitted_at), "dd MMM yyyy · HH:mm")}
+                  </p>
+                  {e.note && <p className="font-sans text-[13px] text-foreground/85 mt-1.5 leading-snug">{e.note}</p>}
+                </div>
+              </div>
+
+              {aiComment && (
+                <p className="font-sans text-[12px] text-muted-foreground italic mt-3 leading-relaxed">
+                  {aiComment}
                 </p>
-                {aiComment && (
-                  <p className="font-sans text-[12px] text-muted-foreground italic mt-1 leading-relaxed">{aiComment}</p>
-                )}
-                {e.note && <p className="font-sans text-[13px] text-foreground/80 mt-1">{e.note}</p>}
-                {(e as any).voice_note_url && (
-                  <audio src={(e as any).voice_note_url} controls className="mt-2 h-7 w-44" />
-                )}
-                <div className="flex flex-wrap gap-2 mt-2">
+              )}
+
+              {(e as any).voice_note_url && (
+                <audio src={(e as any).voice_note_url} controls className="mt-3 h-8 w-full" />
+              )}
+
+              {displayTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/60">
                   {displayTags.map((tag, j) => (
                     <span
                       key={j}
-                      className="font-mono text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5"
+                      className="font-mono text-[10px] text-muted-foreground bg-secondary rounded-full px-2.5 py-1"
                     >
                       {tag.replace(/_/g, " ")}
                     </span>
                   ))}
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
