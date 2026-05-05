@@ -150,72 +150,70 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
     touchEndX.current = null;
   };
 
-  const textColor = current.role === "ai" ? "text-white" : current.role === "client" ? "text-white" : "text-white";
-  const mutedColor = current.role === "ai" ? "text-white/60" : "text-white/70";
-
   return (
-    <div 
-      className={`fixed inset-0 z-[100] ${current.bg} transition-colors duration-500 flex flex-col`}
+    <div
+      className={`fixed inset-0 z-[100] ${current.bg} transition-colors duration-500 flex flex-col text-white`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-8 pb-4">
-        <button onClick={onClose} className={`font-mono text-[13px] ${mutedColor}`}>
-          ← back to sign in
+      <div className="flex items-center justify-between px-5 pt-6 pb-4">
+        <button
+          onClick={onClose}
+          className="h-9 px-4 rounded-full bg-white/15 hover:bg-white/25 transition-colors font-mono text-[11px]"
+        >
+          ← sign in
         </button>
-        <span className={`font-mono text-[10px] ${mutedColor} uppercase tracking-widest`}>
+        <span className="h-9 px-4 inline-flex items-center rounded-full bg-white/15 font-mono text-[11px] tracking-widest uppercase">
           {step + 1}/{steps.length}
         </span>
       </div>
 
-      {/* Role badge */}
-      <div className="px-6 mb-2">
-        <span className={`font-mono text-[10px] ${mutedColor} uppercase tracking-widest`}>
-          viewing as: {current.roleLabel}
-        </span>
-      </div>
+      {/* Card */}
+      <div className="flex-1 flex flex-col px-4">
+        <div className="bg-card text-foreground rounded-3xl p-6 flex-1 flex flex-col">
+          <span className="t-eyebrow">viewing as · {current.roleLabel}</span>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col justify-center px-6">
-        <h1 className={`font-sans text-[28px] ${textColor} mb-3 leading-tight`}>
-          {current.title}
-        </h1>
-        <p className={`font-sans text-[15px] ${mutedColor} mb-8`}>
-          {current.description}
-        </p>
-
-        {/* Detail card */}
-        <div className="bg-white/10 backdrop-blur-sm p-5 mb-8">
-          {current.detail.map((line, i) => (
-            <p key={i} className={`font-mono text-[12px] ${textColor} ${i > 0 ? "mt-2" : ""}`}>
-              {line}
+          <div className="mt-5 flex-1 flex flex-col">
+            <h1 className="font-sans text-[26px] tracking-[-0.01em] leading-tight mb-2">
+              {current.title}
+            </h1>
+            <p className="font-sans text-[14px] text-muted-foreground mb-6 leading-relaxed">
+              {current.description}
             </p>
-          ))}
+
+            <div className="rounded-2xl bg-secondary p-4 space-y-2">
+              {current.detail.map((line, i) => (
+                <p key={i} className="font-mono text-[12px] text-foreground leading-relaxed">
+                  {line}
+                </p>
+              ))}
+            </div>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex justify-center gap-1.5 mt-6 mb-1">
+            {steps.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === step ? "w-5 bg-foreground" : "w-1.5 bg-foreground/20"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
       {/* CTA */}
-      <div className="px-6 pb-10">
+      <div className="px-4 pt-4 pb-6">
         <button
           onClick={handleNext}
-          className="w-full bg-white text-[#1C1C1A] font-sans text-[15px] font-medium py-4 transition-transform active:scale-[0.98]"
+          className="w-full h-12 bg-white text-[#1C1C1A] rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.98]"
         >
           {isLast ? "sign in to get started" : current.cta}
         </button>
-
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 mt-6">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === step ? "bg-white" : "bg-white/30"
-              }`}
-            />
-          ))}
-        </div>
       </div>
     </div>
   );
