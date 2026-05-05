@@ -655,30 +655,66 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_identities: {
+        Row: {
+          created_at: string
+          id: string
+          phone_number: string
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone_number: string
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone_number?: string
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_sessions: {
         Row: {
           id: string
+          last_evidence_id: string | null
+          last_inbound_at: string | null
+          last_milestone_id: string | null
           milestone_id: string | null
           phone_number: string
           project_id: string | null
           state: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           id?: string
+          last_evidence_id?: string | null
+          last_inbound_at?: string | null
+          last_milestone_id?: string | null
           milestone_id?: string | null
           phone_number: string
           project_id?: string | null
           state?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           id?: string
+          last_evidence_id?: string | null
+          last_inbound_at?: string | null
+          last_milestone_id?: string | null
           milestone_id?: string | null
           phone_number?: string
           project_id?: string | null
           state?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -696,6 +732,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_verifications: {
+        Row: {
+          code: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          phone_number: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone_number: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone_number?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
