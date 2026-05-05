@@ -532,10 +532,11 @@ export default function MilestoneDetailPage() {
   // ─── PM / in-review / complete view ───
   return (
     <div className="flex flex-col bg-background">
-      <div className="px-6 pt-12 pb-40">
-        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-4">{t("common.back")}</button>
+      <div className="px-5 pt-20 pb-40 space-y-3">
+        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-1 px-1">{t("common.back")}</button>
 
-        <p className={`font-mono text-[96px] leading-none tracking-tight ${numColor}`}>
+        <div className="bg-card rounded-3xl px-6 py-6">
+        <p className={`font-mono text-[64px] leading-none tracking-tight ${numColor}`}>
           {String(milestone.position).padStart(2, "0")}
         </p>
 
