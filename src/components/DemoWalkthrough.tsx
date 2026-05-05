@@ -360,13 +360,13 @@ function AiAnalysisCard() {
         <AiCheckRow pass label="riba stage" value="first fix" result="correct" />
         <AiCheckRow pass={false} label="condition" value="consumer unit" result="needs attention" />
       </div>
-      <div className="mt-4 flex items-center justify-between">
-        <span className="font-sans text-[13px]" style={{ color: "#5BD3D9" }}>4 / 5 checks passed</span>
-        <div className="flex flex-col items-end gap-1">
-          <div className="rounded-full overflow-hidden" style={{ width: 120, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="font-sans text-[13px] whitespace-nowrap shrink-0" style={{ color: "#5BD3D9" }}>4 / 5 checks passed</span>
+        <div className="flex flex-col items-end gap-1 min-w-0">
+          <div className="rounded-full overflow-hidden" style={{ width: 100, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
             <div style={{ width: "80%", height: "100%", backgroundColor: "#5BD3D9" }} />
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">confidence high · 1 flag</span>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-white/50 whitespace-nowrap">confidence high · 1 flag</span>
         </div>
       </div>
       <div className="mt-3">
