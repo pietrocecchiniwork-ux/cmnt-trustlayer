@@ -394,15 +394,15 @@ export default function MilestoneDetailPage() {
             <div className="flex gap-2">
               <input
                 type="date"
-                className="flex-1 bg-secondary border border-border rounded px-3 py-1.5 font-mono text-[13px] text-foreground"
+                className="flex-1 min-w-0 bg-secondary border border-border rounded px-3 py-1.5 font-mono text-[13px] text-foreground"
                 value={newTaskDate}
                 onChange={(e) => setNewTaskDate(e.target.value)}
               />
-              <div className="flex items-center gap-1 w-28">
+              <div className="flex items-center gap-1 flex-1 min-w-0 bg-secondary border border-border rounded px-2 py-1.5">
                 <span className="font-mono text-[13px] text-muted-foreground">£</span>
                 <input
                   type="number"
-                  className="flex-1 bg-secondary border border-border rounded px-2 py-1.5 font-mono text-[13px] text-foreground"
+                  className="flex-1 min-w-0 w-full bg-transparent font-mono text-[13px] text-foreground outline-none"
                   placeholder={t("tasks.budget")}
                   value={newTaskBudget}
                   onChange={(e) => setNewTaskBudget(e.target.value)}
