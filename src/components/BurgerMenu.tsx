@@ -253,10 +253,7 @@ export function BurgerMenu() {
 
           {/* PROJECTS */}
           <section aria-labelledby="menu-section-projects">
-            <p
-              id="menu-section-projects"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-projects" className="t-eyebrow mb-2">
               {t("menu.projects")}
             </p>
             <button
@@ -264,6 +261,7 @@ export function BurgerMenu() {
               className={itemClass("/create-project")}
               aria-current={isActive("/create-project") ? "page" : undefined}
             >
+              <ActiveMarker path="/create-project" />
               {t("project.new_project")}
             </button>
             {projects.length > 1 && (
@@ -272,6 +270,7 @@ export function BurgerMenu() {
                 className={itemClass("/")}
                 aria-current={location.pathname === "/" ? "page" : undefined}
               >
+                <ActiveMarker path="/" />
                 {t("project.switch_project")}
               </button>
             )}
@@ -279,14 +278,11 @@ export function BurgerMenu() {
 
           {/* ACCOUNT */}
           <section aria-labelledby="menu-section-account">
-            <p
-              id="menu-section-account"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-account" className="t-eyebrow mb-2">
               {t("menu.account")}
             </p>
             {currentUser?.email && (
-              <p className="font-mono text-[11px] text-muted-foreground py-1">{currentUser.email}</p>
+              <p className="t-label py-1">{currentUser.email}</p>
             )}
             {editingName ? (
               <div className="space-y-2 mt-2">
@@ -296,7 +292,7 @@ export function BurgerMenu() {
                 <input
                   id="display-name-input"
                   autoFocus
-                  className="w-full bg-secondary border border-border rounded px-3 py-1.5 font-mono text-[13px] text-foreground"
+                  className="w-full bg-background border border-hairline px-3 py-1.5 font-mono text-[13px] text-foreground focus:outline-none focus:border-foreground"
                   placeholder={t("menu.display_name")}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
@@ -306,7 +302,7 @@ export function BurgerMenu() {
                   <button
                     onClick={handleSaveName}
                     disabled={savingName}
-                    className="font-mono text-[12px] text-foreground border border-foreground rounded px-3 py-1"
+                    className="font-mono text-[12px] text-foreground border border-foreground px-3 py-1"
                     aria-label={t("common.save")}
                   >
                     {savingName ? t("common.loading") : t("common.save")}
@@ -326,7 +322,7 @@ export function BurgerMenu() {
                   setDisplayName(currentUser?.user_metadata?.display_name ?? "");
                   setEditingName(true);
                 }}
-                className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors"
+                className="w-full text-left font-mono text-[13px] text-foreground py-2 pl-4 hover:text-accent transition-colors"
                 aria-label={t("menu.profile_settings")}
               >
                 {t("menu.profile_settings")}
@@ -336,13 +332,10 @@ export function BurgerMenu() {
 
           {/* PREFERENCES */}
           <section aria-labelledby="menu-section-prefs">
-            <p
-              id="menu-section-prefs"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-prefs" className="t-eyebrow mb-2">
               {t("menu.preferences")}
             </p>
-            <p id="lang-group-label" className="font-mono text-[11px] text-muted-foreground mb-2">
+            <p id="lang-group-label" className="t-label mb-2">
               {t("menu.language")}
             </p>
             <div className="flex gap-2" role="group" aria-labelledby="lang-group-label">
@@ -352,10 +345,10 @@ export function BurgerMenu() {
                   onClick={() => handleLang(lang)}
                   aria-pressed={activeLang === lang}
                   aria-label={`${t("menu.language")}: ${lang.toUpperCase()}`}
-                  className={`font-mono text-[13px] px-3 py-1 rounded transition-colors ${
+                  className={`font-mono text-[12px] px-2.5 py-1 rounded-full transition-colors ${
                     activeLang === lang
                       ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:text-foreground border border-border"
+                      : "text-muted-foreground hover:text-foreground border border-hairline"
                   }`}
                 >
                   {lang.toUpperCase()}
@@ -366,27 +359,26 @@ export function BurgerMenu() {
 
           {/* SUPPORT */}
           <section aria-labelledby="menu-section-support">
-            <p
-              id="menu-section-support"
-              className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2"
-            >
+            <p id="menu-section-support" className="t-eyebrow mb-2">
               {t("menu.support")}
             </p>
             <button
               onClick={handleExploreDemo}
               disabled={demoLoading}
-              className="w-full text-left font-mono text-[13px] text-foreground py-2 hover:text-accent transition-colors disabled:opacity-50"
+              className="w-full text-left font-mono text-[13px] text-foreground py-2 pl-4 hover:text-accent transition-colors disabled:opacity-50"
               aria-label={t("auth.explore_demo")}
             >
               {demoLoading ? "loading demo..." : t("auth.explore_demo")}
             </button>
-            <button
-              onClick={handleSignOut}
-              className="w-full text-left font-mono text-[13px] text-muted-foreground py-2 hover:text-foreground transition-colors"
-              aria-label={t("auth.sign_out")}
-            >
-              {t("auth.sign_out")}
-            </button>
+            <div className="mt-2 pt-2 border-t border-hairline">
+              <button
+                onClick={handleSignOut}
+                className="w-full text-left font-mono text-[13px] text-muted-foreground py-2 pl-4 hover:text-foreground transition-colors"
+                aria-label={t("auth.sign_out")}
+              >
+                {t("auth.sign_out")}
+              </button>
+            </div>
           </section>
         </nav>
       </div>
