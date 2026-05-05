@@ -1,7 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
 import { usePaymentCertificates, useMilestones, useProject } from "@/hooks/useSupabaseProject";
-import { DitheredCircle } from "@/components/DitheredCircle";
 import { exportPaymentCertificates, type DateRange } from "@/lib/exportCsv";
 import { useRole } from "@/contexts/RoleContext";
 import { CsvExportButton } from "@/components/CsvExportButton";
@@ -13,6 +13,7 @@ export default function PaymentsList() {
   const { data: certificates = [], isLoading } = usePaymentCertificates(currentProjectId ?? undefined);
   const { data: project } = useProject(currentProjectId ?? undefined);
   const { role } = useRole();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleExportCsv = (range: DateRange) => {
     const enriched = certificates.map(c => ({
@@ -29,76 +30,118 @@ export default function PaymentsList() {
   const totalBudget = milestones
     .reduce((sum, m) => sum + Number(m.payment_value ?? 0), 0);
 
+  const releasedPct = totalBudget === 0 ? 0 : Math.round((totalReleased / totalBudget) * 100);
+
   return (
-    <div className="min-h-screen screen-dark">
-     <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-      {/* Header */}
-      <div className="px-6 pt-20">
-        <div className="flex items-center justify-between mb-6">
-          <span className="font-mono text-[14px] text-surface-dark-foreground/40">←</span>
-          <span className="font-mono text-[16px] text-surface-dark-foreground/40">—</span>
-          {(role === "pm" || role === "client") && certificates.length > 0 && (
-            <CsvExportButton
-              onExport={handleExportCsv}
-              className="font-mono text-[10px] text-surface-dark-foreground/60 underline underline-offset-4"
-            />
+    <div className="min-h-screen bg-background">
+      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
+        {/* Header + summary */}
+        <div className="px-6 pt-20 pb-6 space-y-3">
+          <div className="bg-card rounded-3xl px-6 py-5">
+            <div className="flex items-baseline justify-between">
+              <p className="t-eyebrow">payments</p>
+              {(role === "pm" || role === "client") && certificates.length > 0 && (
+                <CsvExportButton
+                  onExport={handleExportCsv}
+                  className="font-mono text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-4"
+                />
+              )}
+            </div>
+            <p className="font-sans text-[36px] tracking-[-0.02em] text-foreground mt-2 leading-none">
+              £{totalReleased.toLocaleString()}
+            </p>
+            <p className="font-mono text-[11px] text-muted-foreground mt-2">
+              released of £{totalBudget.toLocaleString()} total
+            </p>
+            <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden mt-4">
+              <div
+                className="h-full bg-success transition-all rounded-full"
+                style={{ width: `${releasedPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {isLoading && (
+          <div className="px-6">
+            <div className="bg-card rounded-3xl px-6 py-5">
+              <p className="font-mono text-[13px] text-muted-foreground animate-pulse">loading...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Payment cards */}
+        <div className="flex-1 px-6 pb-6 space-y-3">
+          {milestones.map((m) => {
+            const isReleased = m.status === "complete";
+            const isExpanded = expandedId === m.id;
+            const cert = certificates.find((c: any) => c.milestone_id === m.id);
+            return (
+              <div key={m.id} className="bg-card rounded-3xl px-6 py-4">
+                <button
+                  onClick={() => setExpandedId(isExpanded ? null : m.id)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <div className="flex-1 min-w-0 pr-3">
+                    <p className="font-sans text-[14px] text-foreground truncate lowercase">
+                      {m.name}
+                    </p>
+                    <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                      £{Number(m.payment_value ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className={`font-mono text-[10px] px-2.5 py-1 rounded-full flex-shrink-0 ${
+                    isReleased ? "bg-success/15 text-success" : "bg-secondary text-muted-foreground"
+                  }`}>
+                    {isReleased ? "released" : "pending"}
+                  </span>
+                </button>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-border/60 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="t-eyebrow">amount</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1">
+                          £{Number(m.payment_value ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="t-eyebrow">status</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1 lowercase">
+                          {isReleased ? "released" : (m.status ?? "pending").replace(/_/g, " ")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="t-eyebrow">due date</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1">{m.due_date ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="t-eyebrow">assigned</p>
+                        <p className="font-sans text-[14px] text-foreground mt-1 truncate">
+                          {(m as any).assigned_to_name ?? "unassigned"}
+                        </p>
+                      </div>
+                    </div>
+                    {isReleased && (
+                      <button
+                        onClick={() => navigate(`/project/payment-certificate/${m.id}`)}
+                        className="w-full py-3 bg-foreground text-background rounded-full font-sans text-[14px]"
+                      >
+                        view certificate
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {milestones.length === 0 && !isLoading && (
+            <div className="bg-card rounded-3xl px-6 py-8">
+              <p className="font-mono text-[13px] text-muted-foreground text-center">no milestones yet</p>
+            </div>
           )}
         </div>
-      </div>
-
-      {/* Dithered payment circle */}
-      <div className="flex justify-center py-8 text-surface-dark-foreground">
-        <DitheredCircle
-          size={220}
-          label="released"
-          value={`£${(totalReleased / 1000).toFixed(0)}k`}
-          sublabel="total balance"
-        />
-      </div>
-
-      {isLoading && (
-        <div className="px-6">
-          <p className="font-mono text-[13px] text-surface-dark-foreground/40 animate-pulse">loading...</p>
-        </div>
-      )}
-
-      {/* Payment rows */}
-      <div className="flex-1 px-6 pb-6">
-        {milestones.map((m) => {
-          const isReleased = m.status === "complete";
-          return (
-            <button
-              key={m.id}
-              onClick={() => isReleased && navigate(`/project/payment-certificate/${m.id}`)}
-              className="w-full flex items-center justify-between py-4 border-b border-surface-dark-foreground/10 text-left group"
-            >
-              <div>
-                <p className="font-mono text-[13px] text-surface-dark-foreground group-hover:opacity-100 transition-opacity">
-                  {m.name?.toLowerCase()}
-                </p>
-                <p className="font-mono text-[11px] text-surface-dark-foreground/40">
-                  £{Number(m.payment_value ?? 0).toLocaleString()}
-                </p>
-              </div>
-              <span className={`font-mono text-[10px] ${isReleased ? "text-success" : "text-surface-dark-foreground/30"}`}>
-                {isReleased ? "released" : "pending"}
-              </span>
-            </button>
-          );
-        })}
-        {milestones.length === 0 && !isLoading && (
-          <p className="font-mono text-[13px] text-surface-dark-foreground/40 mt-4">no milestones yet</p>
-        )}
-      </div>
-
-      {/* Bottom tabs */}
-      <div className="px-6 pb-6">
-        <div className="flex justify-around">
-          <span className="font-mono text-[12px] text-surface-dark-foreground/30">balance</span>
-          <span className="font-mono text-[12px] text-surface-dark-foreground/30">budget</span>
-          <span className="font-mono text-[12px] text-surface-dark-foreground border-b border-surface-dark-foreground pb-0.5">expenses</span>
-        </div>
-      </div>
       </div>
     </div>
   );
