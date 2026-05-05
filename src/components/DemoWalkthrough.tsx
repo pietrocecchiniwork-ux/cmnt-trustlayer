@@ -11,10 +11,11 @@ interface Slide {
   dotColor?: string;
   headline: string;
   subtitle?: string;
-  card: CardKind;
+  card?: CardKind;
   contextLabel?: string;
   cta: string;
   ctaTone: "black" | "white";
+  isFinal?: boolean;
 }
 
 const slides: Slide[] = [
