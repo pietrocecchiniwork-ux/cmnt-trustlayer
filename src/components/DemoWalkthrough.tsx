@@ -11,10 +11,11 @@ interface Slide {
   dotColor?: string;
   headline: string;
   subtitle?: string;
-  card: CardKind;
+  card?: CardKind;
   contextLabel?: string;
   cta: string;
   ctaTone: "black" | "white";
+  isFinal?: boolean;
 }
 
 const slides: Slide[] = [
@@ -95,6 +96,15 @@ const slides: Slide[] = [
     contextLabel: "verified in 4 minutes · 0 disputes",
     cta: "release £11,000 →",
     ctaTone: "black",
+  },
+  {
+    bg: "#F5F3EE",
+    text: "dark",
+    role: null,
+    headline: "every party informed.\nevery payment justified.\nevery project on record.",
+    cta: "sign in to get started →",
+    ctaTone: "black",
+    isFinal: true,
   },
 ];
 
@@ -576,26 +586,38 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col min-h-0">
-            <h1 className={`font-sans tracking-[-0.01em] leading-[1.1] mb-3 lowercase ${headlineColor} text-[26px] md:text-[30px]`}>
-              {current.headline}
-            </h1>
-            {current.subtitle && (
-              <p className={`font-sans text-[14px] mb-5 leading-relaxed ${subColor}`}>
-                {current.subtitle}
-              </p>
-            )}
-
-            <div className="overflow-auto">
-              {renderCard(current.card)}
+          {current.isFinal ? (
+            <div className="flex-1 flex items-center justify-center">
+              <h1 className={`font-sans tracking-[-0.01em] leading-[1.25] lowercase text-center text-[28px] md:text-[36px] ${headlineColor}`}>
+                {current.headline.split("\n").map((line, i) => (
+                  <span key={i} className="block">{line}</span>
+                ))}
+              </h1>
             </div>
+          ) : (
+            <div className="flex-1 flex flex-col min-h-0">
+              <h1 className={`font-sans tracking-[-0.01em] leading-[1.1] mb-3 lowercase ${headlineColor} text-[26px] md:text-[30px]`}>
+                {current.headline}
+              </h1>
+              {current.subtitle && (
+                <p className={`font-sans text-[14px] mb-5 leading-relaxed ${subColor}`}>
+                  {current.subtitle}
+                </p>
+              )}
 
-            {current.contextLabel && (
-              <p className={`mt-3 font-mono text-[11px] tracking-wider uppercase ${isLight ? "text-white/55" : "text-foreground/55"}`}>
-                {current.contextLabel}
-              </p>
-            )}
-          </div>
+              {current.card && (
+                <div className="overflow-auto">
+                  {renderCard(current.card)}
+                </div>
+              )}
+
+              {current.contextLabel && (
+                <p className={`mt-3 font-mono text-[11px] tracking-wider uppercase ${isLight ? "text-white/55" : "text-foreground/55"}`}>
+                  {current.contextLabel}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Dots */}
           <div className="flex justify-center gap-1.5 mt-6">
@@ -618,9 +640,9 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* CTA */}
-      <div className="px-4 pt-4 pb-6">
+      <div className="px-4 pt-4 pb-6 space-y-2">
         <button
-          onClick={handleNext}
+          onClick={current.isFinal ? onClose : handleNext}
           className={`w-full h-12 rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.96] ${
             current.ctaTone === "white"
               ? "bg-white text-[#111111]"
@@ -629,6 +651,14 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
         >
           {current.cta}
         </button>
+        {current.isFinal && (
+          <button
+            onClick={onClose}
+            className="w-full h-12 rounded-full bg-transparent border border-foreground/25 text-foreground font-sans text-[14px] font-medium transition-transform active:scale-[0.98]"
+          >
+            request a demo
+          </button>
+        )}
       </div>
     </div>
   );
