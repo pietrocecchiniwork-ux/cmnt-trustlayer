@@ -159,14 +159,14 @@ function StatusRow({
     status === "done" ? "#7FB069" : status === "progress" ? "#E07A3C" : "rgba(255,255,255,0.45)";
   return (
     <div
-      className="w-full flex items-center justify-between rounded-xl px-4"
+      className="w-full flex items-center gap-3 rounded-xl px-4"
       style={{ height, backgroundColor: "rgba(255,255,255,0.04)" }}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         <StatusDot status={status} />
         <span className="font-sans text-[13px] truncate" style={{ color: labelColor }}>{label}</span>
       </div>
-      <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: stateColor }}>
+      <span className="font-mono text-[9px] uppercase tracking-wider shrink-0" style={{ color: stateColor }}>
         {stateLabel}
       </span>
     </div>
