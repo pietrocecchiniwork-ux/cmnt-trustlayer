@@ -137,7 +137,7 @@ function StatusDot({ status }: { status: RowStatus }) {
       style={{
         width: 7,
         height: 7,
-        backgroundColor: status === "progress" ? "#FFFFFF" : "#7FB069",
+        backgroundColor: status === "progress" ? "#E07A3C" : "#7FB069",
       }}
     />
   );
@@ -155,7 +155,7 @@ function StatusRow({
   const stateLabel = status === "done" ? "done" : status === "progress" ? "in progress" : "to do";
   const labelColor = status === "todo" ? "rgba(255,255,255,0.55)" : "#FFFFFF";
   const stateColor =
-    status === "done" ? "#7FB069" : status === "progress" ? "#FFFFFF" : "rgba(255,255,255,0.45)";
+    status === "done" ? "#7FB069" : status === "progress" ? "#E07A3C" : "rgba(255,255,255,0.45)";
   return (
     <div
       className="w-full flex items-center justify-between rounded-xl px-4"
