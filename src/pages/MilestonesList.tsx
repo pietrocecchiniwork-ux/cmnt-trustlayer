@@ -320,7 +320,7 @@ function PMClientSpine({
                           style={{
                             backgroundColor: dotColor,
                             boxShadow: st === "review"
-                              ? "0 0 0 4px rgba(226, 75, 74, 0.18)"
+                              ? "0 0 0 4px rgba(255, 23, 68, 0.18)"
                               : undefined,
                           }}
                         />
@@ -342,12 +342,15 @@ function PMClientSpine({
                         <p className="font-sans text-[14px] font-medium text-foreground lowercase truncate">
                           {m.name}
                         </p>
-                        <p className="font-mono text-[13px] text-muted-foreground flex-shrink-0">
+                        <p className="font-mono text-[13px] text-gray-500 flex-shrink-0">
                           £{Number(m.payment_value ?? 0).toLocaleString()}
                         </p>
                       </div>
                       <div className="mt-2">
-                        <span className={`inline-flex items-center font-mono text-[10px] px-2 py-0.5 rounded-full ${pillClass}`}>
+                        <span
+                          className={`inline-flex items-center font-mono text-[10px] uppercase tracking-[0.06em] px-2 py-0.5 rounded-full ${pillClass}`}
+                          style={pillStyle}
+                        >
                           {pillText}
                         </span>
                       </div>
