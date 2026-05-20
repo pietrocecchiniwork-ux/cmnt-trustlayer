@@ -9,6 +9,8 @@ const it = {
     my_tasks: "i miei compiti",
     my_work: "il mio lavoro",
     submit: "invia",
+    inbox: "inbox",
+    project: "progetto",
   },
   common: {
     save: "salva",

@@ -9,6 +9,8 @@ const en = {
     my_tasks: "my tasks",
     my_work: "my work",
     submit: "submit",
+    inbox: "inbox",
+    project: "project",
   },
   common: {
     save: "save",
