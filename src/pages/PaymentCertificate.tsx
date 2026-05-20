@@ -41,20 +41,8 @@ export default function PaymentCertificate() {
     },
   });
 
-  const { data: approverMember, isLoading: approverLoading } = useQuery({
-    queryKey: ["approver-member", milestone?.approved_by, milestone?.project_id],
-    enabled: !!milestone?.approved_by && !!milestone?.project_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("project_members")
-        .select("name")
-        .eq("user_id", milestone!.approved_by!)
-        .eq("project_id", milestone!.project_id)
-        .maybeSingle();
-      if (error) console.warn("Approver lookup error:", error);
-      return data ?? null;
-    },
-  });
+  const today = new Date();
+  const todayFormatted = format(today, "dd MMM yyyy");
 
   const isLoading = milestoneLoading || projectLoading || approverLoading;
 
