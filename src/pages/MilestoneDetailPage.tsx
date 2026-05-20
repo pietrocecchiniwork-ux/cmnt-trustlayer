@@ -723,7 +723,7 @@ export default function MilestoneDetailPage() {
                 condition === "fail" ? "#ffffff" : "inherit";
 
               return (
-                <div key={item.id} className="bg-card rounded-2xl overflow-hidden">
+                <div key={item.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <div className="px-4 pt-4 pb-3">
                     <div className="flex items-start gap-3">
                       {item.photo_url ? (
