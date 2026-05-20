@@ -531,16 +531,20 @@ export default function MilestoneDetailPage() {
   }
 
   // ─── PM / in-review / complete view ───
+  const headerNumColor =
+    milestone.status === "complete" ? "text-success" :
+    milestone.status === "in_review" ? "text-destructive" :
+    "text-muted-foreground";
+
+  const metaStatusLabel = t(`milestone.status.${milestone.status}`);
+
   return (
     <div className="flex flex-col bg-background">
       <div className="px-5 pt-20 pb-40 space-y-3">
-        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-1 px-1">{t("common.back")}</button>
+        <button onClick={() => navigate(-1)} className="font-mono text-[13px] text-muted-foreground mb-1 px-1">← {t("common.back")}</button>
 
-        <div className="bg-card rounded-3xl px-6 py-6">
-        <p className={`font-mono text-[64px] leading-none tracking-tight ${numColor}`}>
-          {String(milestone.position).padStart(2, "0")}
-        </p>
-
+        {/* Header — no card wrapper */}
+        <div className="px-1">
         {editing ? (
           <div className="mt-3 space-y-3">
             <input
@@ -595,8 +599,12 @@ export default function MilestoneDetailPage() {
           </div>
         ) : (
           <>
+            <p className={`font-sans font-medium text-[48px] leading-none tracking-tight ${headerNumColor}`}>
+              {String(milestone.position).padStart(2, "0")}
+            </p>
+
             <div className="flex items-baseline gap-3 mt-3">
-              <h1 className="font-sans text-[22px] leading-tight text-foreground">{milestone.name}</h1>
+              <h1 className="font-sans font-medium text-[20px] leading-tight text-foreground">{milestone.name}</h1>
               {role === "pm" && (
                 <button
                   onClick={startEdit}
@@ -607,21 +615,17 @@ export default function MilestoneDetailPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-4 mt-3">
-              <span className="font-mono text-[13px] text-muted-foreground">{milestone.due_date ?? t("milestone.no_date")}</span>
-              <span className="font-mono text-[13px] text-muted-foreground">£{Number(milestone.payment_value ?? 0).toLocaleString()}</span>
-            </div>
+            <p className="font-mono text-[13px] text-muted-foreground mt-2">
+              £{Number(milestone.payment_value ?? 0).toLocaleString()}
+              {" · "}due {milestone.due_date ?? t("milestone.no_date")}
+              {" · "}{metaStatusLabel}
+            </p>
 
             {(milestone as any).assigned_to_name && (
               <p className="font-mono text-[11px] text-muted-foreground mt-1">
                 assigned to {(milestone as any).assigned_to_name}
               </p>
             )}
-
-            <div className="flex items-center gap-2 mt-4">
-              <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-              <span className="font-mono text-[12px] text-muted-foreground">{t(`milestone.status.${milestone.status}`)}</span>
-            </div>
 
             {/* Client dispute link */}
             {role === "client" && milestone.status !== "complete" && (milestone.status as string) !== "disputed" && (
@@ -683,86 +687,100 @@ export default function MilestoneDetailPage() {
 
         {tasksSection}
 
-        <div className="bg-card rounded-3xl px-6 py-5">
-        <p className="t-eyebrow mb-4">{t("evidence.evidence")} ({completedCount})</p>
+        {/* Evidence section */}
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-3 px-1">
+            EVIDENCE ({completedCount})
+          </p>
 
-        <div className="space-y-4">
-          {evidenceItems.map((item) => (
-            <div key={item.id} className="flex items-start gap-3">
-              {item.photo_url ? (
-                <button onClick={() => setLightboxUrl(item.photo_url!)} className="flex-shrink-0">
-                  <img src={item.photo_url} alt="evidence" className="w-[52px] h-[52px] object-cover hover:opacity-80 transition-opacity" />
-                </button>
-              ) : (
-                <div className="w-[52px] h-[52px] bg-secondary flex-shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
-                  {format(new Date(item.submitted_at), "dd MMM yyyy · HH:mm")}
-                </p>
-                {item.note && <p className="font-sans text-[13px] text-foreground mt-0.5">{item.note}</p>}
-                {(item as any).voice_note_url && (
-                  <audio src={(item as any).voice_note_url} controls className="mt-1 h-7 w-44" />
-                )}
-                {item.ai_tags && typeof item.ai_tags === "object" && (() => {
-                  const tags = item.ai_tags as Record<string, unknown>;
-                  const TAXONOMY_KEYS = [
-                    "work_type",
-                    "trade_category",
-                    "location_in_building",
-                    "completion_stage",
-                    "building_element",
-                  ] as const;
-                  const condition = typeof tags.condition_flag === "string" ? tags.condition_flag : null;
-                  const match = typeof tags.milestone_match === "boolean" ? tags.milestone_match : null;
-                  const comment = typeof tags.ai_comment === "string" ? tags.ai_comment : null;
-                  const taxonomyTags = TAXONOMY_KEYS
-                    .map(k => tags[k])
-                    .filter((v): v is string => typeof v === "string" && v.length > 0);
-                  return (
-                    <div className="mt-2 space-y-1.5">
-                      {(condition || match !== null) && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {condition && (
-                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
-                              condition === "pass" ? "bg-success/20 text-success" :
-                              condition === "concern" ? "bg-warning/20 text-warning" :
-                              "bg-destructive/20 text-destructive"
-                            }`}>
-                              {condition === "pass" ? "✓ pass" : condition === "concern" ? "⚠ concern" : "✕ fail"}
-                            </span>
-                          )}
-                          {match !== null && (
-                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
-                              match ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
-                            }`}>
-                              {match ? "✓ matches" : "✕ no match"}
-                            </span>
-                          )}
-                        </div>
+          <div className="space-y-3">
+            {evidenceItems.map((item) => {
+              const tags = (item.ai_tags && typeof item.ai_tags === "object") ? item.ai_tags as Record<string, unknown> : {};
+              const condition = typeof tags.condition_flag === "string" ? tags.condition_flag : null;
+              const comment = typeof tags.ai_comment === "string" ? tags.ai_comment : null;
+              const TAXONOMY_KEYS = ["work_type","trade_category","location_in_building","completion_stage","building_element"] as const;
+              const taxonomyTags = TAXONOMY_KEYS
+                .map(k => tags[k])
+                .filter((v): v is string => typeof v === "string" && v.length > 0);
+
+              const submitterName = (item as any).submitted_by_name ?? null;
+              const verdictBg =
+                condition === "pass" ? "#E1F5EE" :
+                condition === "concern" ? "#FAEEDA" :
+                condition === "fail" ? "#FCEBEB" : null;
+              const verdictBorder =
+                condition === "pass" ? "#B8E5D2" :
+                condition === "concern" ? "#EBD2A8" :
+                condition === "fail" ? "#EBC5C5" : null;
+              const verdictText =
+                condition === "pass" ? "AI: pass" :
+                condition === "concern" ? "AI: concern" :
+                condition === "fail" ? "AI: fail" : null;
+              const verdictSymbol = condition === "pass" ? "✓" : condition === "concern" ? "⚠" : condition === "fail" ? "⚠" : null;
+              const verdictFg =
+                condition === "pass" ? "#1F6B4F" :
+                condition === "concern" ? "#8A5A1F" :
+                condition === "fail" ? "#8A2929" : "inherit";
+
+              return (
+                <div key={item.id} className="bg-card rounded-2xl overflow-hidden">
+                  <div className="px-4 pt-4 pb-3">
+                    <div className="flex items-start gap-3">
+                      {item.photo_url ? (
+                        <button onClick={() => setLightboxUrl(item.photo_url!)} className="flex-shrink-0">
+                          <img src={item.photo_url} alt="evidence" className="w-[64px] h-[52px] object-cover rounded-lg hover:opacity-80 transition-opacity" />
+                        </button>
+                      ) : (
+                        <div className="w-[64px] h-[52px] bg-secondary rounded-lg flex-shrink-0" />
                       )}
-                      {taxonomyTags.length > 0 && (
-                        <div className="flex flex-wrap gap-x-3 gap-y-1">
-                          {taxonomyTags.map((tag, i) => (
-                            <span key={i} className="font-mono text-[10px] text-accent border-b border-accent/40 pb-0.5">
-                              {tag.replace(/_/g, " ")}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {comment && (
-                        <p className="font-mono text-[10px] text-muted-foreground italic leading-relaxed">{comment}</p>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        {item.note && <p className="font-sans font-medium text-[13px] text-foreground leading-snug">{item.note}</p>}
+                        <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                          {format(new Date(item.submitted_at), "dd MMM yyyy · HH:mm")}
+                          {submitterName ? ` · ${submitterName}` : ""}
+                        </p>
+                        {(item as any).voice_note_url && (
+                          <audio src={(item as any).voice_note_url} controls className="mt-1 h-7 w-44" />
+                        )}
+                      </div>
                     </div>
-                  );
-                })()}
-              </div>
-            </div>
-          ))}
-          {evidenceItems.length === 0 && (
-            <p className="font-sans text-[13px] text-muted-foreground">{t("evidence.no_evidence")}</p>
-          )}
-        </div>
+
+                    {taxonomyTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {taxonomyTags.map((tag, i) => (
+                          <span key={i} className="font-mono text-[10px] text-accent border-b border-accent/40 pb-0.5">
+                            {tag.replace(/_/g, " ")}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {verdictBg && (
+                    <div
+                      className="flex items-center justify-between px-4 py-2 border-t"
+                      style={{ background: verdictBg, borderTopColor: verdictBorder ?? undefined, color: verdictFg }}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                          <rect x="4" y="4" width="16" height="16" rx="2" />
+                          <rect x="9" y="9" width="6" height="6" />
+                          <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" />
+                        </svg>
+                        <span className="font-mono text-[11px] truncate">
+                          {verdictText}{comment ? ` — ${comment}` : ""}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[12px] flex-shrink-0 ml-2">{verdictSymbol}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {evidenceItems.length === 0 && (
+              <p className="font-sans text-[13px] text-muted-foreground px-1">{t("evidence.no_evidence")}</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -799,14 +817,20 @@ export default function MilestoneDetailPage() {
             </button>
           </div>
         )}
-        {!qaPrompt && role === "pm" && (milestone.status === "in_review" || (evidenceItems.length > 0 && milestone.status !== "complete")) && (
+        {!qaPrompt && role === "pm" && milestone.status === "in_review" && (
           <>
-            <Button variant="approve" size="full" onClick={handleApprove} disabled={updateStatus.isPending}>
-              <span className="font-sans text-[16px]">{t("milestone.approve")}</span>
+            <Button variant="dark" size="full" onClick={handleApprove} disabled={updateStatus.isPending}>
+              <span className="font-sans text-[16px]">
+                Approve &amp; release £{Number(milestone.payment_value ?? 0).toLocaleString()}
+              </span>
             </Button>
-            <Button variant="reject" size="full" onClick={handleReject} disabled={updateStatus.isPending}>
-              <span className="font-sans text-[16px]">{t("milestone.reject")}</span>
-            </Button>
+            <button
+              onClick={handleReject}
+              disabled={updateStatus.isPending}
+              className="w-full font-sans text-[14px] text-foreground border border-border rounded-full py-3 disabled:opacity-50"
+            >
+              Request more evidence
+            </button>
           </>
         )}
         {milestone.status === "overdue" && (
@@ -815,9 +839,12 @@ export default function MilestoneDetailPage() {
           </Button>
         )}
         {milestone.status === "complete" && (
-          <Button variant="dark" size="full" onClick={() => navigate(`/project/payment-certificate/${milestone.id}`)}>
-            <span className="font-sans text-[16px]">{t("milestone.view_payment_certificate")}</span>
-          </Button>
+          <button
+            onClick={() => navigate(`/project/payment-certificate/${milestone.id}`)}
+            className="w-full font-sans text-[14px] text-foreground border border-border rounded-full py-3"
+          >
+            View payment certificate
+          </button>
         )}
       </div>
       {lightboxUrl && (
