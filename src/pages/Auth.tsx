@@ -63,7 +63,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col px-5 pt-16 pb-10">
       {/* Brand */}
       <div className="flex flex-col items-center mb-10">
-        <img src={logo} alt="Cemento" width={56} height={56} className="w-14 h-14 mb-4" />
+        <img src={logo} alt="Cemento" width={96} height={96} className="w-24 h-24 mb-4" />
         <p className="font-sans text-[20px] text-foreground tracking-[-0.02em] lowercase">cemento</p>
         <p className="t-label mt-1 whitespace-pre-line">THE CONSTRUCTION TRUST LAYER{"\n\n"}</p>
       </div>
