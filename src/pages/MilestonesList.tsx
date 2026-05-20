@@ -197,7 +197,7 @@ export default function MilestonesList() {
 function PMClientSpine({
   milestones, currentProjectId, role, t, navigate,
 }: {
-  milestones: ReturnType<typeof useMilestones>["data"] extends infer D ? (D extends undefined ? never : D) : never;
+  milestones: any[];
   currentProjectId: string | null;
   role: string;
   t: (k: string) => string;
