@@ -183,171 +183,188 @@ export default function MilestonesList() {
   }
 
   // PM/Client: vertical project spine
-  return <PMClientSpine />;
+  return (
+    <PMClientSpine
+      milestones={milestones}
+      currentProjectId={currentProjectId}
+      role={role}
+      t={t}
+      navigate={navigate}
+    />
+  );
+}
 
-  function PMClientSpine() {
-    const { data: project } = useQuery({
-      queryKey: ["project", currentProjectId],
-      enabled: !!currentProjectId,
-      queryFn: async () => {
-        const { data, error } = await supabase
-          .from("projects").select("*").eq("id", currentProjectId!).single();
-        if (error) throw error;
-        return data;
-      },
-    });
+function PMClientSpine({
+  milestones, currentProjectId, role, t, navigate,
+}: {
+  milestones: ReturnType<typeof useMilestones>["data"] extends infer D ? (D extends undefined ? never : D) : never;
+  currentProjectId: string | null;
+  role: string;
+  t: (k: string) => string;
+  navigate: (path: string) => void;
+}) {
+  const { data: project } = useQuery({
+    queryKey: ["project", currentProjectId],
+    enabled: !!currentProjectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects").select("*").eq("id", currentProjectId!).single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
-    const inReviewIds = milestones.filter(m => m.status === "in_review").map(m => m.id);
-    const { data: evidenceCounts = {} } = useQuery<Record<string, number>>({
-      queryKey: ["spine-evidence-counts", inReviewIds],
-      enabled: inReviewIds.length > 0,
-      queryFn: async () => {
-        const counts: Record<string, number> = {};
-        for (const id of inReviewIds) {
-          const { count } = await supabase
-            .from("evidence").select("id", { count: "exact", head: true }).eq("milestone_id", id);
-          counts[id] = count ?? 0;
-        }
-        return counts;
-      },
-    });
+  const inReviewIds = (milestones ?? []).filter(m => m.status === "in_review").map(m => m.id);
+  const { data: evidenceCounts = {} } = useQuery<Record<string, number>>({
+    queryKey: ["spine-evidence-counts", inReviewIds],
+    enabled: inReviewIds.length > 0,
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      for (const id of inReviewIds) {
+        const { count } = await supabase
+          .from("evidence").select("id", { count: "exact", head: true }).eq("milestone_id", id);
+        counts[id] = count ?? 0;
+      }
+      return counts;
+    },
+  });
 
-    const total = milestones.length;
-    const completed = milestones.filter(m => m.status === "complete").length;
-    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const released = milestones
-      .filter(m => m.status === "complete")
-      .reduce((s, m) => s + Number(m.payment_value ?? 0), 0);
-    const totalBudget = Number((project as any)?.total_budget ?? 0)
-      || milestones.reduce((s, m) => s + Number(m.payment_value ?? 0), 0);
+  const list = milestones ?? [];
+  const total = list.length;
+  const completed = list.filter(m => m.status === "complete").length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const released = list
+    .filter(m => m.status === "complete")
+    .reduce((s, m) => s + Number(m.payment_value ?? 0), 0);
+  const totalBudget = Number((project as any)?.total_budget ?? 0)
+    || list.reduce((s, m) => s + Number(m.payment_value ?? 0), 0);
 
-    const fmtK = (n: number) => {
-      if (n >= 1000) return `£${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
-      return `£${n.toLocaleString()}`;
-    };
+  const fmtK = (n: number) => {
+    if (n >= 1000) return `£${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
+    return `£${n.toLocaleString()}`;
+  };
 
-    type SpineState = "verified" | "review" | "waiting" | "idle";
-    const stateOf = (status: string): SpineState => {
-      if (status === "complete") return "verified";
-      if (status === "in_review") return "review";
-      if (status === "in_progress" || status === "overdue") return "waiting";
-      return "idle";
-    };
+  type SpineState = "verified" | "review" | "waiting" | "idle";
+  const stateOf = (status: string): SpineState => {
+    if (status === "complete") return "verified";
+    if (status === "in_review") return "review";
+    if (status === "in_progress" || status === "overdue") return "waiting";
+    return "idle";
+  };
 
-    const ordered = [...milestones].sort((a, b) => a.position - b.position);
+  const ordered = [...list].sort((a, b) => a.position - b.position);
 
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-          {/* Sticky header */}
-          <div className="sticky top-0 z-20 bg-background px-6 pt-20 pb-4 border-b border-border/40">
-            <p className="font-sans text-[18px] font-medium text-foreground truncate">
-              {(project as any)?.name ?? "project"}
-            </p>
-            <div className="mt-3 h-[3px] w-full bg-border rounded-full overflow-hidden">
-              <div className="h-full bg-success" style={{ width: `${pct}%` }} />
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
+        {/* Sticky header */}
+        <div className="sticky top-0 z-20 bg-background px-6 pt-20 pb-4 border-b border-border/40">
+          <p className="font-sans text-[18px] font-medium text-foreground truncate">
+            {(project as any)?.name ?? "project"}
+          </p>
+          <div className="mt-3 h-[3px] w-full bg-border rounded-full overflow-hidden">
+            <div className="h-full bg-success" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="font-mono text-[12px] text-muted-foreground mt-2">
+            {pct}% · {fmtK(released)} of {fmtK(totalBudget)} released
+          </p>
+        </div>
+
+        {/* Spine */}
+        <div className="flex-1 px-6 pt-4 pb-6">
+          {ordered.length === 0 ? (
+            <div className="bg-card rounded-3xl px-6 py-8 mt-4">
+              <p className="font-mono text-[13px] text-muted-foreground text-center">
+                {t("milestone.no_milestones")}
+              </p>
             </div>
-            <p className="font-mono text-[12px] text-muted-foreground mt-2">
-              {pct}% · {fmtK(released)} of {fmtK(totalBudget)} released
-            </p>
-          </div>
+          ) : (
+            <ul className="relative">
+              {ordered.map((m, i) => {
+                const st = stateOf(m.status);
+                const isLast = i === ordered.length - 1;
+                const evCount = evidenceCounts[m.id] ?? 0;
 
-          {/* Spine */}
-          <div className="flex-1 px-6 pt-4 pb-6">
-            {ordered.length === 0 ? (
-              <div className="bg-card rounded-3xl px-6 py-8 mt-4">
-                <p className="font-mono text-[13px] text-muted-foreground text-center">
-                  {t("milestone.no_milestones")}
-                </p>
-              </div>
-            ) : (
-              <ul className="relative">
-                {ordered.map((m, i) => {
-                  const st = stateOf(m.status);
-                  const isLast = i === ordered.length - 1;
-                  const evCount = evidenceCounts[m.id] ?? 0;
+                const dotColor =
+                  st === "verified" ? "#1D9E75" :
+                  st === "review" ? "#E24B4A" :
+                  st === "waiting" ? "#EF9F27" :
+                  "hsl(var(--border))";
 
-                  const dotColor =
-                    st === "verified" ? "#1D9E75" :
-                    st === "review" ? "#E24B4A" :
-                    st === "waiting" ? "#EF9F27" :
-                    "hsl(var(--border))";
+                const pillClass =
+                  st === "verified" ? "bg-[#1D9E75]/15 text-[#1D9E75]" :
+                  st === "review" ? "bg-[#E24B4A]/15 text-[#E24B4A]" :
+                  st === "waiting" ? "bg-[#EF9F27]/20 text-[#B5710F]" :
+                  "bg-muted text-muted-foreground";
 
-                  const pillClass =
-                    st === "verified" ? "bg-[#1D9E75]/15 text-[#1D9E75]" :
-                    st === "review" ? "bg-[#E24B4A]/15 text-[#E24B4A]" :
-                    st === "waiting" ? "bg-[#EF9F27]/20 text-[#B5710F]" :
-                    "bg-muted text-muted-foreground";
+                const pillText =
+                  st === "verified" ? "verified" :
+                  st === "review" ? (evCount > 0 ? `${evCount} photos · awaiting your review` : "awaiting review") :
+                  st === "waiting" ? "waiting for evidence" :
+                  "not started";
 
-                  const pillText =
-                    st === "verified" ? "verified" :
-                    st === "review" ? (evCount > 0 ? `${evCount} photos · awaiting your review` : "awaiting review") :
-                    st === "waiting" ? "waiting for evidence" :
-                    "not started";
+                const cardBg = st === "review"
+                  ? "bg-[#FCEBEB] border-red-200"
+                  : "bg-card border-border/60";
 
-                  const cardBg = st === "review"
-                    ? "bg-[#FCEBEB] border-red-200"
-                    : "bg-card border-border/60";
-
-                  return (
-                    <li key={m.id} className="flex items-stretch gap-3">
-                      {/* Spine column */}
-                      <div className="relative w-7 flex-shrink-0 flex flex-col items-center">
-                        <div className="pt-4">
-                          <span
-                            className="block w-3 h-3 rounded-full"
-                            style={{
-                              backgroundColor: dotColor,
-                              boxShadow: st === "review"
-                                ? "0 0 0 4px rgba(226, 75, 74, 0.18)"
-                                : undefined,
-                            }}
-                          />
-                        </div>
-                        {!isLast && (
-                          <div
-                            className="flex-1 w-[2px] mt-1"
-                            style={{ backgroundColor: "hsl(var(--border))" }}
-                          />
-                        )}
+                return (
+                  <li key={m.id} className="flex items-stretch gap-3">
+                    {/* Spine column */}
+                    <div className="relative w-7 flex-shrink-0 flex flex-col items-center">
+                      <div className="pt-4">
+                        <span
+                          className="block w-3 h-3 rounded-full"
+                          style={{
+                            backgroundColor: dotColor,
+                            boxShadow: st === "review"
+                              ? "0 0 0 4px rgba(226, 75, 74, 0.18)"
+                              : undefined,
+                          }}
+                        />
                       </div>
+                      {!isLast && (
+                        <div
+                          className="flex-1 w-[2px] mt-1"
+                          style={{ backgroundColor: "hsl(var(--border))" }}
+                        />
+                      )}
+                    </div>
 
-                      {/* Card */}
-                      <button
-                        onClick={() => navigate(`/project/milestone/${m.id}`)}
-                        className={`flex-1 text-left rounded-xl border ${cardBg} px-4 py-3 mb-3 transition-colors hover:brightness-[0.99]`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="font-sans text-[14px] font-medium text-foreground lowercase truncate">
-                            {m.name}
-                          </p>
-                          <p className="font-mono text-[13px] text-muted-foreground flex-shrink-0">
-                            £{Number(m.payment_value ?? 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="mt-2">
-                          <span className={`inline-flex items-center font-mono text-[10px] px-2 py-0.5 rounded-full ${pillClass}`}>
-                            {pillText}
-                          </span>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                    {/* Card */}
+                    <button
+                      onClick={() => navigate(`/project/milestone/${m.id}`)}
+                      className={`flex-1 text-left rounded-xl border ${cardBg} px-4 py-3 mb-3 transition-colors hover:brightness-[0.99]`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-sans text-[14px] font-medium text-foreground lowercase truncate">
+                          {m.name}
+                        </p>
+                        <p className="font-mono text-[13px] text-muted-foreground flex-shrink-0">
+                          £{Number(m.payment_value ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center font-mono text-[10px] px-2 py-0.5 rounded-full ${pillClass}`}>
+                          {pillText}
+                        </span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
 
-            {role === "pm" && ordered.length > 0 && (
-              <button
-                onClick={() => navigate("/manual-milestone")}
-                className="w-full mt-4 py-4 bg-card rounded-full font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t("milestone.add_milestone")}
-              </button>
-            )}
-          </div>
+          {role === "pm" && ordered.length > 0 && (
+            <button
+              onClick={() => navigate("/manual-milestone")}
+              className="w-full mt-4 py-4 bg-card rounded-full font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("milestone.add_milestone")}
+            </button>
+          )}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
