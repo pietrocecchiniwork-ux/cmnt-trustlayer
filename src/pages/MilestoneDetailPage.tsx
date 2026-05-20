@@ -531,10 +531,10 @@ export default function MilestoneDetailPage() {
   }
 
   // ─── PM / in-review / complete view ───
-  const headerNumColor =
-    milestone.status === "complete" ? "text-success" :
-    milestone.status === "in_review" ? "text-destructive" :
-    "text-muted-foreground";
+  const headerNumStyle: React.CSSProperties =
+    milestone.status === "complete" ? { color: "#39FF14" } :
+    milestone.status === "in_review" ? { color: "#FF1744" } :
+    { color: "#D1D5DB" };
 
   const metaStatusLabel = t(`milestone.status.${milestone.status}`);
 
