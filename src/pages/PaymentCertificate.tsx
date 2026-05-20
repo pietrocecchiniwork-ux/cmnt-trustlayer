@@ -54,9 +54,11 @@ export default function PaymentCertificate() {
       })()
     : "";
 
-  const approvedDate = milestone?.approved_at
-    ? format(parseISO(milestone.approved_at), "dd MMM yyyy")
-    : "—";
+  const approverName =
+    currentUser?.user_metadata?.display_name ||
+    currentUser?.user_metadata?.full_name ||
+    currentUser?.email ||
+    "—";
 
   const handleRelease = async () => {
     if (!milestoneId || !currentUser) {
@@ -116,11 +118,11 @@ export default function PaymentCertificate() {
             </div>
             <div className="flex justify-between items-baseline">
               <span className="t-eyebrow">approved by</span>
-              <span className="font-sans text-[13px] text-foreground">{approverMember?.name ?? "—"}</span>
+              <span className="font-sans text-[13px] text-foreground">{approverName}</span>
             </div>
             <div className="flex justify-between items-baseline">
               <span className="t-eyebrow">date</span>
-              <span className="font-sans text-[13px] text-foreground">{approvedDate}</span>
+              <span className="font-sans text-[13px] text-foreground">{todayFormatted}</span>
             </div>
           </div>
 
@@ -131,15 +133,25 @@ export default function PaymentCertificate() {
 
         <div className="bg-card rounded-3xl px-6 py-5">
           <p className="font-sans text-[13px] text-muted-foreground">
-            the team will be notified via whatsapp
+            A copy has been saved to this project's evidence record.
           </p>
         </div>
 
         <div className="flex-1" />
 
+        <div className="text-right">
+          <button
+            type="button"
+            className="font-sans text-[13px] text-blue-600 hover:text-blue-700 transition-colors"
+            onClick={() => toast.info("PDF export coming soon")}
+          >
+            Export PDF
+          </button>
+        </div>
+
         <Button variant="dark" size="full" onClick={handleRelease} disabled={saving}>
           <span className="font-sans text-[16px]">
-            {saving ? "generating..." : "generate payment certificate"}
+            {saving ? "generating..." : "Done"}
           </span>
         </Button>
       </div>
