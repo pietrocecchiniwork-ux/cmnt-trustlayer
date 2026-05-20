@@ -531,10 +531,10 @@ export default function MilestoneDetailPage() {
   }
 
   // ─── PM / in-review / complete view ───
-  const headerNumColor =
-    milestone.status === "complete" ? "text-success" :
-    milestone.status === "in_review" ? "text-destructive" :
-    "text-muted-foreground";
+  const headerNumStyle: React.CSSProperties =
+    milestone.status === "complete" ? { color: "#39FF14" } :
+    milestone.status === "in_review" ? { color: "#FF1744" } :
+    { color: "#D1D5DB" };
 
   const metaStatusLabel = t(`milestone.status.${milestone.status}`);
 
@@ -599,7 +599,7 @@ export default function MilestoneDetailPage() {
           </div>
         ) : (
           <>
-            <p className={`font-sans font-medium text-[48px] leading-none tracking-tight ${headerNumColor}`}>
+            <p className="font-sans font-medium leading-none tracking-tight" style={{ ...headerNumStyle, fontSize: "56px", lineHeight: 1 }}>
               {String(milestone.position).padStart(2, "0")}
             </p>
 
@@ -705,25 +705,25 @@ export default function MilestoneDetailPage() {
 
               const submitterName = (item as any).submitted_by_name ?? null;
               const verdictBg =
-                condition === "pass" ? "#E1F5EE" :
-                condition === "concern" ? "#FAEEDA" :
-                condition === "fail" ? "#FCEBEB" : null;
+                condition === "pass" ? "#39FF14" :
+                condition === "concern" ? "#FF4500" :
+                condition === "fail" ? "#FF1744" : null;
               const verdictBorder =
-                condition === "pass" ? "#B8E5D2" :
-                condition === "concern" ? "#EBD2A8" :
-                condition === "fail" ? "#EBC5C5" : null;
+                condition === "pass" ? "#39FF14" :
+                condition === "concern" ? "#FF4500" :
+                condition === "fail" ? "#FF1744" : null;
               const verdictText =
-                condition === "pass" ? "AI: pass" :
-                condition === "concern" ? "AI: concern" :
-                condition === "fail" ? "AI: fail" : null;
+                condition === "pass" ? "AI: PASS" :
+                condition === "concern" ? "AI: CONCERN" :
+                condition === "fail" ? "AI: FAIL" : null;
               const verdictSymbol = condition === "pass" ? "✓" : condition === "concern" ? "⚠" : condition === "fail" ? "⚠" : null;
               const verdictFg =
-                condition === "pass" ? "#1F6B4F" :
-                condition === "concern" ? "#8A5A1F" :
-                condition === "fail" ? "#8A2929" : "inherit";
+                condition === "pass" ? "#0a0a0a" :
+                condition === "concern" ? "#0a0a0a" :
+                condition === "fail" ? "#ffffff" : "inherit";
 
               return (
-                <div key={item.id} className="bg-card rounded-2xl overflow-hidden">
+                <div key={item.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <div className="px-4 pt-4 pb-3">
                     <div className="flex items-start gap-3">
                       {item.photo_url ? (

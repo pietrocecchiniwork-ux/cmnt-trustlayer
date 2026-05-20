@@ -257,24 +257,26 @@ function PMClientSpine({
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-20 bg-background px-6 pt-20 pb-4 border-b border-border/40">
+        {/* Sticky header — no card wrapper, single line */}
+        <div className="sticky top-0 z-20 bg-background px-6 pt-20 pb-4">
           <p className="font-sans text-[18px] font-medium text-foreground truncate">
             {(project as any)?.name ?? "project"}
           </p>
-          <div className="mt-3 h-[3px] w-full bg-border rounded-full overflow-hidden">
-            <div className="h-full bg-success" style={{ width: `${pct}%` }} />
+          <div className="mt-3 flex items-center gap-3">
+            <div className="flex-1 h-[3px] bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full" style={{ width: `${pct}%`, backgroundColor: "#39FF14" }} />
+            </div>
+            <p className="font-mono text-[12px] text-gray-500 flex-shrink-0">
+              {pct}% · {fmtK(released)} of {fmtK(totalBudget)}
+            </p>
           </div>
-          <p className="font-mono text-[12px] text-muted-foreground mt-2">
-            {pct}% · {fmtK(released)} of {fmtK(totalBudget)} released
-          </p>
         </div>
 
         {/* Spine */}
-        <div className="flex-1 px-6 pt-4 pb-6">
+        <div className="flex-1 px-6 pt-4 pb-24">
           {ordered.length === 0 ? (
-            <div className="bg-card rounded-3xl px-6 py-8 mt-4">
-              <p className="font-mono text-[13px] text-muted-foreground text-center">
+            <div className="bg-white border border-gray-200 rounded-xl px-6 py-8 mt-4">
+              <p className="font-mono text-[13px] text-gray-500 text-center">
                 {t("milestone.no_milestones")}
               </p>
             </div>
@@ -286,26 +288,27 @@ function PMClientSpine({
                 const evCount = evidenceCounts[m.id] ?? 0;
 
                 const dotColor =
-                  st === "verified" ? "#1D9E75" :
-                  st === "review" ? "#E24B4A" :
-                  st === "waiting" ? "#EF9F27" :
+                  st === "verified" ? "#39FF14" :
+                  st === "review" ? "#FF1744" :
+                  st === "waiting" ? "#FF4500" :
                   "hsl(var(--border))";
 
-                const pillClass =
-                  st === "verified" ? "bg-[#1D9E75]/15 text-[#1D9E75]" :
-                  st === "review" ? "bg-[#E24B4A]/15 text-[#E24B4A]" :
-                  st === "waiting" ? "bg-[#EF9F27]/20 text-[#B5710F]" :
-                  "bg-muted text-muted-foreground";
+                const pillStyle: React.CSSProperties =
+                  st === "verified" ? { backgroundColor: "#39FF14", color: "#0a0a0a" } :
+                  st === "review" ? { backgroundColor: "#FF1744", color: "#ffffff" } :
+                  st === "waiting" ? { backgroundColor: "#FF4500", color: "#0a0a0a" } :
+                  {};
+                const pillClass = st === "idle" ? "bg-gray-100 text-gray-500" : "";
 
                 const pillText =
-                  st === "verified" ? "verified" :
-                  st === "review" ? (evCount > 0 ? `${evCount} photos · awaiting your review` : "awaiting review") :
-                  st === "waiting" ? "waiting for evidence" :
-                  "not started";
+                  st === "verified" ? "VERIFIED" :
+                  st === "review" ? (evCount > 0 ? `${evCount} PHOTOS · AWAITING REVIEW` : "AWAITING REVIEW") :
+                  st === "waiting" ? "WAITING FOR EVIDENCE" :
+                  "NOT STARTED";
 
                 const cardBg = st === "review"
-                  ? "bg-[#FCEBEB] border-red-200"
-                  : "bg-card border-border/60";
+                  ? "bg-white border-red-200"
+                  : "bg-white border-gray-200";
 
                 return (
                   <li key={m.id} className="flex items-stretch gap-3">
@@ -317,7 +320,7 @@ function PMClientSpine({
                           style={{
                             backgroundColor: dotColor,
                             boxShadow: st === "review"
-                              ? "0 0 0 4px rgba(226, 75, 74, 0.18)"
+                              ? "0 0 0 4px rgba(255, 23, 68, 0.18)"
                               : undefined,
                           }}
                         />
@@ -339,12 +342,15 @@ function PMClientSpine({
                         <p className="font-sans text-[14px] font-medium text-foreground lowercase truncate">
                           {m.name}
                         </p>
-                        <p className="font-mono text-[13px] text-muted-foreground flex-shrink-0">
+                        <p className="font-mono text-[13px] text-gray-500 flex-shrink-0">
                           £{Number(m.payment_value ?? 0).toLocaleString()}
                         </p>
                       </div>
                       <div className="mt-2">
-                        <span className={`inline-flex items-center font-mono text-[10px] px-2 py-0.5 rounded-full ${pillClass}`}>
+                        <span
+                          className={`inline-flex items-center font-mono text-[10px] uppercase tracking-[0.06em] px-2 py-0.5 rounded-full ${pillClass}`}
+                          style={pillStyle}
+                        >
                           {pillText}
                         </span>
                       </div>
