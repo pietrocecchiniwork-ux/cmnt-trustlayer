@@ -61,7 +61,7 @@ export default function PaymentsList() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="t-eyebrow">released</p>
-                  <p className="font-sans text-[22px] tracking-[-0.02em] text-success mt-1 leading-none">
+                  <p className="font-sans text-[22px] tracking-[-0.02em] mt-1 leading-none" style={{ color: "#39FF14" }}>
                     £{totalReleased.toLocaleString()}
                   </p>
                   <p className="font-mono text-[10px] text-muted-foreground mt-1.5">
@@ -81,8 +81,8 @@ export default function PaymentsList() {
 
               <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-success transition-all rounded-full"
-                  style={{ width: `${releasedPct}%` }}
+                  className="h-full transition-all rounded-full"
+                  style={{ width: `${releasedPct}%`, backgroundColor: "#39FF14" }}
                 />
               </div>
             </div>
@@ -117,10 +117,13 @@ export default function PaymentsList() {
                       £{Number(m.payment_value ?? 0).toLocaleString()}
                     </p>
                   </div>
-                  <span className={`font-mono text-[10px] px-2.5 py-1 rounded-full flex-shrink-0 ${
-                    isReleased ? "bg-success/15 text-success" : "bg-secondary text-muted-foreground"
-                  }`}>
-                    {isReleased ? "released" : "pending"}
+                  <span
+                    className="font-mono text-[10px] uppercase tracking-[0.06em] px-2.5 py-1 rounded-full flex-shrink-0"
+                    style={isReleased ? { backgroundColor: "#39FF14", color: "#0a0a0a" } : undefined}
+                  >
+                    <span className={isReleased ? "" : "text-muted-foreground"}>
+                      {isReleased ? "released" : "pending"}
+                    </span>
                   </span>
                 </button>
 
