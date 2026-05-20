@@ -4,6 +4,7 @@ import { lovable } from "@/integrations/lovable";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { DemoWalkthrough } from "@/components/DemoWalkthrough";
+import logo from "@/assets/logo.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -62,9 +63,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col px-5 pt-16 pb-10">
       {/* Brand */}
       <div className="flex flex-col items-center mb-10">
-        <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center mb-4">
-          <span className="font-mono text-[18px] text-background">C</span>
-        </div>
+        <img src={logo} alt="Cemento" width={56} height={56} className="w-14 h-14 mb-4" />
         <p className="font-sans text-[20px] text-foreground tracking-[-0.02em] lowercase">cemento</p>
         <p className="t-label mt-1 whitespace-pre-line">THE CONSTRUCTION TRUST LAYER{"\n\n"}</p>
       </div>
