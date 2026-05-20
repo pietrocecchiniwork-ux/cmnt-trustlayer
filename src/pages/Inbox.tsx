@@ -316,7 +316,10 @@ function ReviewCard({
         )}
 
         <div className="flex">
-          <span className={`inline-flex items-center font-mono text-[11px] px-2.5 py-1 rounded-full ${verdictClass}`}>
+          <span
+            className={`inline-flex items-center font-mono text-[10px] uppercase tracking-[0.06em] px-2.5 py-1 rounded-full ${verdictFallback}`}
+            style={verdictStyle}
+          >
             AI: {verdictText}
           </span>
         </div>
