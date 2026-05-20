@@ -117,10 +117,13 @@ export default function PaymentsList() {
                       £{Number(m.payment_value ?? 0).toLocaleString()}
                     </p>
                   </div>
-                  <span className={`font-mono text-[10px] px-2.5 py-1 rounded-full flex-shrink-0 ${
-                    isReleased ? "bg-success/15 text-success" : "bg-secondary text-muted-foreground"
-                  }`}>
-                    {isReleased ? "released" : "pending"}
+                  <span
+                    className="font-mono text-[10px] uppercase tracking-[0.06em] px-2.5 py-1 rounded-full flex-shrink-0"
+                    style={isReleased ? { backgroundColor: "#39FF14", color: "#0a0a0a" } : undefined}
+                  >
+                    <span className={isReleased ? "" : "text-muted-foreground"}>
+                      {isReleased ? "released" : "pending"}
+                    </span>
                   </span>
                 </button>
 
