@@ -228,16 +228,16 @@ export default function Inbox() {
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-success flex-shrink-0" />
-                      <span className="font-sans text-[14px] text-foreground truncate lowercase">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: "#39FF14" }} />
+                      <span className="font-sans text-[14px] font-medium text-foreground truncate lowercase">
                         {m.name}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="font-mono text-[11px] text-muted-foreground">
+                      <span className="font-mono text-[13px] text-gray-500">
                         £{Number(m.payment_value ?? 0).toLocaleString()}
                       </span>
-                      <span className="font-mono text-[12px] text-success">✓</span>
+                      <span className="font-mono text-[12px]" style={{ color: "#0a0a0a" }}>✓</span>
                     </div>
                   </div>
                 ))}
