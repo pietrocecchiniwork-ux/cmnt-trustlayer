@@ -263,11 +263,12 @@ function ReviewCard({
   const extra = evidence.length - photos.length;
   const amount = Number(milestone.payment_value ?? 0);
 
-  const verdictClass =
-    verdict === "pass" ? "bg-success/15 text-success" :
-    verdict === "concern" ? "bg-yellow-500/15 text-yellow-700" :
-    verdict === "fail" ? "bg-destructive/15 text-destructive" :
-    "bg-muted text-muted-foreground";
+  const verdictStyle: React.CSSProperties =
+    verdict === "pass" ? { backgroundColor: "#39FF14", color: "#0a0a0a" } :
+    verdict === "concern" ? { backgroundColor: "#FF4500", color: "#0a0a0a" } :
+    verdict === "fail" ? { backgroundColor: "#FF1744", color: "#ffffff" } :
+    {};
+  const verdictFallback = !verdict ? "bg-gray-100 text-gray-500" : "";
 
   const submittedAt = latest.submitted_at ? new Date(latest.submitted_at) : null;
   const relative = submittedAt ? formatDistanceToNow(submittedAt, { addSuffix: true }) : "";
