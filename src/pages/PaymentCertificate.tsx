@@ -44,7 +44,7 @@ export default function PaymentCertificate() {
   const today = new Date();
   const todayFormatted = format(today, "dd MMM yyyy");
 
-  const isLoading = milestoneLoading || projectLoading || approverLoading;
+  const isLoading = milestoneLoading || projectLoading;
 
   const certRef = milestone
     ? (() => {
