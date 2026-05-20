@@ -182,136 +182,172 @@ export default function MilestonesList() {
     );
   }
 
-  // PM/Client: original milestones list with search + filter
-  const filteredMilestones = milestones.filter(m => {
-    const q = search.trim().toLowerCase();
-    if (statusFilter !== "all" && m.status !== statusFilter) return false;
-    if (q && !m.name?.toLowerCase().includes(q)) return false;
-    return true;
-  });
+  // PM/Client: vertical project spine
+  return <PMClientSpine />;
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-        <div className="px-6 pt-20 pb-6 space-y-3">
-          <div className="bg-card rounded-3xl px-6 py-5">
-            <p className="t-eyebrow">{t("navigation.milestones")}</p>
-            <p className="font-sans text-[26px] tracking-[-0.02em] text-foreground mt-1 lowercase">
-              {milestones.length} items
-            </p>
-            <p className="font-mono text-[11px] text-muted-foreground mt-2">
-              {t("milestone.items_complete", {
-                count: milestones.length,
-                done: milestones.filter(m => m.status === "complete").length,
-              })}
-            </p>
-          </div>
+  function PMClientSpine() {
+    const { data: project } = useQuery({
+      queryKey: ["project", currentProjectId],
+      enabled: !!currentProjectId,
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("projects").select("*").eq("id", currentProjectId!).single();
+        if (error) throw error;
+        return data;
+      },
+    });
 
-          <div className="bg-card rounded-3xl px-6 py-5 space-y-3">
-            <input
-              type="text"
-              placeholder="search milestones..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2.5 bg-secondary rounded-full font-mono text-[12px] text-foreground placeholder:text-muted-foreground focus:outline-none"
-            />
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {STATUS_FILTERS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`font-mono text-[10px] px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
-                    statusFilter === s
-                      ? "bg-foreground text-background"
-                      : "bg-secondary text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {s.replace(/_/g, " ")}
-                </button>
-              ))}
+    const inReviewIds = milestones.filter(m => m.status === "in_review").map(m => m.id);
+    const { data: evidenceCounts = {} } = useQuery<Record<string, number>>({
+      queryKey: ["spine-evidence-counts", inReviewIds],
+      enabled: inReviewIds.length > 0,
+      queryFn: async () => {
+        const counts: Record<string, number> = {};
+        for (const id of inReviewIds) {
+          const { count } = await supabase
+            .from("evidence").select("id", { count: "exact", head: true }).eq("milestone_id", id);
+          counts[id] = count ?? 0;
+        }
+        return counts;
+      },
+    });
+
+    const total = milestones.length;
+    const completed = milestones.filter(m => m.status === "complete").length;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const released = milestones
+      .filter(m => m.status === "complete")
+      .reduce((s, m) => s + Number(m.payment_value ?? 0), 0);
+    const totalBudget = Number((project as any)?.total_budget ?? 0)
+      || milestones.reduce((s, m) => s + Number(m.payment_value ?? 0), 0);
+
+    const fmtK = (n: number) => {
+      if (n >= 1000) return `£${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
+      return `£${n.toLocaleString()}`;
+    };
+
+    type SpineState = "verified" | "review" | "waiting" | "idle";
+    const stateOf = (status: string): SpineState => {
+      if (status === "complete") return "verified";
+      if (status === "in_review") return "review";
+      if (status === "in_progress" || status === "overdue") return "waiting";
+      return "idle";
+    };
+
+    const ordered = [...milestones].sort((a, b) => a.position - b.position);
+
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
+          {/* Sticky header */}
+          <div className="sticky top-0 z-20 bg-background px-6 pt-20 pb-4 border-b border-border/40">
+            <p className="font-sans text-[18px] font-medium text-foreground truncate">
+              {(project as any)?.name ?? "project"}
+            </p>
+            <div className="mt-3 h-[3px] w-full bg-border rounded-full overflow-hidden">
+              <div className="h-full bg-success" style={{ width: `${pct}%` }} />
             </div>
+            <p className="font-mono text-[12px] text-muted-foreground mt-2">
+              {pct}% · {fmtK(released)} of {fmtK(totalBudget)} released
+            </p>
           </div>
-        </div>
 
-        <div className="flex-1 px-6 pb-6 space-y-3">
-          {filteredMilestones.map((m) => {
-            const isExpanded = expandedId === m.id;
-            const statusLabel = (m.status ?? "").replace(/_/g, " ");
-            return (
-              <div key={m.id} className="bg-card rounded-3xl px-6 py-4">
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : m.id)}
-                  className="w-full flex items-center justify-between text-left group"
-                >
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <span className="font-mono text-[16px] text-muted-foreground flex-shrink-0">
-                      {String(m.position).padStart(2, "0")}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-sans text-[14px] text-foreground truncate">{m.name}</p>
-                      <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
-                        {m.due_date ?? "no date"} · £{Number(m.payment_value ?? 0).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ml-3 ${statusDotClass[m.status]}`} />
-                </button>
-
-                {isExpanded && (
-                  <div className="mt-4 pt-4 border-t border-border/60 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="t-eyebrow">due date</p>
-                        <p className="font-sans text-[14px] text-foreground mt-1">{m.due_date ?? "—"}</p>
-                      </div>
-                      <div>
-                        <p className="t-eyebrow">payment</p>
-                        <p className="font-sans text-[14px] text-foreground mt-1">£{Number(m.payment_value ?? 0).toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="t-eyebrow">status</p>
-                        <p className="font-sans text-[14px] text-foreground mt-1 lowercase">{statusLabel}</p>
-                      </div>
-                      <div>
-                        <p className="t-eyebrow">assigned</p>
-                        <p className="font-sans text-[14px] text-foreground mt-1 truncate">
-                          {(m as any).assigned_to_name ?? "unassigned"}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigate(`/project/milestone/${m.id}`)}
-                      className="w-full py-3 bg-foreground text-background rounded-full font-sans text-[14px]"
-                    >
-                      open milestone
-                    </button>
-                  </div>
-                )}
+          {/* Spine */}
+          <div className="flex-1 px-6 pt-4 pb-6">
+            {ordered.length === 0 ? (
+              <div className="bg-card rounded-3xl px-6 py-8 mt-4">
+                <p className="font-mono text-[13px] text-muted-foreground text-center">
+                  {t("milestone.no_milestones")}
+                </p>
               </div>
-            );
-          })}
+            ) : (
+              <ul className="relative">
+                {ordered.map((m, i) => {
+                  const st = stateOf(m.status);
+                  const isLast = i === ordered.length - 1;
+                  const evCount = evidenceCounts[m.id] ?? 0;
 
-          {filteredMilestones.length === 0 && milestones.length > 0 && (
-            <div className="bg-card rounded-3xl px-6 py-8">
-              <p className="font-mono text-[13px] text-muted-foreground text-center">no milestones match your filters</p>
-            </div>
-          )}
-          {milestones.length === 0 && (
-            <div className="bg-card rounded-3xl px-6 py-8">
-              <p className="font-mono text-[13px] text-muted-foreground text-center">{t("milestone.no_milestones")}</p>
-            </div>
-          )}
+                  const dotColor =
+                    st === "verified" ? "#1D9E75" :
+                    st === "review" ? "#E24B4A" :
+                    st === "waiting" ? "#EF9F27" :
+                    "hsl(var(--border))";
 
-          {role === "pm" && (
-            <button
-              onClick={() => navigate("/manual-milestone")}
-              className="w-full py-4 bg-card rounded-full font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {t("milestone.add_milestone")}
-            </button>
-          )}
+                  const pillClass =
+                    st === "verified" ? "bg-[#1D9E75]/15 text-[#1D9E75]" :
+                    st === "review" ? "bg-[#E24B4A]/15 text-[#E24B4A]" :
+                    st === "waiting" ? "bg-[#EF9F27]/20 text-[#B5710F]" :
+                    "bg-muted text-muted-foreground";
+
+                  const pillText =
+                    st === "verified" ? "verified" :
+                    st === "review" ? (evCount > 0 ? `${evCount} photos · awaiting your review` : "awaiting review") :
+                    st === "waiting" ? "waiting for evidence" :
+                    "not started";
+
+                  const cardBg = st === "review"
+                    ? "bg-[#FCEBEB] border-red-200"
+                    : "bg-card border-border/60";
+
+                  return (
+                    <li key={m.id} className="flex items-stretch gap-3">
+                      {/* Spine column */}
+                      <div className="relative w-7 flex-shrink-0 flex flex-col items-center">
+                        <div className="pt-4">
+                          <span
+                            className="block w-3 h-3 rounded-full"
+                            style={{
+                              backgroundColor: dotColor,
+                              boxShadow: st === "review"
+                                ? "0 0 0 4px rgba(226, 75, 74, 0.18)"
+                                : undefined,
+                            }}
+                          />
+                        </div>
+                        {!isLast && (
+                          <div
+                            className="flex-1 w-[2px] mt-1"
+                            style={{ backgroundColor: "hsl(var(--border))" }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Card */}
+                      <button
+                        onClick={() => navigate(`/project/milestone/${m.id}`)}
+                        className={`flex-1 text-left rounded-xl border ${cardBg} px-4 py-3 mb-3 transition-colors hover:brightness-[0.99]`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="font-sans text-[14px] font-medium text-foreground lowercase truncate">
+                            {m.name}
+                          </p>
+                          <p className="font-mono text-[13px] text-muted-foreground flex-shrink-0">
+                            £{Number(m.payment_value ?? 0).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="mt-2">
+                          <span className={`inline-flex items-center font-mono text-[10px] px-2 py-0.5 rounded-full ${pillClass}`}>
+                            {pillText}
+                          </span>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {role === "pm" && ordered.length > 0 && (
+              <button
+                onClick={() => navigate("/manual-milestone")}
+                className="w-full mt-4 py-4 bg-card rounded-full font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t("milestone.add_milestone")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
