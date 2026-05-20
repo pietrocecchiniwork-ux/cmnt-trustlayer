@@ -705,22 +705,22 @@ export default function MilestoneDetailPage() {
 
               const submitterName = (item as any).submitted_by_name ?? null;
               const verdictBg =
-                condition === "pass" ? "#E1F5EE" :
-                condition === "concern" ? "#FAEEDA" :
-                condition === "fail" ? "#FCEBEB" : null;
+                condition === "pass" ? "#39FF14" :
+                condition === "concern" ? "#FF4500" :
+                condition === "fail" ? "#FF1744" : null;
               const verdictBorder =
-                condition === "pass" ? "#B8E5D2" :
-                condition === "concern" ? "#EBD2A8" :
-                condition === "fail" ? "#EBC5C5" : null;
+                condition === "pass" ? "#39FF14" :
+                condition === "concern" ? "#FF4500" :
+                condition === "fail" ? "#FF1744" : null;
               const verdictText =
-                condition === "pass" ? "AI: pass" :
-                condition === "concern" ? "AI: concern" :
-                condition === "fail" ? "AI: fail" : null;
+                condition === "pass" ? "AI: PASS" :
+                condition === "concern" ? "AI: CONCERN" :
+                condition === "fail" ? "AI: FAIL" : null;
               const verdictSymbol = condition === "pass" ? "✓" : condition === "concern" ? "⚠" : condition === "fail" ? "⚠" : null;
               const verdictFg =
-                condition === "pass" ? "#1F6B4F" :
-                condition === "concern" ? "#8A5A1F" :
-                condition === "fail" ? "#8A2929" : "inherit";
+                condition === "pass" ? "#0a0a0a" :
+                condition === "concern" ? "#0a0a0a" :
+                condition === "fail" ? "#ffffff" : "inherit";
 
               return (
                 <div key={item.id} className="bg-card rounded-2xl overflow-hidden">
