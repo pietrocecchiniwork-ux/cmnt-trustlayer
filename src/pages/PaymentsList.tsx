@@ -61,7 +61,7 @@ export default function PaymentsList() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="t-eyebrow">released</p>
-                  <p className="font-sans text-[22px] tracking-[-0.02em] text-success mt-1 leading-none">
+                  <p className="font-sans text-[22px] tracking-[-0.02em] mt-1 leading-none" style={{ color: "#39FF14" }}>
                     £{totalReleased.toLocaleString()}
                   </p>
                   <p className="font-mono text-[10px] text-muted-foreground mt-1.5">
