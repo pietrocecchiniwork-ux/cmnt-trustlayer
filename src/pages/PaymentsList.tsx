@@ -81,8 +81,8 @@ export default function PaymentsList() {
 
               <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-success transition-all rounded-full"
-                  style={{ width: `${releasedPct}%` }}
+                  className="h-full transition-all rounded-full"
+                  style={{ width: `${releasedPct}%`, backgroundColor: "#39FF14" }}
                 />
               </div>
             </div>
