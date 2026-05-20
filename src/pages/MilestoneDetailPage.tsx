@@ -599,7 +599,7 @@ export default function MilestoneDetailPage() {
           </div>
         ) : (
           <>
-            <p className={`font-sans font-medium text-[48px] leading-none tracking-tight ${headerNumColor}`}>
+            <p className="font-sans font-medium leading-none tracking-tight" style={{ ...headerNumStyle, fontSize: "56px", lineHeight: 1 }}>
               {String(milestone.position).padStart(2, "0")}
             </p>
 
