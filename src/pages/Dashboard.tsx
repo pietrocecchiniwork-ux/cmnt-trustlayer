@@ -15,10 +15,12 @@ import { generateEvidencePackPdf, downloadBlob } from "@/lib/evidencePdf";
 import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { HealthDashboard } from "@/components/HealthDashboard";
 import { BulkApproveQueue } from "@/components/BulkApproveQueue";
+import Inbox from "@/pages/Inbox";
 
 export default function Dashboard() {
   const { role } = useRole();
-  if (role === "pm" || role === "client") return <PMDashboard />;
+  if (role === "pm") return <Inbox />;
+  if (role === "client") return <PMDashboard />;
   return <ContractorDashboard />;
 }
 
