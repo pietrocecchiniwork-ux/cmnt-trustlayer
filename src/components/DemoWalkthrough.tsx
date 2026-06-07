@@ -5,7 +5,6 @@ type Role = "pm" | "contractor" | "ai" | "client" | null;
 type CardKind = "pm-milestones" | "contractor-checklist" | "evidence-sources" | "ai-analysis" | "pm-approval" | "client-payment";
 
 interface Slide {
-  text: "light" | "dark";
   role: Role;
   roleLabel?: string;
   dotColor?: string;
@@ -17,21 +16,19 @@ interface Slide {
   isFinal?: boolean;
 }
 
-// Shared muted palette
-const SLIDE_BG = "#2A2520";        // dark mud-beige
-const CARD_BG = "#332E28";          // slightly lifted card surface
-const HAIRLINE = "rgba(255,255,255,0.08)";
-const FINAL_BG = "#F5F3EE";         // cream
+// App status colors (match the rest of the app)
+const STATUS_DONE = "#39FF14";       // neon green
+const STATUS_PROGRESS = "#FF4500";    // acid orange
+const STATUS_ALERT = "#FF1744";       // fluorescent red
 
-// Role colors — only used for the dot + eyebrow + underline at the top of each slide
+// Role accent colors (small marker only)
 const ROLE_PM = "#C1531E";
-const ROLE_CONTRACTOR = "#60A5FA";
-const ROLE_AI = "#B794F4";
+const ROLE_CONTRACTOR = "#2563EB";
+const ROLE_AI = "#7C3AED";
 const ROLE_CLIENT = "#3D7A5A";
 
 const slides: Slide[] = [
   {
-    text: "light",
     role: "pm",
     roleLabel: "PROJECT MANAGER",
     dotColor: ROLE_PM,
@@ -42,7 +39,6 @@ const slides: Slide[] = [
     cta: "see how a milestone gets verified →",
   },
   {
-    text: "light",
     role: "contractor",
     roleLabel: "CONTRACTOR",
     dotColor: ROLE_CONTRACTOR,
@@ -53,7 +49,6 @@ const slides: Slide[] = [
     cta: "submit evidence →",
   },
   {
-    text: "light",
     role: "contractor",
     roleLabel: "CONTRACTOR",
     dotColor: ROLE_CONTRACTOR,
@@ -64,7 +59,6 @@ const slides: Slide[] = [
     cta: "send for verification →",
   },
   {
-    text: "light",
     role: "ai",
     roleLabel: "AI ANALYSIS",
     dotColor: ROLE_AI,
@@ -75,7 +69,6 @@ const slides: Slide[] = [
     cta: "send result to project manager →",
   },
   {
-    text: "light",
     role: "pm",
     roleLabel: "PROJECT MANAGER",
     dotColor: ROLE_PM,
@@ -86,7 +79,6 @@ const slides: Slide[] = [
     cta: "release to client →",
   },
   {
-    text: "light",
     role: "client",
     roleLabel: "CLIENT",
     dotColor: ROLE_CLIENT,
@@ -97,7 +89,6 @@ const slides: Slide[] = [
     cta: "release £11,000 →",
   },
   {
-    text: "dark",
     role: null,
     headline: "every party informed.\nevery payment justified.\nevery project on record.",
     cta: "sign in to get started →",
@@ -109,16 +100,16 @@ const SWIPE_THRESHOLD = 50;
 
 // ---------- Card primitives ----------
 
-function Eyebrow({ children, color = "rgba(255,255,255,0.50)" }: { children: ReactNode; color?: string }) {
+function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <span className="font-mono tracking-[0.18em] uppercase" style={{ fontSize: 10, color }}>
+    <span className="font-mono tracking-[0.18em] uppercase text-muted-foreground" style={{ fontSize: 10 }}>
       {children}
     </span>
   );
 }
 
 function Hairline() {
-  return <div className="w-full my-3" style={{ height: 1, backgroundColor: HAIRLINE }} />;
+  return <div className="w-full my-3 h-px bg-border-light" />;
 }
 
 type RowStatus = "done" | "progress" | "todo";
@@ -128,7 +119,7 @@ function StatusDot({ status }: { status: RowStatus }) {
     return (
       <span
         className="inline-block rounded-full"
-        style={{ width: 7, height: 7, border: "1px solid rgba(255,255,255,0.30)" }}
+        style={{ width: 7, height: 7, border: "1px solid hsl(var(--border-light))" }}
       />
     );
   }
@@ -138,7 +129,7 @@ function StatusDot({ status }: { status: RowStatus }) {
       style={{
         width: 7,
         height: 7,
-        backgroundColor: status === "progress" ? "#E07A3C" : "#7FB069",
+        backgroundColor: status === "progress" ? STATUS_PROGRESS : STATUS_DONE,
       }}
     />
   );
@@ -154,19 +145,18 @@ function StatusRow({
   height?: number;
 }) {
   const stateLabel = status === "done" ? "done" : status === "progress" ? "in progress" : "to do";
-  const labelColor = status === "todo" ? "rgba(255,255,255,0.55)" : "#FFFFFF";
-  const stateColor =
-    status === "done" ? "#7FB069" : status === "progress" ? "#E07A3C" : "rgba(255,255,255,0.45)";
   return (
     <div
-      className="w-full flex items-center gap-3 rounded-xl px-4"
-      style={{ height, backgroundColor: "rgba(255,255,255,0.04)" }}
+      className="w-full flex items-center gap-3 rounded-xl px-4 bg-background"
+      style={{ height }}
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <StatusDot status={status} />
-        <span className="font-sans text-[13px] truncate" style={{ color: labelColor }}>{label}</span>
+        <span className={`font-sans text-[13px] truncate ${status === "todo" ? "text-muted-foreground" : "text-foreground"}`}>
+          {label}
+        </span>
       </div>
-      <span className="font-mono text-[9px] uppercase tracking-wider shrink-0" style={{ color: stateColor }}>
+      <span className="font-mono text-[9px] uppercase tracking-wider shrink-0 text-muted-foreground">
         {stateLabel}
       </span>
     </div>
@@ -174,6 +164,14 @@ function StatusRow({
 }
 
 // ---------- Cards ----------
+
+function CardShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-3xl p-5 bg-card border border-border-light">
+      {children}
+    </div>
+  );
+}
 
 function PmMilestonesCard() {
   const items: Array<{ name: string; status: RowStatus }> = [
@@ -185,7 +183,7 @@ function PmMilestonesCard() {
     { name: "second fix & finishes", status: "todo" },
   ];
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
+    <CardShell>
       <div className="flex flex-col gap-1.5">
         {items.map((it) => (
           <StatusRow key={it.name} label={it.name} status={it.status} />
@@ -193,12 +191,12 @@ function PmMilestonesCard() {
       </div>
       <Hairline />
       <div className="flex items-center justify-between">
-        <span className="font-sans text-[12px] text-white/70">next payment</span>
-        <span className="font-sans text-[12px] text-white/70">
-          <span className="text-white font-medium">£11,000</span> · on first fix verified
+        <span className="font-sans text-[12px] text-muted-foreground">next payment</span>
+        <span className="font-sans text-[12px] text-muted-foreground">
+          <span className="text-foreground font-medium">£11,000</span> · on first fix verified
         </span>
       </div>
-    </div>
+    </CardShell>
   );
 }
 
@@ -211,19 +209,19 @@ function ContractorChecklistCard() {
     { name: "plumbing rough-in complete", status: "todo" },
   ];
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
+    <CardShell>
       <div className="space-y-3">
         <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>milestone</Eyebrow>
-          <span className="font-sans text-[13px] text-white font-medium truncate">first fix electrical</span>
+          <span className="font-sans text-[13px] text-foreground font-medium truncate">first fix electrical</span>
         </div>
         <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>due</Eyebrow>
-          <span className="font-sans text-[13px] text-white">8 mar · 2 days</span>
+          <span className="font-sans text-[13px] text-foreground">8 mar · 2 days</span>
         </div>
         <div className="flex items-baseline justify-between gap-3">
           <Eyebrow>payment</Eyebrow>
-          <span className="font-sans text-[13px] text-white font-bold">£11,000</span>
+          <span className="font-sans text-[13px] text-foreground font-bold">£11,000</span>
         </div>
       </div>
       <Hairline />
@@ -233,14 +231,14 @@ function ContractorChecklistCard() {
         ))}
       </div>
       <div className="mt-4">
-        <div className="w-full rounded-full overflow-hidden" style={{ height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
-          <div style={{ width: "40%", height: "100%", backgroundColor: "#FFFFFF" }} />
+        <div className="w-full rounded-full overflow-hidden bg-secondary" style={{ height: 4 }}>
+          <div style={{ width: "40%", height: "100%", backgroundColor: "hsl(var(--foreground))" }} />
         </div>
-        <div className="text-right font-mono text-[10px] uppercase tracking-wider text-white/55 mt-1.5">
+        <div className="text-right font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-1.5">
           2 of 5 complete
         </div>
       </div>
-    </div>
+    </CardShell>
   );
 }
 
@@ -258,24 +256,18 @@ function EvidenceSource({
   return (
     <div className="flex items-center gap-3">
       <div
-        className="flex items-center justify-center rounded-md shrink-0"
-        style={{
-          width: 32,
-          height: 32,
-          color: "rgba(255,255,255,0.85)",
-          border: `1px solid ${HAIRLINE}`,
-          backgroundColor: "rgba(255,255,255,0.03)",
-        }}
+        className="flex items-center justify-center rounded-md shrink-0 bg-background border border-border-light text-foreground"
+        style={{ width: 32, height: 32 }}
       >
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-sans text-[12px] text-white font-medium leading-snug line-clamp-2">{title}</div>
-        <div className="font-sans text-[10px] text-white/55 truncate mt-0.5">{sub}</div>
+        <div className="font-sans text-[12px] text-foreground font-medium leading-snug line-clamp-2">{title}</div>
+        <div className="font-sans text-[10px] text-muted-foreground truncate mt-0.5">{sub}</div>
       </div>
       <span
         className="font-mono text-[9px] uppercase tracking-wider rounded-full px-2 py-1 shrink-0"
-        style={{ backgroundColor: "rgba(127,176,105,0.12)", color: "#7FB069" }}
+        style={{ backgroundColor: STATUS_DONE, color: "#0a0a0a" }}
       >
         {pill}
       </span>
@@ -285,7 +277,7 @@ function EvidenceSource({
 
 function EvidenceSourcesCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
+    <CardShell>
       <div className="flex flex-col gap-3">
         <EvidenceSource
           icon={<Mic size={16} strokeWidth={1.75} />}
@@ -308,12 +300,12 @@ function EvidenceSourcesCard() {
       </div>
       <Hairline />
       <div className="flex items-center justify-between">
-        <span className="font-sans text-[12px] text-white/70">submitting against</span>
-        <span className="font-sans text-[12px] text-white/70">
-          first fix electrical · <span className="text-white font-medium">£11,000</span>
+        <span className="font-sans text-[12px] text-muted-foreground">submitting against</span>
+        <span className="font-sans text-[12px] text-muted-foreground">
+          first fix electrical · <span className="text-foreground font-medium">£11,000</span>
         </span>
       </div>
-    </div>
+    </CardShell>
   );
 }
 
@@ -328,17 +320,17 @@ function AiCheckRow({
   value: string;
   result: string;
 }) {
-  const accent = pass ? "#5BD3D9" : "#E5C547";
+  const accent = pass ? STATUS_DONE : STATUS_ALERT;
   return (
-    <div className="flex items-center gap-2" style={{ height: 40, borderBottom: `1px solid ${HAIRLINE}` }}>
+    <div className="flex items-center gap-2 h-10 border-b border-border-light">
       <span
         className="w-4 text-center font-mono text-[11px] shrink-0"
         style={{ color: accent }}
       >
         {pass ? "✓" : "!"}
       </span>
-      <span className="font-mono text-[9px] uppercase tracking-wider text-white/50 w-16 shrink-0">{label}</span>
-      <span className="font-sans text-[12px] text-white flex-1 min-w-0 truncate">{value}</span>
+      <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground w-16 shrink-0">{label}</span>
+      <span className="font-sans text-[12px] text-foreground flex-1 min-w-0 truncate">{value}</span>
       <span className="font-mono text-[9px] uppercase tracking-wider shrink-0 whitespace-nowrap" style={{ color: accent }}>
         {result}
       </span>
@@ -348,7 +340,7 @@ function AiCheckRow({
 
 function AiAnalysisCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
+    <CardShell>
       <div className="flex items-center justify-between mb-3">
         <Eyebrow>cemento analysis</Eyebrow>
         <Eyebrow>6s</Eyebrow>
@@ -361,26 +353,31 @@ function AiAnalysisCard() {
         <AiCheckRow pass={false} label="condition" value="consumer unit" result="needs attention" />
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <span className="font-sans text-[13px] whitespace-nowrap shrink-0" style={{ color: "#5BD3D9" }}>4 / 5 checks passed</span>
+        <span
+          className="font-sans text-[12px] font-medium whitespace-nowrap shrink-0 rounded-full px-2.5 py-1"
+          style={{ backgroundColor: STATUS_DONE, color: "#0a0a0a" }}
+        >
+          4 / 5 checks passed
+        </span>
         <div className="flex flex-col items-end gap-1 min-w-0">
-          <div className="rounded-full overflow-hidden" style={{ width: 100, height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
-            <div style={{ width: "80%", height: "100%", backgroundColor: "#5BD3D9" }} />
+          <div className="rounded-full overflow-hidden bg-secondary" style={{ width: 100, height: 4 }}>
+            <div style={{ width: "80%", height: "100%", backgroundColor: STATUS_DONE }} />
           </div>
-          <span className="font-mono text-[9px] uppercase tracking-wider text-white/50 whitespace-nowrap">confidence high · 1 flag</span>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground whitespace-nowrap">confidence high · 1 flag</span>
         </div>
       </div>
       <div className="mt-3">
-        <span className="font-sans text-[12px] text-white/75 italic">
+        <span className="font-sans text-[12px] text-muted-foreground italic">
           recommendation: approve with note on consumer unit placement
         </span>
       </div>
-    </div>
+    </CardShell>
   );
 }
 
 function PmApprovalCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
+    <CardShell>
       <div className="grid grid-cols-3 gap-2">
         {[
           { icon: <Camera size={12} strokeWidth={1.75} />, label: "3 photos" },
@@ -389,8 +386,7 @@ function PmApprovalCard() {
         ].map((p) => (
           <span
             key={p.label}
-            className="font-mono text-[10px] uppercase tracking-wider text-white/80 text-center rounded-full h-8 inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
-            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+            className="font-mono text-[10px] uppercase tracking-wider text-foreground text-center rounded-full h-8 inline-flex items-center justify-center gap-1.5 whitespace-nowrap bg-secondary"
           >
             {p.icon}
             {p.label}
@@ -399,40 +395,37 @@ function PmApprovalCard() {
       </div>
       <div className="mt-4 space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="font-sans text-[12px] text-white/65">ai result</span>
-          <span className="font-sans text-[12px] text-white">4 / 5 · 1 flag</span>
+          <span className="font-sans text-[12px] text-muted-foreground">ai result</span>
+          <span className="font-sans text-[12px] text-foreground">4 / 5 · 1 flag</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="font-sans text-[12px] text-white/65">time to review</span>
-          <span className="font-sans text-[12px] text-white">4 minutes</span>
+          <span className="font-sans text-[12px] text-muted-foreground">time to review</span>
+          <span className="font-sans text-[12px] text-foreground">4 minutes</span>
         </div>
       </div>
       <Hairline />
       <div>
         <Eyebrow>pm note</Eyebrow>
-        <div
-          className="mt-2 rounded-xl px-3 py-2.5 font-sans text-[12px] text-white/90 leading-relaxed"
-          style={{ backgroundColor: "rgba(255,255,255,0.04)", border: `1px solid ${HAIRLINE}` }}
-        >
+        <div className="mt-2 rounded-xl px-3 py-2.5 font-sans text-[12px] text-foreground leading-relaxed bg-background border border-border-light">
           "consumer unit positioning noted — mark to adjust before second fix"
         </div>
       </div>
       <div
-        className="mt-4 w-full flex items-center justify-center rounded-2xl font-mono text-[11px] uppercase tracking-wider px-4 text-center"
-        style={{ minHeight: 44, border: "1px solid rgba(127,176,105,0.35)", backgroundColor: "rgba(127,176,105,0.10)", color: "#7FB069" }}
+        className="mt-4 w-full flex items-center justify-center rounded-full font-mono text-[11px] uppercase tracking-wider px-4 text-center"
+        style={{ minHeight: 44, backgroundColor: STATUS_DONE, color: "#0a0a0a" }}
       >
         approved with condition
       </div>
-    </div>
+    </CardShell>
   );
 }
 
 function ClientPaymentCard() {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${HAIRLINE}` }}>
+    <CardShell>
       <div className="flex items-center justify-between gap-3">
         <Eyebrow>payment certificate</Eyebrow>
-        <span className="font-mono text-[10px] text-white/80 truncate">CMT-2026-0308-A7F2</span>
+        <span className="font-mono text-[10px] text-muted-foreground truncate">CMT-2026-0308-A7F2</span>
       </div>
       <div className="mt-3">
         {[
@@ -442,13 +435,11 @@ function ClientPaymentCard() {
         ].map((row, i) => (
           <div
             key={row.l}
-            className="flex items-center justify-between gap-3"
-            style={{ minHeight: 40, paddingTop: 8, paddingBottom: 8, borderTop: i === 0 ? `1px solid ${HAIRLINE}` : undefined, borderBottom: `1px solid ${HAIRLINE}` }}
+            className="flex items-center justify-between gap-3 border-b border-border-light"
+            style={{ minHeight: 40, paddingTop: 8, paddingBottom: 8, borderTop: i === 0 ? `1px solid hsl(var(--border-light))` : undefined }}
           >
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55 shrink-0">{row.l}</span>
-            <span
-              className={`font-sans text-white text-right ${row.big ? "text-[22px] font-bold" : "text-[12px]"}`}
-            >
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">{row.l}</span>
+            <span className={`font-sans text-foreground text-right ${row.big ? "text-[22px] font-bold" : "text-[12px]"}`}>
               {row.v}
             </span>
           </div>
@@ -459,23 +450,23 @@ function ClientPaymentCard() {
         <Eyebrow>project financial summary</Eyebrow>
         <div className="grid grid-cols-3 gap-2 mt-2">
           <div>
-            <div className="font-sans text-[16px] font-semibold text-white">£63,000</div>
-            <div className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-0.5">paid</div>
+            <div className="font-sans text-[16px] font-semibold text-foreground">£63,000</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">paid</div>
           </div>
           <div>
-            <div className="font-sans text-[16px] font-semibold text-white">£11,000</div>
-            <div className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-0.5">this</div>
+            <div className="font-sans text-[16px] font-semibold text-foreground">£11,000</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">this</div>
           </div>
           <div>
-            <div className="font-sans text-[16px] font-semibold text-white/55">£206,000</div>
-            <div className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-0.5">remaining</div>
+            <div className="font-sans text-[16px] font-semibold text-muted-foreground">£206,000</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">remaining</div>
           </div>
         </div>
-        <div className="mt-3 w-full rounded-full overflow-hidden" style={{ height: 4, backgroundColor: "rgba(255,255,255,0.12)" }}>
-          <div style={{ width: "26.5%", height: "100%", backgroundColor: "#FFFFFF" }} />
+        <div className="mt-3 w-full rounded-full overflow-hidden bg-secondary" style={{ height: 4 }}>
+          <div style={{ width: "26.5%", height: "100%", backgroundColor: "hsl(var(--foreground))" }} />
         </div>
       </div>
-    </div>
+    </CardShell>
   );
 }
 
@@ -495,7 +486,6 @@ function renderCard(kind: CardKind) {
 export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const current = slides[step];
-  const isLight = current.text === "light";
   const total = slides.length;
 
   const touchStartX = useRef<number | null>(null);
@@ -534,10 +524,6 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
     touchEndX.current = null;
   };
 
-  const slideBg = current.isFinal ? FINAL_BG : SLIDE_BG;
-  const headlineColor = isLight ? "text-white" : "text-foreground";
-  const subColor = isLight ? "text-white/60" : "text-foreground/60";
-
   return (
     <div
       className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col"
@@ -558,93 +544,78 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
         </span>
       </div>
 
-
-      {/* Card */}
-      <div className="flex-1 flex flex-col px-4 min-h-0">
-        <div
-          className="rounded-3xl p-6 flex-1 flex flex-col transition-colors duration-500 overflow-hidden"
-          style={{ backgroundColor: slideBg }}
-        >
-          {/* Role marker — only colored element on the slide */}
-          {current.role && (
-            <div className="self-start mb-6">
-              <div className="inline-flex items-center gap-2.5 pb-2" style={{ borderBottom: `2px solid ${current.dotColor}` }}>
-                <span
-                  className="inline-block rounded-full"
-                  style={{ width: 11, height: 11, backgroundColor: current.dotColor }}
-                />
-                <span
-                  className="font-mono text-[13px] tracking-[0.18em] uppercase font-medium"
-                  style={{ color: current.dotColor }}
-                >
-                  {current.roleLabel}
-                </span>
-              </div>
+      {/* Slide content */}
+      <div className="flex-1 flex flex-col px-5 min-h-0 overflow-auto">
+        {/* Role marker */}
+        {current.role && (
+          <div className="self-start mt-4 mb-6">
+            <div className="inline-flex items-center gap-2.5 pb-2" style={{ borderBottom: `2px solid ${current.dotColor}` }}>
+              <span
+                className="inline-block rounded-full"
+                style={{ width: 10, height: 10, backgroundColor: current.dotColor }}
+              />
+              <span
+                className="font-mono text-[11px] tracking-[0.18em] uppercase font-medium"
+                style={{ color: current.dotColor }}
+              >
+                {current.roleLabel}
+              </span>
             </div>
-          )}
-
-          {current.isFinal ? (
-            <div className="flex-1 flex items-center justify-center">
-              <h1 className={`font-sans tracking-[-0.01em] leading-[1.25] lowercase text-center text-[28px] md:text-[36px] ${headlineColor}`}>
-                {current.headline.split("\n").map((line, i) => (
-                  <span key={i} className="block">{line}</span>
-                ))}
-              </h1>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col min-h-0">
-              <h1 className={`font-sans tracking-[-0.01em] leading-[1.1] mb-3 lowercase ${headlineColor} text-[26px] md:text-[30px]`}>
-                {current.headline}
-              </h1>
-              {current.subtitle && (
-                <p className={`font-sans text-[14px] mb-5 leading-relaxed ${subColor}`}>
-                  {current.subtitle}
-                </p>
-              )}
-
-              {current.card && (
-                <div className="overflow-auto">
-                  {renderCard(current.card)}
-                </div>
-              )}
-
-              {current.contextLabel && (
-                <p className={`mt-3 font-mono text-[10px] tracking-wider uppercase ${isLight ? "text-white/50" : "text-foreground/55"}`}>
-                  {current.contextLabel}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Dots */}
-          <div className="flex justify-center gap-1.5 mt-6">
-            {slides.map((_, i) => {
-              const active = i === step;
-              const dotBase = isLight ? "bg-white" : "bg-foreground";
-              return (
-                <button
-                  key={i}
-                  onClick={() => setStep(i)}
-                  aria-label={`Go to slide ${i + 1}`}
-                  className={`h-1.5 rounded-full transition-all ${
-                    active ? `w-5 ${dotBase}` : `w-1.5 ${dotBase} opacity-40`
-                  }`}
-                />
-              );
-            })}
           </div>
+        )}
+
+        {current.isFinal ? (
+          <div className="flex-1 flex items-center justify-center">
+            <h1 className="font-sans tracking-[-0.01em] leading-[1.25] lowercase text-center text-[28px] md:text-[36px] text-foreground">
+              {current.headline.split("\n").map((line, i) => (
+                <span key={i} className="block">{line}</span>
+              ))}
+            </h1>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col min-h-0">
+            <h1 className="font-sans tracking-[-0.01em] leading-[1.1] mb-3 lowercase text-foreground text-[26px] md:text-[30px]">
+              {current.headline}
+            </h1>
+            {current.subtitle && (
+              <p className="font-sans text-[14px] mb-5 leading-relaxed text-muted-foreground">
+                {current.subtitle}
+              </p>
+            )}
+
+            {current.card && <div>{renderCard(current.card)}</div>}
+
+            {current.contextLabel && (
+              <p className="mt-3 font-mono text-[10px] tracking-wider uppercase text-muted-foreground">
+                {current.contextLabel}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Dots */}
+        <div className="flex justify-center gap-1.5 mt-6 mb-2">
+          {slides.map((_, i) => {
+            const active = i === step;
+            return (
+              <button
+                key={i}
+                onClick={() => setStep(i)}
+                aria-label={`Go to slide ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all bg-foreground ${
+                  active ? "w-5" : "w-1.5 opacity-30"
+                }`}
+              />
+            );
+          })}
         </div>
       </div>
 
       {/* CTA */}
-      <div className="px-4 pt-4 pb-6 space-y-2">
+      <div className="px-5 pt-4 pb-6 space-y-2">
         <button
           onClick={current.isFinal ? onClose : handleNext}
-          className={`w-full h-12 rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.96] ${
-            current.isFinal
-              ? "bg-foreground text-background"
-              : "bg-white text-[#2A2520]"
-          }`}
+          className="w-full h-12 rounded-full font-sans text-[14px] font-medium transition-transform active:scale-[0.96] bg-foreground text-background"
         >
           {current.cta}
         </button>
