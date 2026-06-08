@@ -199,7 +199,6 @@ export default function AdminOntology() {
     setCooldownUntil(null);
     setBatchStates([]);
     setFinishedAt(null);
-    setFinishedAt(null);
     setElapsedMs(0);
     const start = Date.now();
     setStartedAt(start);
