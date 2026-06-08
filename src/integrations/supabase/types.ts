@@ -49,6 +49,50 @@ export type Database = {
           },
         ]
       }
+      contract_extractions: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          created_by: string | null
+          filename: string | null
+          id: string
+          parsed_status: string
+          project_id: string
+          project_type: string | null
+          raw_payload: Json | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          filename?: string | null
+          id?: string
+          parsed_status?: string
+          project_id: string
+          project_type?: string | null
+          raw_payload?: Json | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          filename?: string | null
+          id?: string
+          parsed_status?: string
+          project_id?: string
+          project_type?: string | null
+          raw_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_extractions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -402,6 +446,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ontology_training_signals: {
+        Row: {
+          action: string
+          context: Json | null
+          created_at: string
+          entity_id: string | null
+          extraction_id: string | null
+          id: string
+          project_id: string | null
+          signal_type: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          context?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          extraction_id?: string | null
+          id?: string
+          project_id?: string | null
+          signal_type: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          context?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          extraction_id?: string | null
+          id?: string
+          project_id?: string | null
+          signal_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ontology_training_signals_extraction_id_fkey"
+            columns: ["extraction_id"]
+            isOneToOne: false
+            referencedRelation: "contract_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ontology_training_signals_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
