@@ -75,6 +75,8 @@ export default function DocumentUpload() {
   const [rawPayload, setRawPayload] = useState<unknown>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [suggestions, setSuggestions] = useState<MissingPhaseSuggestion[]>([]);
+  const [deferredPhaseIds, setDeferredPhaseIds] = useState<Set<string>>(new Set());
+  const [confirmWarn, setConfirmWarn] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const assignableMembers = members.filter((m) => m.user_id !== null);
