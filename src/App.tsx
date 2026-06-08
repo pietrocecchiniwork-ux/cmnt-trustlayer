@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { useRole } from "@/contexts/RoleContext";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -43,6 +44,20 @@ import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+/** Redirects to the role-appropriate landing route after the role is resolved. */
+function ProjectLanding() {
+  const { role, roleLoading } = useRole();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (roleLoading) return;
+    const destination = role === "pm" ? "/project/dashboard" : "/project/milestones";
+    navigate(destination, { replace: true });
+  }, [role, roleLoading, navigate]);
+
+  return null;
+}
 
 function AuthSessionListener() {
   useEffect(() => {
@@ -87,6 +102,9 @@ const App = () => (
               <Route path="/join" element={<JoinProject />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               
+              {/* Role-aware project entry point */}
+              <Route path="/project" element={<ProjectLanding />} />
+
               {/* Project screens with bottom nav */}
               <Route element={<AppLayout />}>
                 <Route path="/project/dashboard" element={<Dashboard />} />

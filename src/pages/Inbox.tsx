@@ -59,7 +59,7 @@ export default function Inbox() {
   const inReview = milestones.filter(m => m.status === "in_review");
   const inReviewIds = inReview.map(m => m.id);
 
-  const { data: evidenceByMilestone = {} } = useQuery<Record<string, Evidence[]>>({
+  const { data: evidenceByMilestone = {}, isLoading: evidenceLoading } = useQuery<Record<string, Evidence[]>>({
     queryKey: ["inbox-evidence", inReviewIds],
     enabled: inReviewIds.length > 0,
     queryFn: async () => {
@@ -176,7 +176,7 @@ export default function Inbox() {
     }
   };
 
-  if (!currentProjectId || isLoading) {
+  if (!currentProjectId || isLoading || (inReviewIds.length > 0 && evidenceLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="font-mono text-[13px] text-muted-foreground animate-pulse">{t("common.loading")}</p>

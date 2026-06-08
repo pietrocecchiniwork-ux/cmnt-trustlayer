@@ -39,7 +39,7 @@ export default function Home() {
       setCurrentProjectId(data.project_id);
       await refetch();
       toast.success("Demo project loaded");
-      navigate("/project/dashboard");
+      navigate("/project");
     } catch (err) {
       console.error("Seed demo error:", err);
       toast.error("Failed to load demo project");
@@ -92,7 +92,7 @@ export default function Home() {
             isSelected={project.id === currentProjectId}
             onSelect={() => {
               setCurrentProjectId(project.id);
-              navigate("/project/dashboard");
+              navigate("/project");
             }}
           />
         ))}

@@ -41,24 +41,39 @@ export default function PaymentCertificate() {
     },
   });
 
-  const today = new Date();
-  const todayFormatted = format(today, "dd MMM yyyy");
+  const approverId = milestone?.approved_by ?? currentUser?.id ?? null;
+
+  const { data: approverMember } = useQuery({
+    queryKey: ["approver-member", approverId, milestone?.project_id],
+    enabled: !!approverId && !!milestone?.project_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_members")
+        .select("name")
+        .eq("user_id", approverId!)
+        .eq("project_id", milestone!.project_id)
+        .maybeSingle();
+      if (error) console.warn("Approver lookup error:", error);
+      return data ?? null;
+    },
+  });
 
   const isLoading = milestoneLoading || projectLoading;
 
-  const certRef = milestone
-    ? (() => {
-        const date = milestone.approved_at ? parseISO(milestone.approved_at) : new Date();
-        const xxx = milestone.id.replace(/-/g, "").slice(0, 3).toUpperCase();
-        return `CMT-${format(date, "yyyy")}-${format(date, "MMdd")}-${xxx}`;
-      })()
+  const certRef = milestoneId
+    ? `CMT-${new Date().getFullYear()}-${milestoneId.slice(0, 4).toUpperCase()}`
     : "";
 
   const approverName =
+    approverMember?.name ||
     currentUser?.user_metadata?.display_name ||
     currentUser?.user_metadata?.full_name ||
     currentUser?.email ||
     "—";
+
+  const approvedDate = milestone?.approved_at
+    ? format(parseISO(milestone.approved_at), "dd MMM yyyy")
+    : format(new Date(), "dd MMM yyyy");
 
   const handleRelease = async () => {
     if (!milestoneId || !currentUser) {
@@ -122,7 +137,7 @@ export default function PaymentCertificate() {
             </div>
             <div className="flex justify-between items-baseline">
               <span className="t-eyebrow">date</span>
-              <span className="font-sans text-[13px] text-foreground">{todayFormatted}</span>
+              <span className="font-sans text-[13px] text-foreground">{approvedDate}</span>
             </div>
           </div>
 

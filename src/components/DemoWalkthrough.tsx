@@ -511,12 +511,17 @@ export function DemoWalkthrough({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") handleNext();
-      if (e.key === "ArrowLeft") handlePrev();
+      if (e.key === "ArrowRight") {
+        if (step < total - 1) setStep((s) => s + 1);
+        else onClose();
+      }
+      if (e.key === "ArrowLeft") {
+        if (step > 0) setStep((s) => s - 1);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step]);
+  }, [step, total, onClose]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;

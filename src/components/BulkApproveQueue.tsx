@@ -35,10 +35,12 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [qaPrompt, setQaPrompt] = useState(false);
+  const [approving, setApproving] = useState<string | null>(null);
 
   const toggle = (id: string) => {
     const next = new Set(selected);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     setSelected(next);
   };
 
@@ -109,6 +111,33 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
       }
     } catch (e) {
       console.warn("[bulk approve] email failed:", e);
+    }
+  };
+
+  const handleQuickApprove = async (m: Tables<"milestones">) => {
+    setApproving(m.id);
+    try {
+      await updateStatus.mutateAsync({ id: m.id, status: "complete", projectId });
+      try {
+        await createChange.mutateAsync({
+          project_id: projectId,
+          entity_type: "milestone",
+          entity_id: m.id,
+          entity_name: m.name,
+          change_type: "milestone_status_change",
+          changed_by: currentUser?.id,
+          changed_by_name: currentUser?.email ?? undefined,
+          old_value: { status: "in_review" },
+          new_value: { status: "complete" },
+        });
+      } catch (e) {
+        console.warn("[quick approve] change log failed:", e);
+      }
+      navigate(`/project/payment-certificate/${m.id}`);
+    } catch (e) {
+      console.error("[quick approve] failed:", e);
+      toast.error("Failed to approve milestone");
+      setApproving(null);
     }
   };
 
@@ -201,18 +230,31 @@ export function BulkApproveQueue({ milestones, evidenceCounts, projectId, projec
             );
           }
           return (
-            <button
+            <div
               key={m.id}
-              onClick={() => navigate(`/project/milestone/${m.id}`)}
-              className="w-full flex items-center justify-between bg-card/40 hover:bg-card/60 rounded-3xl px-5 py-4 text-left transition-colors"
+              className="w-full flex items-center bg-card/40 rounded-3xl px-5 py-4 transition-colors gap-3"
             >
-              <span className="font-sans text-[14px] text-foreground">
-                {m.name?.toLowerCase()}
-              </span>
-              <span className="font-mono text-[11px] text-accent">
-                {evidenceCounts[m.id] ?? 0} evidence
-              </span>
-            </button>
+              <button
+                onClick={() => navigate(`/project/milestone/${m.id}`)}
+                className="flex-1 flex items-center justify-between text-left min-w-0"
+              >
+                <span className="font-sans text-[14px] text-foreground truncate">
+                  {m.name?.toLowerCase()}
+                </span>
+                <span className="font-mono text-[11px] text-accent flex-shrink-0 ml-2">
+                  {evidenceCounts[m.id] ?? 0} evidence
+                </span>
+              </button>
+              <button
+                onClick={() => handleQuickApprove(m)}
+                disabled={approving === m.id}
+                className="font-mono text-[11px] text-success border border-success rounded-full px-3 py-1 flex-shrink-0 disabled:opacity-50"
+              >
+                {approving === m.id
+                  ? "approving..."
+                  : `approve · £${Number(m.payment_value ?? 0).toLocaleString()}`}
+              </button>
+            </div>
           );
         })}
       </div>

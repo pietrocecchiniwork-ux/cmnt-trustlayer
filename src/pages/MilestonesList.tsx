@@ -153,25 +153,39 @@ export default function MilestonesList() {
 
           <div className="flex-1 px-6 pb-6">
             <div className="space-y-0">
-              {workItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() =>
-                    item.type === "milestone"
-                      ? navigate(`/project/milestone/${item.milestoneId}`)
-                      : navigate(`/project/task/${item.taskId}`)
-                  }
-                  className="w-full flex items-center justify-between py-4 border-b border-border text-left group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-sans text-[14px] text-foreground truncate">{item.name}</p>
-                    <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
-                      {item.type === "task" ? item.parentMilestoneName?.toLowerCase() : "milestone"} · {item.dueDate ?? "no date"}
-                    </p>
+              {workItems.map((item) => {
+                const isWaitingForEvidence = item.status === "in_progress";
+                const submitUrl = item.type === "milestone"
+                  ? `/project/camera?milestoneId=${item.milestoneId}&item=${encodeURIComponent(item.name)}`
+                  : `/project/camera?milestoneId=${item.milestoneId}&item=${encodeURIComponent(item.name)}&taskId=${item.taskId}&taskName=${encodeURIComponent(item.name)}`;
+                return (
+                  <div key={item.id} className="flex items-center justify-between py-4 border-b border-border gap-3">
+                    <button
+                      onClick={() =>
+                        item.type === "milestone"
+                          ? navigate(`/project/milestone/${item.milestoneId}`)
+                          : navigate(`/project/task/${item.taskId}`)
+                      }
+                      className="flex-1 min-w-0 text-left"
+                    >
+                      <p className="font-sans text-[14px] text-foreground truncate">{item.name}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                        {item.type === "task" ? item.parentMilestoneName?.toLowerCase() : "milestone"} · {item.dueDate ?? "no date"}
+                      </p>
+                    </button>
+                    {isWaitingForEvidence ? (
+                      <button
+                        onClick={() => navigate(submitUrl)}
+                        className="font-mono text-[11px] text-foreground border border-foreground rounded-full px-3 py-1 flex-shrink-0"
+                      >
+                        submit evidence
+                      </button>
+                    ) : (
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDotClass[item.status] ?? "bg-muted-foreground"}`} />
+                    )}
                   </div>
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDotClass[item.status] ?? "bg-muted-foreground"}`} />
-                </button>
-              ))}
+                );
+              })}
               {workItems.length === 0 && (
                 <p className="font-mono text-[13px] text-muted-foreground mt-4">no work assigned yet</p>
               )}

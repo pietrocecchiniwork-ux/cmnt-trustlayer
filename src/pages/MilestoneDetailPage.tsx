@@ -442,7 +442,8 @@ export default function MilestoneDetailPage() {
   );
 
   // ─── Contractor view ───
-  if ((role === "contractor" || role === "trade") && milestone.status !== "complete" && milestone.status !== "in_review") {
+  if ((role === "contractor" || role === "trade") && milestone.status !== "complete") {
+    const isInReview = milestone.status === "in_review";
     const allTasksDone = tasks.length > 0 && tasks.every(t => t.status === "complete");
 
     return (
@@ -488,8 +489,20 @@ export default function MilestoneDetailPage() {
           <p className="font-mono text-[12px] text-success mt-4">{t("evidence.all_submitted")}</p>
         )}
 
+        {/* In review: awaiting PM approval */}
+        {isInReview && (
+          <div
+            className="fixed bottom-16 left-0 right-0 px-6 bg-background"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
+          >
+            <p className="font-mono text-[13px] text-muted-foreground text-center py-3">
+              evidence submitted — awaiting PM review
+            </p>
+          </div>
+        )}
+
         {/* Mode B: take photo for next task */}
-        {isTaskMode && !allTasksDone && nextIncompleteTask && (
+        {!isInReview && isTaskMode && !allTasksDone && nextIncompleteTask && (
           <div
             className="fixed bottom-16 left-0 right-0 px-6 bg-background"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}
@@ -510,7 +523,7 @@ export default function MilestoneDetailPage() {
         )}
 
         {/* Mode A: submit evidence directly against milestone */}
-        {!isTaskMode && (
+        {!isInReview && !isTaskMode && (
           <div
             className="fixed bottom-16 left-0 right-0 px-6 bg-background"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', paddingTop: '12px' }}

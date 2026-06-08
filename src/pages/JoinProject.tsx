@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +61,7 @@ export default function JoinProject() {
   };
 
   // Check if user is already logged in and try standard join
-  const handleJoinLoggedIn = async () => {
+  const handleJoinLoggedIn = useCallback(async () => {
     if (!found) return;
     setJoining(true);
     setNoInvite(false);
@@ -83,7 +83,7 @@ export default function JoinProject() {
       if (existingActive) {
         setCurrentProjectId(found.id);
         toast.success(`already joined ${found.name}`);
-        navigate("/project/dashboard");
+        navigate("/project");
         return;
       }
 
@@ -107,7 +107,7 @@ export default function JoinProject() {
           if (error) throw error;
           setCurrentProjectId(found.id);
           toast.success(`joined ${found.name} as ${emailInvite.role}`);
-          navigate("/project/dashboard");
+          navigate("/project");
           return;
         }
       }
@@ -133,14 +133,14 @@ export default function JoinProject() {
       if (error) throw error;
       setCurrentProjectId(found.id);
       toast.success(`joined ${found.name} as ${invite.role}`);
-      navigate("/project/dashboard");
+      navigate("/project");
     } catch (err) {
       console.error("Join project error:", err);
       toast.error("failed to join project");
     } finally {
       setJoining(false);
     }
-  };
+  }, [found, navigate, setCurrentProjectId]);
 
   // Verify email + code: check if there's an invite matching this email
   const handleVerifyEmailCode = async () => {
@@ -233,7 +233,7 @@ export default function JoinProject() {
       if (membership) {
         setCurrentProjectId(found.id);
         toast.success(`joined ${found.name}`);
-        navigate("/project/dashboard");
+        navigate("/project");
       } else {
         setCurrentProjectId(found.id);
         toast.success("account created — you may need to wait for your PM to add you");
@@ -266,7 +266,7 @@ export default function JoinProject() {
         handleJoinLoggedIn();
       }
     });
-  }, [found]);
+  }, [found, handleJoinLoggedIn]);
 
   // Account creation screen after email+code verification
   if (verified && found) {

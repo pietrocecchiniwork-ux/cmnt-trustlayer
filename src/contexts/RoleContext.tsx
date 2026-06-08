@@ -6,14 +6,16 @@ export type UserRole = "pm" | "contractor" | "trade" | "client";
 
 interface RoleContextType {
   role: UserRole;
+  roleLoading: boolean;
   setRole: (role: UserRole) => void;
 }
 
-const RoleContext = createContext<RoleContextType>({ role: "client", setRole: () => {} });
+const RoleContext = createContext<RoleContextType>({ role: "client", roleLoading: true, setRole: () => {} });
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { currentProjectId } = useProjectContext();
   const [role, setRoleState] = useState<UserRole>("client");
+  const [roleLoading, setRoleLoading] = useState(true);
   const [overrideKey, setOverrideKey] = useState<string | null>(null);
 
   const setRole = (newRole: UserRole) => {
@@ -23,11 +25,13 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    setRoleLoading(true);
 
     const resolveRole = async () => {
       if (!currentProjectId) {
         setRoleState("client");
         setOverrideKey(null);
+        if (!cancelled) setRoleLoading(false);
         return;
       }
 
@@ -35,6 +39,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       if (!user || cancelled) {
         setRoleState("client");
         setOverrideKey(null);
+        if (!cancelled) setRoleLoading(false);
         return;
       }
 
@@ -44,6 +49,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       const override = sessionStorage.getItem(key);
       if (override) {
         setRoleState(override as UserRole);
+        if (!cancelled) setRoleLoading(false);
         return;
       }
 
@@ -61,10 +67,10 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error("Role lookup failed:", error);
         setRoleState("client");
-        return;
+      } else {
+        setRoleState((data?.role as UserRole) ?? "client");
       }
-
-      setRoleState((data?.role as UserRole) ?? "client");
+      setRoleLoading(false);
     };
 
     void resolveRole();
@@ -75,7 +81,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   }, [currentProjectId]);
 
   return (
-    <RoleContext.Provider value={{ role, setRole }}>
+    <RoleContext.Provider value={{ role, roleLoading, setRole }}>
       {children}
     </RoleContext.Provider>
   );

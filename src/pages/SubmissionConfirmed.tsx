@@ -76,7 +76,7 @@ export default function SubmissionConfirmed() {
         setNextTaskName(next?.name ?? null);
         setNextTaskId(next?.id ?? null);
       });
-  }, [milestoneId, user]);
+  }, [milestoneId, user, db]);
 
   const allSubmitted = evidenceCount !== null && evidenceCount >= requiredCount;
 
@@ -98,7 +98,7 @@ export default function SubmissionConfirmed() {
         queryClient.invalidateQueries({ queryKey: ["milestones"] });
       }).catch((err) => console.error("Auto-update to in_review failed:", err));
     }
-  }, [allSubmitted, milestoneStatus, currentProjectId, autoUpdated]);
+  }, [allSubmitted, milestoneStatus, currentProjectId, autoUpdated, milestoneId, queryClient, updateStatus]);
 
   if (evidenceCount === null) {
     return (
