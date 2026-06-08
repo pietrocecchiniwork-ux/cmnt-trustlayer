@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { supabase } from "@/integrations/supabase/client";
+import { RecommendedTasks } from "@/components/RecommendedTasks";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -684,6 +685,15 @@ export default function MilestoneDetailPage() {
           </>
         )}
         </div>
+
+        {role === "pm" && currentProjectId && (
+          <RecommendedTasks
+            milestoneId={milestone.id}
+            milestoneName={milestone.name}
+            projectId={currentProjectId}
+            existingTaskCount={tasks.length}
+          />
+        )}
 
         {tasksSection}
 
