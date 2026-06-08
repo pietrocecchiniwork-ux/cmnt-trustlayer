@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { readEvidenceHandoff, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
 import {
   AlertDialog,
   AlertDialogAction,
