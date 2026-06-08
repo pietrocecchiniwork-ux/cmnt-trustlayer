@@ -695,11 +695,26 @@ export default function DocumentUpload() {
       </div>
 
       {state === "extracted" && (
-        <Button variant="dark" size="full" onClick={handleConfirm} disabled={saving || !canConfirm}>
-          <span className="font-sans text-[16px]">
-            {saving ? "saving…" : "confirm milestones"}
-          </span>
-        </Button>
+        <div className="space-y-2">
+          {confirmWarn && suggestions.length > 0 && (
+            <div className="border border-warning/40 bg-warning/5 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+              <p className="font-mono text-[11px] text-foreground">
+                {suggestions.length} suggestion{suggestions.length === 1 ? "" : "s"} still to review — continue anyway?
+              </p>
+              <button
+                onClick={() => setConfirmWarn(false)}
+                className="font-mono text-[11px] text-muted-foreground"
+              >
+                back
+              </button>
+            </div>
+          )}
+          <Button variant="dark" size="full" onClick={onConfirmClick} disabled={saving || !canConfirm}>
+            <span className="font-sans text-[16px]">
+              {saving ? "saving…" : confirmWarn ? "continue" : "confirm milestones"}
+            </span>
+          </Button>
+        </div>
       )}
     </div>
   );
