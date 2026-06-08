@@ -72,6 +72,22 @@ export default function AdminOntology() {
     return () => clearInterval(id);
   }, [startedAt, finishedAt]);
 
+  // Cooldown countdown
+  useEffect(() => {
+    if (!cooldownUntil) {
+      setCooldownRemaining(0);
+      return;
+    }
+    const tick = () => {
+      const rem = Math.max(0, cooldownUntil - Date.now());
+      setCooldownRemaining(rem);
+      if (rem === 0) setCooldownUntil(null);
+    };
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
+
   // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
