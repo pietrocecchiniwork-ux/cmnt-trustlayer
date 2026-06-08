@@ -180,18 +180,21 @@ export default function AdminOntology() {
         <div className="flex items-center justify-between mb-2">
           <p className="font-sans text-[14px] text-foreground">global knowledge status</p>
           <span
-            className={`font-mono text-[11px] ${
-              globalDoc?.status === "ready"
-                ? "text-[hsl(var(--success,142_40%_36%))]"
-                : globalDoc?.status === "failed"
+            className={`font-mono text-[11px] uppercase tracking-wider ${
+              seeding
+                ? "text-foreground"
+                : seedError || globalDoc?.status === "failed"
                 ? "text-destructive"
+                : globalDoc?.status === "ready"
+                ? "text-[hsl(var(--success,142_40%_36%))]"
                 : "text-muted-foreground"
             }`}
           >
-            {globalDoc?.status ?? "not seeded"}
+            {seeding ? "seeding…" : seedError ? "failed" : globalDoc?.status ?? "not seeded"}
           </span>
         </div>
-        <div className="flex items-center gap-4 mb-3">
+
+        <div className="flex items-center gap-4 mb-3 flex-wrap">
           <span className="font-mono text-[11px] text-muted-foreground">
             {chunkCount ?? 0} chunks embedded
           </span>
@@ -200,15 +203,97 @@ export default function AdminOntology() {
               last seeded {new Date(globalDoc.created_at).toLocaleString()}
             </span>
           )}
+          {(seeding || finishedAt) && (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              elapsed {(elapsedMs / 1000).toFixed(1)}s
+            </span>
+          )}
+          {finishedAt && !seedError && (
+            <span className="font-mono text-[11px] text-[hsl(var(--success,142_40%_36%))]">
+              completed {new Date(finishedAt).toLocaleTimeString()}
+            </span>
+          )}
         </div>
+
+        {/* Progress bar */}
+        {(seeding || (progress.total > 0 && !seedError)) && (
+          <div className="mb-3">
+            <div className="flex justify-between mb-1">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                progress
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {progress.done} / {progress.total} ({progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0}%)
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-secondary overflow-hidden rounded-full">
+              <div
+                className="h-full bg-foreground transition-all duration-200"
+                style={{
+                  width: `${progress.total > 0 ? (progress.done / progress.total) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Error banner */}
+        {seedError && (
+          <div className="mb-3 p-2 border border-destructive/40 bg-destructive/5 rounded">
+            <p className="font-mono text-[10px] text-destructive uppercase tracking-wider mb-1">
+              error
+            </p>
+            <p className="font-mono text-[11px] text-destructive break-words">{seedError}</p>
+          </div>
+        )}
+
+        {/* Live log */}
+        {log.length > 0 && (
+          <div className="mb-3 border border-border bg-secondary/30 rounded max-h-48 overflow-y-auto">
+            <div className="px-2 py-1 border-b border-border flex items-center justify-between sticky top-0 bg-secondary/80 backdrop-blur">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                seed log
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">{log.length} events</span>
+            </div>
+            <div className="p-2 space-y-0.5">
+              {log.map((entry, i) => (
+                <div key={i} className="flex gap-2 font-mono text-[10px] leading-relaxed">
+                  <span className="text-muted-foreground tabular-nums shrink-0">
+                    {new Date(entry.ts).toLocaleTimeString(undefined, { hour12: false })}
+                  </span>
+                  <span
+                    className={`shrink-0 uppercase tracking-wider ${
+                      entry.level === "error"
+                        ? "text-destructive"
+                        : entry.level === "success"
+                        ? "text-[hsl(var(--success,142_40%_36%))]"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {entry.level}
+                  </span>
+                  <span className="text-foreground break-words">{entry.msg}</span>
+                </div>
+              ))}
+              <div ref={logEndRef} />
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleSeed}
           disabled={seeding}
           className="h-9 px-4 rounded-full bg-foreground text-background font-sans text-[13px] disabled:opacity-50"
         >
-          {seeding ? "seeding..." : globalDoc ? "re-seed global knowledge" : "seed global knowledge"}
+          {seeding
+            ? `seeding… ${progress.done}/${progress.total}`
+            : globalDoc
+            ? "re-seed global knowledge"
+            : "seed global knowledge"}
         </button>
       </div>
+
 
       {/* Section tabs */}
       <div className="flex gap-2 flex-wrap mb-6">
