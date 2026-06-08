@@ -81,6 +81,24 @@ export default function DocumentUpload() {
 
   const assignableMembers = members.filter((m) => m.user_id !== null);
 
+  // Load any phases the PM previously deferred so we don't re-show them here.
+  useEffect(() => {
+    if (!currentProjectId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("milestone_suggestions")
+        .select("phase_id")
+        .eq("project_id", currentProjectId)
+        .eq("status", "deferred");
+      if (cancelled || error || !data) return;
+      setDeferredPhaseIds(new Set((data as { phase_id: string }[]).map((r) => r.phase_id)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentProjectId]);
+
   // ---------------------------------------------------------------- training signal
   const logSignal = async (args: {
     signal_type: string;
