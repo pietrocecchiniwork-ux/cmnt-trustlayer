@@ -74,12 +74,15 @@ const App = () => (
         <RoleProvider>
           <BrowserRouter>
             <ProjectPill />
+            <NotificationBell />
             <BurgerMenu />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<Home />} />
+              <Route path="/inbox" element={<NotificationsInbox />} />
+              <Route path="/settings/notifications" element={<NotificationSettings />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/create-project" element={<CreateProject />} />
