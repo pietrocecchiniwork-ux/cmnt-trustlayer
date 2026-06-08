@@ -496,6 +496,36 @@ export default function AdminOntology() {
           </div>
         )}
 
+        {/* Per-batch status grid */}
+        {batchStates.length > 0 && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                per-batch status
+              </span>
+              <div className="flex items-center gap-2.5 font-mono text-[10px] text-muted-foreground">
+                <LegendDot className="bg-secondary border border-border" /> pending
+                <LegendDot className="bg-foreground/40" /> running
+                <LegendDot className="bg-[hsl(var(--success,142_40%_36%))]" /> ok
+                <LegendDot className="bg-destructive" /> failed
+                <LegendDot className="bg-[hsl(var(--success,142_40%_36%))] ring-1 ring-foreground" /> retried-ok
+                <LegendDot className="bg-destructive ring-1 ring-foreground" /> retried-failed
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {batchStates.map((b) => (
+                <div
+                  key={b.startIndex}
+                  title={`batch ${b.batchNum}/${b.batchCount} · ${b.status} · ${b.attempts} attempt${b.attempts === 1 ? "" : "s"}${b.lastError ? ` · ${b.lastError}` : ""}`}
+                  className={`h-5 min-w-[28px] px-1.5 flex items-center justify-center rounded-sm font-mono text-[9px] tabular-nums ${batchSwatchClass(b.status)}`}
+                >
+                  {b.batchNum}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleSeed}
@@ -512,15 +542,26 @@ export default function AdminOntology() {
           {failedBatches.length > 0 && (
             <button
               onClick={handleRetry}
-              disabled={seeding}
+              disabled={seeding || retryAttempt >= MAX_RETRIES || cooldownRemaining > 0}
               className="h-9 px-4 rounded-full border border-destructive text-destructive font-sans text-[13px] disabled:opacity-50"
             >
               {seeding && retryAttempt > 0
-                ? `retrying attempt ${retryAttempt}…`
-                : `retry ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"}${retryAttempt > 0 ? ` (attempt ${retryAttempt + 1})` : ""}`}
+                ? `retrying attempt ${retryAttempt}/${MAX_RETRIES}…`
+                : retryAttempt >= MAX_RETRIES
+                ? `max retries reached (${MAX_RETRIES}/${MAX_RETRIES})`
+                : cooldownRemaining > 0
+                ? `cooldown ${(cooldownRemaining / 1000).toFixed(0)}s…`
+                : `retry ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"} (attempt ${retryAttempt + 1}/${MAX_RETRIES})`}
             </button>
           )}
+
+          {failedBatches.length > 0 && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {retryAttempt}/{MAX_RETRIES} retries used
+            </span>
+          )}
         </div>
+
 
       </div>
 
