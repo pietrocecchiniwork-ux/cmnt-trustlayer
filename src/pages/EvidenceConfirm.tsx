@@ -64,6 +64,7 @@ async function computeHash(blob: Blob): Promise<string> {
 
 export default function EvidenceConfirm() {
   const navigate = useNavigate();
+  const { currentProjectId } = useProjectContext();
   const [note, setNote] = useState("");
   const [state, setState] = useState<EvidencePhotoState | null>(null);
   const [aiTags, setAiTags] = useState<AiTags | null>(null);
