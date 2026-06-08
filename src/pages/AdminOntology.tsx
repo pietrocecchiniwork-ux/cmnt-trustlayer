@@ -422,17 +422,32 @@ export default function AdminOntology() {
           </div>
         )}
 
-        <button
-          onClick={handleSeed}
-          disabled={seeding}
-          className="h-9 px-4 rounded-full bg-foreground text-background font-sans text-[13px] disabled:opacity-50"
-        >
-          {seeding
-            ? `seeding… ${progress.done}/${progress.total}`
-            : globalDoc
-            ? "re-seed global knowledge"
-            : "seed global knowledge"}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="h-9 px-4 rounded-full bg-foreground text-background font-sans text-[13px] disabled:opacity-50"
+          >
+            {seeding && retryAttempt === 0
+              ? `seeding… ${progress.done}/${progress.total}`
+              : globalDoc
+              ? "re-seed global knowledge"
+              : "seed global knowledge"}
+          </button>
+
+          {failedBatches.length > 0 && (
+            <button
+              onClick={handleRetry}
+              disabled={seeding}
+              className="h-9 px-4 rounded-full border border-destructive text-destructive font-sans text-[13px] disabled:opacity-50"
+            >
+              {seeding && retryAttempt > 0
+                ? `retrying attempt ${retryAttempt}…`
+                : `retry ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"}${retryAttempt > 0 ? ` (attempt ${retryAttempt + 1})` : ""}`}
+            </button>
+          )}
+        </div>
+
       </div>
 
 
