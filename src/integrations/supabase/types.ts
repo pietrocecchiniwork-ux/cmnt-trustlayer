@@ -480,11 +480,13 @@ export type Database = {
           assigned_to: string | null
           assigned_to_name: string | null
           checklist: Json | null
+          contract_type: string | null
           created_at: string
           created_from: Database["public"]["Enums"]["milestone_source"]
           description: string | null
           due_date: string | null
           id: string
+          milestone_key: string | null
           name: string
           payment_value: number | null
           position: number
@@ -497,11 +499,13 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_name?: string | null
           checklist?: Json | null
+          contract_type?: string | null
           created_at?: string
           created_from?: Database["public"]["Enums"]["milestone_source"]
           description?: string | null
           due_date?: string | null
           id?: string
+          milestone_key?: string | null
           name: string
           payment_value?: number | null
           position?: number
@@ -514,11 +518,13 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_name?: string | null
           checklist?: Json | null
+          contract_type?: string | null
           created_at?: string
           created_from?: Database["public"]["Enums"]["milestone_source"]
           description?: string | null
           due_date?: string | null
           id?: string
+          milestone_key?: string | null
           name?: string
           payment_value?: number | null
           position?: number
@@ -534,6 +540,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email: boolean
+          event_type: string
+          id: string
+          in_app: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: boolean
+          event_type: string
+          id?: string
+          in_app?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: boolean
+          event_type?: string
+          id?: string
+          in_app?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          metadata: Json
+          project_id: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          metadata?: Json
+          project_id?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          metadata?: Json
+          project_id?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       ontology_training_signals: {
         Row: {
@@ -1127,6 +1202,18 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      insert_notification: {
+        Args: {
+          _body: string
+          _link: string
+          _metadata: Json
+          _project_id: string
+          _title: string
+          _type: string
+          _user_id: string
+        }
+        Returns: string
+      }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
@@ -1183,6 +1270,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      should_send_inapp: {
+        Args: { _event_type: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

@@ -274,6 +274,18 @@ export function BurgerMenu() {
                 {t("menu.profile_settings")}
               </button>
             )}
+            <button
+              onClick={() => go("/inbox")}
+              className={`${itemBase} text-foreground/70 hover:bg-secondary/60 hover:text-foreground mt-1`}
+            >
+              inbox
+            </button>
+            <button
+              onClick={() => go("/settings/notifications")}
+              className={`${itemBase} text-foreground/70 hover:bg-secondary/60 hover:text-foreground`}
+            >
+              notification settings
+            </button>
           </section>
 
           <section aria-labelledby="menu-section-prefs" className="px-4">
