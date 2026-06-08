@@ -78,7 +78,7 @@ Deno.serve(async (req: Request) => {
 
 Project context:
 - Milestone: ${milestone_name || "unknown"}
-- Task: ${task_name || "unknown"}${extraContext}
+- Task: ${task_name || "unknown"}${extraContext}${knowledgeBlock}
 
 Analyse this photo and return ONLY a valid JSON object with exactly these six fields and only these allowed values:
 
