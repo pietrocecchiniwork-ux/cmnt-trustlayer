@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { COMPACT_TAXONOMY_PROMPT } from "../_shared/ontology-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
