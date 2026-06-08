@@ -50,10 +50,13 @@ export default function MilestonesList() {
     },
   });
 
-  // Build milestones that have tasks
-  const milestonesWithTasks = useMemo(() => {
-    return new Set(allProjectTasks.map(t => t.milestone_id));
-  }, [allProjectTasks]);
+  // Milestones where at least one task is assigned to the current user (Mode B applies)
+  const milestonesWithTasksForUser = useMemo(() => {
+    if (!user) return new Set<string>();
+    return new Set(
+      allProjectTasks.filter(t => t.assigned_to === user.id).map(t => t.milestone_id)
+    );
+  }, [allProjectTasks, user]);
 
   type WorkItem = {
     id: string;
@@ -75,7 +78,7 @@ export default function MilestonesList() {
 
     // Mode A milestones (no tasks, assigned to user)
     for (const m of milestones) {
-      if ((m as any).assigned_to === user.id && !milestonesWithTasks.has(m.id)) {
+      if ((m as any).assigned_to === user.id && !milestonesWithTasksForUser.has(m.id)) {
         items.push({
           id: m.id,
           name: m.name,
@@ -123,7 +126,7 @@ export default function MilestonesList() {
     });
 
     return items;
-  }, [milestones, allProjectTasks, user, isWorker, milestonesWithTasks]);
+  }, [milestones, allProjectTasks, user, isWorker, milestonesWithTasksForUser]);
 
   if (isLoading) {
     return (
