@@ -12,6 +12,8 @@ interface InputChunk {
   content: string;
 }
 
+const GLOBAL_DOC_ID = "00000000-0000-0000-0000-000000000001";
+
 async function embedBatch(texts: string[], apiKey: string): Promise<number[][]> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
     method: "POST",
@@ -39,7 +41,13 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let body: { ontology_version?: string; chunks?: InputChunk[] };
+  let body: {
+    mode?: "init" | "batch" | "finalize";
+    ontology_version?: string;
+    chunks?: InputChunk[];
+    start_index?: number;
+    total?: number;
+  };
   try {
     body = await req.json();
   } catch {
@@ -49,89 +57,95 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const ontologyVersion = body.ontology_version ?? "1.0";
-  const chunks = body.chunks ?? [];
-  if (chunks.length === 0) {
-    return new Response(JSON.stringify({ error: "chunks[] required" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const admin = createClient(supabaseUrl, serviceKey);
+  const ontologyVersion = body.ontology_version ?? "1.0";
+  const mode = body.mode ?? "batch";
 
   try {
-    // Ensure a "virtual" project_document row exists to anchor the global chunks
-    const globalDocId = "00000000-0000-0000-0000-000000000001";
-    const { error: docErr } = await admin
-      .from("project_documents")
-      .upsert(
-        {
-          id: globalDocId,
-          project_id: null,
-          uploaded_by: null,
-          title: `Cemento LCM UK Construction Ontology v${ontologyVersion}`,
-          kind: "ontology",
-          file_path: `ontology/v${ontologyVersion}`,
-          mime_type: "application/json",
-          byte_size: JSON.stringify(chunks).length,
-          status: "processing",
-          is_global: true,
-        },
-        { onConflict: "id" }
-      );
-    if (docErr) throw new Error(`Doc upsert failed: ${docErr.message}`);
-
-    // Delete prior global chunks (idempotent re-seed)
-    await admin.from("knowledge_chunks").delete().eq("document_id", globalDocId);
-
-    const BATCH = 32;
-    const rows: Array<{
-      document_id: string;
-      project_id: null;
-      chunk_index: number;
-      content: string;
-      embedding: string;
-      token_estimate: number;
-      source_key: string;
-    }> = [];
-
-    for (let i = 0; i < chunks.length; i += BATCH) {
-      const slice = chunks.slice(i, i + BATCH);
-      const embs = await embedBatch(
-        slice.map((c) => c.content),
-        apiKey
-      );
-      slice.forEach((c, j) => {
-        rows.push({
-          document_id: globalDocId,
-          project_id: null,
-          chunk_index: i + j,
-          content: c.content,
-          embedding: `[${embs[j].join(",")}]`,
-          token_estimate: Math.ceil(c.content.length / 4),
-          source_key: c.source_key,
-        });
+    if (mode === "init") {
+      const total = body.total ?? 0;
+      const { error: docErr } = await admin
+        .from("project_documents")
+        .upsert(
+          {
+            id: GLOBAL_DOC_ID,
+            project_id: null,
+            uploaded_by: null,
+            title: `Cemento LCM UK Construction Ontology v${ontologyVersion}`,
+            kind: "ontology",
+            file_path: `ontology/v${ontologyVersion}`,
+            mime_type: "application/json",
+            byte_size: total,
+            status: "processing",
+            error: null,
+            is_global: true,
+          },
+          { onConflict: "id" }
+        );
+      if (docErr) throw new Error(`Doc upsert failed: ${docErr.message}`);
+      const { error: delErr } = await admin
+        .from("knowledge_chunks")
+        .delete()
+        .eq("document_id", GLOBAL_DOC_ID);
+      if (delErr) throw new Error(`Reset failed: ${delErr.message}`);
+      return new Response(JSON.stringify({ ok: true, mode, total }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (mode === "finalize") {
+      await admin
+        .from("project_documents")
+        .update({ status: "ready", error: null })
+        .eq("id", GLOBAL_DOC_ID);
+      return new Response(JSON.stringify({ ok: true, mode }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // mode === "batch"
+    const chunks = body.chunks ?? [];
+    const startIndex = body.start_index ?? 0;
+    if (chunks.length === 0) {
+      return new Response(JSON.stringify({ error: "chunks[] required for batch" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const embs = await embedBatch(chunks.map((c) => c.content), apiKey);
+    const rows = chunks.map((c, j) => ({
+      document_id: GLOBAL_DOC_ID,
+      project_id: null,
+      chunk_index: startIndex + j,
+      content: c.content,
+      embedding: `[${embs[j].join(",")}]`,
+      token_estimate: Math.ceil(c.content.length / 4),
+      source_key: c.source_key,
+    }));
 
     const { error: insErr } = await admin.from("knowledge_chunks").insert(rows);
     if (insErr) throw new Error(`Insert failed: ${insErr.message}`);
 
-    await admin
-      .from("project_documents")
-      .update({ status: "ready", error: null })
-      .eq("id", globalDocId);
-
     return new Response(
-      JSON.stringify({ ok: true, chunks: rows.length, ontology_version: ontologyVersion }),
+      JSON.stringify({ ok: true, mode, inserted: rows.length, start_index: startIndex }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("seed-global-knowledge error:", err);
-    return new Response(
-      JSON.stringify({ error: String((err as Error).message ?? err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const message = String((err as Error).message ?? err);
+    console.error("seed-global-knowledge error:", message);
+    // Mark doc failed when something goes wrong mid-flight
+    try {
+      await admin
+        .from("project_documents")
+        .update({ status: "failed", error: message })
+        .eq("id", GLOBAL_DOC_ID);
+    } catch (_) {
+      // ignore
+    }
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
