@@ -50,10 +50,13 @@ export default function MilestonesList() {
     },
   });
 
-  // Build milestones that have tasks
-  const milestonesWithTasks = useMemo(() => {
-    return new Set(allProjectTasks.map(t => t.milestone_id));
-  }, [allProjectTasks]);
+  // Milestones where at least one task is assigned to the current user (Mode B applies)
+  const milestonesWithTasksForUser = useMemo(() => {
+    if (!user) return new Set<string>();
+    return new Set(
+      allProjectTasks.filter(t => t.assigned_to === user.id).map(t => t.milestone_id)
+    );
+  }, [allProjectTasks, user]);
 
   type WorkItem = {
     id: string;
