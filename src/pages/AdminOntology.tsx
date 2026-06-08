@@ -32,12 +32,37 @@ const SECTIONS: Array<{ id: Section; label: string; count: number }> = [
 ];
 
 const GLOBAL_DOC_ID = "00000000-0000-0000-0000-000000000001";
+const BATCH_SIZE = 32;
+
+type LogEntry = { ts: number; level: "info" | "success" | "error"; msg: string };
 
 export default function AdminOntology() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [section, setSection] = useState<Section>("overview");
   const [seeding, setSeeding] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [finishedAt, setFinishedAt] = useState<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [seedError, setSeedError] = useState<string | null>(null);
+  const [log, setLog] = useState<LogEntry[]>([]);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Live elapsed timer while seeding
+  useEffect(() => {
+    if (!startedAt || finishedAt) return;
+    const id = setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
+    return () => clearInterval(id);
+  }, [startedAt, finishedAt]);
+
+  // Auto-scroll log
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [log.length]);
+
+  const pushLog = (level: LogEntry["level"], msg: string) =>
+    setLog((prev) => [...prev, { ts: Date.now(), level, msg }]);
 
   const { data: globalDoc } = useQuery({
     queryKey: ["global-ontology-doc"],
@@ -64,18 +89,70 @@ export default function AdminOntology() {
 
   const handleSeed = async () => {
     setSeeding(true);
+    setSeedError(null);
+    setLog([]);
+    setFinishedAt(null);
+    setElapsedMs(0);
+    const start = Date.now();
+    setStartedAt(start);
+
     try {
       const chunks = buildKnowledgeChunks();
-      const { data, error } = await supabase.functions.invoke("seed-global-knowledge", {
-        body: { ontology_version: ONTOLOGY_VERSION, chunks },
+      const total = chunks.length;
+      setProgress({ done: 0, total });
+      pushLog("info", `built ${total} chunks from ontology v${ONTOLOGY_VERSION}`);
+
+      // 1) init — wipes prior global chunks, sets doc to processing
+      pushLog("info", "init: resetting global document and clearing prior chunks");
+      const initRes = await supabase.functions.invoke("seed-global-knowledge", {
+        body: { mode: "init", ontology_version: ONTOLOGY_VERSION, total },
       });
-      if (error) throw error;
-      toast.success(`Seeded ${data.chunks} ontology chunks — Cemento AI now knows the LCM ontology globally`);
+      if (initRes.error) throw new Error(initRes.error.message || "init failed");
+
+      // 2) batches
+      for (let i = 0; i < total; i += BATCH_SIZE) {
+        const slice = chunks.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const batchCount = Math.ceil(total / BATCH_SIZE);
+        pushLog("info", `batch ${batchNum}/${batchCount}: embedding ${slice.length} chunks (${i}–${i + slice.length - 1})`);
+        const res = await supabase.functions.invoke("seed-global-knowledge", {
+          body: {
+            mode: "batch",
+            ontology_version: ONTOLOGY_VERSION,
+            chunks: slice,
+            start_index: i,
+          },
+        });
+        if (res.error) throw new Error(res.error.message || `batch ${batchNum} failed`);
+        setProgress({ done: i + slice.length, total });
+        pushLog("success", `batch ${batchNum}/${batchCount}: inserted ${slice.length} chunks`);
+      }
+
+      // 3) finalize
+      pushLog("info", "finalize: marking global document ready");
+      const finRes = await supabase.functions.invoke("seed-global-knowledge", {
+        body: { mode: "finalize", ontology_version: ONTOLOGY_VERSION },
+      });
+      if (finRes.error) throw new Error(finRes.error.message || "finalize failed");
+
+      const finished = Date.now();
+      setFinishedAt(finished);
+      setElapsedMs(finished - start);
+      pushLog("success", `done — ${total} chunks embedded in ${((finished - start) / 1000).toFixed(1)}s`);
+      toast.success(`Seeded ${total} ontology chunks in ${((finished - start) / 1000).toFixed(1)}s`);
       queryClient.invalidateQueries({ queryKey: ["global-ontology-doc"] });
       queryClient.invalidateQueries({ queryKey: ["global-chunk-count"] });
     } catch (err) {
+      const message = (err as Error).message ?? String(err);
       console.error("seed error:", err);
-      toast.error(`Seed failed: ${(err as Error).message}`);
+      setSeedError(message);
+      pushLog("error", message);
+      toast.error(`Seed failed: ${message}`);
+      const finished = Date.now();
+      setFinishedAt(finished);
+      setElapsedMs(finished - start);
+      queryClient.invalidateQueries({ queryKey: ["global-ontology-doc"] });
+      queryClient.invalidateQueries({ queryKey: ["global-chunk-count"] });
     } finally {
       setSeeding(false);
     }
