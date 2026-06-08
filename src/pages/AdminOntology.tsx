@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,12 +32,37 @@ const SECTIONS: Array<{ id: Section; label: string; count: number }> = [
 ];
 
 const GLOBAL_DOC_ID = "00000000-0000-0000-0000-000000000001";
+const BATCH_SIZE = 32;
+
+type LogEntry = { ts: number; level: "info" | "success" | "error"; msg: string };
 
 export default function AdminOntology() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [section, setSection] = useState<Section>("overview");
   const [seeding, setSeeding] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [finishedAt, setFinishedAt] = useState<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [seedError, setSeedError] = useState<string | null>(null);
+  const [log, setLog] = useState<LogEntry[]>([]);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Live elapsed timer while seeding
+  useEffect(() => {
+    if (!startedAt || finishedAt) return;
+    const id = setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
+    return () => clearInterval(id);
+  }, [startedAt, finishedAt]);
+
+  // Auto-scroll log
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [log.length]);
+
+  const pushLog = (level: LogEntry["level"], msg: string) =>
+    setLog((prev) => [...prev, { ts: Date.now(), level, msg }]);
 
   const { data: globalDoc } = useQuery({
     queryKey: ["global-ontology-doc"],
@@ -64,18 +89,70 @@ export default function AdminOntology() {
 
   const handleSeed = async () => {
     setSeeding(true);
+    setSeedError(null);
+    setLog([]);
+    setFinishedAt(null);
+    setElapsedMs(0);
+    const start = Date.now();
+    setStartedAt(start);
+
     try {
       const chunks = buildKnowledgeChunks();
-      const { data, error } = await supabase.functions.invoke("seed-global-knowledge", {
-        body: { ontology_version: ONTOLOGY_VERSION, chunks },
+      const total = chunks.length;
+      setProgress({ done: 0, total });
+      pushLog("info", `built ${total} chunks from ontology v${ONTOLOGY_VERSION}`);
+
+      // 1) init — wipes prior global chunks, sets doc to processing
+      pushLog("info", "init: resetting global document and clearing prior chunks");
+      const initRes = await supabase.functions.invoke("seed-global-knowledge", {
+        body: { mode: "init", ontology_version: ONTOLOGY_VERSION, total },
       });
-      if (error) throw error;
-      toast.success(`Seeded ${data.chunks} ontology chunks — Cemento AI now knows the LCM ontology globally`);
+      if (initRes.error) throw new Error(initRes.error.message || "init failed");
+
+      // 2) batches
+      for (let i = 0; i < total; i += BATCH_SIZE) {
+        const slice = chunks.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const batchCount = Math.ceil(total / BATCH_SIZE);
+        pushLog("info", `batch ${batchNum}/${batchCount}: embedding ${slice.length} chunks (${i}–${i + slice.length - 1})`);
+        const res = await supabase.functions.invoke("seed-global-knowledge", {
+          body: {
+            mode: "batch",
+            ontology_version: ONTOLOGY_VERSION,
+            chunks: slice,
+            start_index: i,
+          },
+        });
+        if (res.error) throw new Error(res.error.message || `batch ${batchNum} failed`);
+        setProgress({ done: i + slice.length, total });
+        pushLog("success", `batch ${batchNum}/${batchCount}: inserted ${slice.length} chunks`);
+      }
+
+      // 3) finalize
+      pushLog("info", "finalize: marking global document ready");
+      const finRes = await supabase.functions.invoke("seed-global-knowledge", {
+        body: { mode: "finalize", ontology_version: ONTOLOGY_VERSION },
+      });
+      if (finRes.error) throw new Error(finRes.error.message || "finalize failed");
+
+      const finished = Date.now();
+      setFinishedAt(finished);
+      setElapsedMs(finished - start);
+      pushLog("success", `done — ${total} chunks embedded in ${((finished - start) / 1000).toFixed(1)}s`);
+      toast.success(`Seeded ${total} ontology chunks in ${((finished - start) / 1000).toFixed(1)}s`);
       queryClient.invalidateQueries({ queryKey: ["global-ontology-doc"] });
       queryClient.invalidateQueries({ queryKey: ["global-chunk-count"] });
     } catch (err) {
+      const message = (err as Error).message ?? String(err);
       console.error("seed error:", err);
-      toast.error(`Seed failed: ${(err as Error).message}`);
+      setSeedError(message);
+      pushLog("error", message);
+      toast.error(`Seed failed: ${message}`);
+      const finished = Date.now();
+      setFinishedAt(finished);
+      setElapsedMs(finished - start);
+      queryClient.invalidateQueries({ queryKey: ["global-ontology-doc"] });
+      queryClient.invalidateQueries({ queryKey: ["global-chunk-count"] });
     } finally {
       setSeeding(false);
     }
@@ -103,18 +180,21 @@ export default function AdminOntology() {
         <div className="flex items-center justify-between mb-2">
           <p className="font-sans text-[14px] text-foreground">global knowledge status</p>
           <span
-            className={`font-mono text-[11px] ${
-              globalDoc?.status === "ready"
-                ? "text-[hsl(var(--success,142_40%_36%))]"
-                : globalDoc?.status === "failed"
+            className={`font-mono text-[11px] uppercase tracking-wider ${
+              seeding
+                ? "text-foreground"
+                : seedError || globalDoc?.status === "failed"
                 ? "text-destructive"
+                : globalDoc?.status === "ready"
+                ? "text-[hsl(var(--success,142_40%_36%))]"
                 : "text-muted-foreground"
             }`}
           >
-            {globalDoc?.status ?? "not seeded"}
+            {seeding ? "seeding…" : seedError ? "failed" : globalDoc?.status ?? "not seeded"}
           </span>
         </div>
-        <div className="flex items-center gap-4 mb-3">
+
+        <div className="flex items-center gap-4 mb-3 flex-wrap">
           <span className="font-mono text-[11px] text-muted-foreground">
             {chunkCount ?? 0} chunks embedded
           </span>
@@ -123,15 +203,97 @@ export default function AdminOntology() {
               last seeded {new Date(globalDoc.created_at).toLocaleString()}
             </span>
           )}
+          {(seeding || finishedAt) && (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              elapsed {(elapsedMs / 1000).toFixed(1)}s
+            </span>
+          )}
+          {finishedAt && !seedError && (
+            <span className="font-mono text-[11px] text-[hsl(var(--success,142_40%_36%))]">
+              completed {new Date(finishedAt).toLocaleTimeString()}
+            </span>
+          )}
         </div>
+
+        {/* Progress bar */}
+        {(seeding || (progress.total > 0 && !seedError)) && (
+          <div className="mb-3">
+            <div className="flex justify-between mb-1">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                progress
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {progress.done} / {progress.total} ({progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0}%)
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-secondary overflow-hidden rounded-full">
+              <div
+                className="h-full bg-foreground transition-all duration-200"
+                style={{
+                  width: `${progress.total > 0 ? (progress.done / progress.total) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Error banner */}
+        {seedError && (
+          <div className="mb-3 p-2 border border-destructive/40 bg-destructive/5 rounded">
+            <p className="font-mono text-[10px] text-destructive uppercase tracking-wider mb-1">
+              error
+            </p>
+            <p className="font-mono text-[11px] text-destructive break-words">{seedError}</p>
+          </div>
+        )}
+
+        {/* Live log */}
+        {log.length > 0 && (
+          <div className="mb-3 border border-border bg-secondary/30 rounded max-h-48 overflow-y-auto">
+            <div className="px-2 py-1 border-b border-border flex items-center justify-between sticky top-0 bg-secondary/80 backdrop-blur">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                seed log
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">{log.length} events</span>
+            </div>
+            <div className="p-2 space-y-0.5">
+              {log.map((entry, i) => (
+                <div key={i} className="flex gap-2 font-mono text-[10px] leading-relaxed">
+                  <span className="text-muted-foreground tabular-nums shrink-0">
+                    {new Date(entry.ts).toLocaleTimeString(undefined, { hour12: false })}
+                  </span>
+                  <span
+                    className={`shrink-0 uppercase tracking-wider ${
+                      entry.level === "error"
+                        ? "text-destructive"
+                        : entry.level === "success"
+                        ? "text-[hsl(var(--success,142_40%_36%))]"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {entry.level}
+                  </span>
+                  <span className="text-foreground break-words">{entry.msg}</span>
+                </div>
+              ))}
+              <div ref={logEndRef} />
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleSeed}
           disabled={seeding}
           className="h-9 px-4 rounded-full bg-foreground text-background font-sans text-[13px] disabled:opacity-50"
         >
-          {seeding ? "seeding..." : globalDoc ? "re-seed global knowledge" : "seed global knowledge"}
+          {seeding
+            ? `seeding… ${progress.done}/${progress.total}`
+            : globalDoc
+            ? "re-seed global knowledge"
+            : "seed global knowledge"}
         </button>
       </div>
+
 
       {/* Section tabs */}
       <div className="flex gap-2 flex-wrap mb-6">
