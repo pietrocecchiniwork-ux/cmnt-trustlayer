@@ -75,20 +75,57 @@ export function RecommendedTasks({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
 
+  // Keyword fallback so every milestone surfaces relevant suggestions,
+  // even when there's no explicit row in milestone_work_packages.
+  const KEYWORD_MAP: Record<string, string[]> = {
+    site_setup_demolition: ["site setup", "site set up", "set-up", "set up", "mobilis", "demolition", "strip out", "enabling", "soft strip"],
+    foundations_groundwork: ["foundation", "substructure", "groundwork", "dpc", "dig", "excavat"],
+    structural_frame_roof: ["structural", "frame", "superstructure", "roof", "weathertight", "windows", "alteration"],
+    first_fix_mep: ["first fix", "electric", "plumb", "mep", "carpentry"],
+    plastering_drylining: ["plaster", "drylining", "screed"],
+    kitchen_install: ["kitchen"],
+    bathroom_fitout: ["bathroom", "tiling", "tile"],
+    decoration_finishing: ["decoration", "finishing", "paint"],
+    final_handover: ["handover", "completion", "practical", "sign-off", "sign off", "inspection", "building control"],
+  };
+
   const { data: groups = [], isLoading } = useQuery({
-    queryKey: ["recommended-tasks", contractType, milestoneKey],
+    queryKey: ["recommended-tasks", contractType, milestoneKey, milestoneName],
     queryFn: async (): Promise<WPGroup[]> => {
-      if (!milestoneKey) return [];
-      const { data: links, error: linksErr } = await supabase
+      const { data: links } = await supabase
         .from("milestone_work_packages")
         .select("work_package_key, sort_order, work_packages(label)")
         .eq("contract_type", contractType)
         .eq("milestone_key", milestoneKey)
         .order("sort_order", { ascending: true });
-      if (linksErr) throw linksErr;
-      if (!links || links.length === 0) return [];
 
-      const keys = links.map((l: any) => l.work_package_key);
+      let resolved: { key: string; label: string; sort_order: number }[] =
+        (links ?? []).map((l: any) => ({
+          key: l.work_package_key,
+          label: l.work_packages?.label ?? l.work_package_key,
+          sort_order: l.sort_order ?? 0,
+        }));
+
+      if (resolved.length === 0) {
+        const name = milestoneName.toLowerCase();
+        const matchedKeys = Object.entries(KEYWORD_MAP)
+          .filter(([, kws]) => kws.some((k) => name.includes(k)))
+          .map(([k]) => k);
+        if (matchedKeys.length === 0) return [];
+        const { data: wps } = await supabase
+          .from("work_packages")
+          .select("work_package_key, label")
+          .in("work_package_key", matchedKeys);
+        resolved = (wps ?? []).map((w: any, i: number) => ({
+          key: w.work_package_key,
+          label: w.label,
+          sort_order: i,
+        }));
+      }
+
+      if (resolved.length === 0) return [];
+
+      const keys = resolved.map((r) => r.key);
       const { data: tasks, error: tasksErr } = await supabase
         .from("work_package_tasks")
         .select("id, work_package_key, task, task_type, expected_evidence, concealment_flag, task_order")
@@ -96,12 +133,12 @@ export function RecommendedTasks({
         .order("task_order", { ascending: true });
       if (tasksErr) throw tasksErr;
 
-      return links.map((l: any) => ({
-        work_package_key: l.work_package_key,
-        label: l.work_packages?.label ?? l.work_package_key,
-        sort_order: l.sort_order,
+      return resolved.map((r) => ({
+        work_package_key: r.key,
+        label: r.label,
+        sort_order: r.sort_order,
         tasks: ((tasks ?? []) as any[])
-          .filter((t) => t.work_package_key === l.work_package_key)
+          .filter((t) => t.work_package_key === r.key)
           .map((t) => ({
             id: t.id,
             task: t.task,
