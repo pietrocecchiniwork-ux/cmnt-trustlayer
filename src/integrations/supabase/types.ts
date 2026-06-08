@@ -444,6 +444,35 @@ export type Database = {
           },
         ]
       }
+      milestone_work_packages: {
+        Row: {
+          contract_type: string
+          milestone_key: string
+          sort_order: number
+          work_package_key: string
+        }
+        Insert: {
+          contract_type?: string
+          milestone_key: string
+          sort_order: number
+          work_package_key: string
+        }
+        Update: {
+          contract_type?: string
+          milestone_key?: string
+          sort_order?: number
+          work_package_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_work_packages_work_package_key_fkey"
+            columns: ["work_package_key"]
+            isOneToOne: false
+            referencedRelation: "work_packages"
+            referencedColumns: ["work_package_key"]
+          },
+        ]
+      }
       milestones: {
         Row: {
           approved_at: string | null
@@ -1012,6 +1041,68 @@ export type Database = {
           id?: string
           phone_number?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      work_package_tasks: {
+        Row: {
+          concealment_flag: boolean
+          created_at: string | null
+          expected_evidence: string | null
+          governing_rule: string | null
+          id: string
+          task: string
+          task_order: number
+          task_type: string
+          work_package_key: string
+        }
+        Insert: {
+          concealment_flag?: boolean
+          created_at?: string | null
+          expected_evidence?: string | null
+          governing_rule?: string | null
+          id?: string
+          task: string
+          task_order: number
+          task_type: string
+          work_package_key: string
+        }
+        Update: {
+          concealment_flag?: boolean
+          created_at?: string | null
+          expected_evidence?: string | null
+          governing_rule?: string | null
+          id?: string
+          task?: string
+          task_order?: number
+          task_type?: string
+          work_package_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_package_tasks_work_package_key_fkey"
+            columns: ["work_package_key"]
+            isOneToOne: false
+            referencedRelation: "work_packages"
+            referencedColumns: ["work_package_key"]
+          },
+        ]
+      }
+      work_packages: {
+        Row: {
+          description: string | null
+          label: string
+          work_package_key: string
+        }
+        Insert: {
+          description?: string | null
+          label: string
+          work_package_key: string
+        }
+        Update: {
+          description?: string | null
+          label?: string
+          work_package_key?: string
         }
         Relationships: []
       }
