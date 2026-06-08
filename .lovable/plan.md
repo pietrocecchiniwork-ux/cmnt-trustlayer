@@ -1,32 +1,55 @@
 ## Goal
-Ensure the live Lovable Cloud backend project `nwshkwwjagsqembvuqrm` has a private storage bucket named exactly `contracts`, without changing any app code, database tables, edge functions, ontology, flags, training signals, or ingestion flow.
+Add a PM-only entry point on the Milestones screen so a project manager can upload a contract, use a template, or add a milestone manually at any time after project creation — not just during the one-time setup flow.
 
-## Current read-only verification
-- Active backend project ref: `nwshkwwjagsqembvuqrm`
-- `storage.buckets` currently shows a row for `contracts` with `public = false`
-- Existing storage object policies are bound to `bucket_id = 'contracts'`
-- Existing policies use `storage.foldername(name)[1]::uuid` for project-scoped paths
+## Background
+- The three setup pages (`/document-upload`, `/template-select`, `/manual-milestone`) already read `currentProjectId` from `DemoProjectContext` and work standalone.
+- Database RLS already restricts milestone INSERT/UPDATE to PMs. A trigger additionally locks non-PMs to only setting `status = 'in_review'`.
+- The current UI has two gaps:
+  1. Empty state shows only "no milestones" text — no action for PMs.
+  2. Non-empty state has a small "add milestone" button that only links to manual entry and is visually easy to miss.
 
-## Implementation plan
-1. Use the Cloud Storage bucket API/tool to create or reconcile the `contracts` bucket as private (`public = false`).
-   - If the bucket already exists according to the bucket API, leave it private and do not duplicate it.
-   - If the API reports missing, create it through the storage bucket tool, not raw SQL.
-2. Re-check bucket state through the backend:
-   - List/query bucket metadata for `contracts`
-   - Confirm `public = false`
-   - Confirm the active project ref remains `nwshkwwjagsqembvuqrm`
-3. Re-check policy binding:
-   - Confirm policies still reference `bucket_id = 'contracts'`
-   - Confirm path scoping still uses `storage.foldername(name)[1]`
-4. Confirm the user-facing outcome plainly:
-   - Bucket `contracts` exists in project `nwshkwwjagsqembvuqrm`
-   - Bucket is private
-   - Existing RLS policies bind to it
-   - Bucket fetch/list no longer behaves as missing
+## Changes
 
-## Explicit non-changes
-- No changes to `extract-milestones`
-- No changes to `DocumentUpload`
-- No changes to `contract_extractions` or `file_path`
-- No changes to generated types
-- No changes to ontology, flags/suggestions UI, training-signal writes, `tag-evidence`, or `knowledge_chunks`
+### 1. PM-only empty-state CTA card
+**File:** `src/pages/MilestonesList.tsx` (inside `PMClientSpine`)
+
+When `ordered.length === 0` and `role === "pm"`, replace the current plain card with a white card offering three inline actions:
+
+```
++ upload contract    → /document-upload
++ use a template     → /template-select
++ add manually       → /manual-milestone
+```
+
+Design: white background (`bg-white`), rounded-3xl (`rounded-3xl`), DM Mono labels (`font-mono text-[13px]`), no shadows, no gradients. Each action is a full-width pill button with a subtle border.
+
+### 2. PM-only "+ add" sheet (non-empty state)
+When `ordered.length > 0` and `role === "pm"`, replace the existing tiny "add milestone" button with a single `+ add` pill.
+
+Tapping it opens a shadcn `Sheet` (bottom drawer on mobile) containing the same three actions:
+- Upload contract
+- Use a template
+- Add manually
+
+Each routes to its existing page. The sheet closes on selection.
+
+### 3. Non-PM visibility
+For roles other than `"pm"`, both the empty-state CTA and the `+ add` pill are hidden. The spine renders exactly as it does today.
+
+## Out of scope
+- `/document-upload` page logic, contract extraction, `contract_extractions` table
+- `contracts` storage bucket, its RLS, or its existence
+- `extract-milestones` edge function
+- `tag-evidence`, ontology, training signals
+- Routing changes (existing routes are used as-is)
+- Data hooks or backend modifications
+- Project owner / permission model (uses existing `role === "pm"` from `RoleContext`)
+
+## Files changed
+- `src/pages/MilestonesList.tsx` — add empty-state CTA, replace add button with `+ add` sheet
+
+## Verification
+- Log in as `pm@test.com` on a project with zero milestones → empty-state CTA visible, clicking each route works.
+- Add one milestone → empty-state CTA disappears, `+ add` pill appears at bottom of spine.
+- Open sheet, select each option → navigates to correct page, sheet closes.
+- Log in as client/contractor on same project → no CTA, no `+ add` pill, spine unchanged.
