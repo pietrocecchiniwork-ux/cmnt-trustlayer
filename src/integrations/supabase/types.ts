@@ -237,7 +237,8 @@ export type Database = {
           document_id: string
           embedding: string | null
           id: string
-          project_id: string
+          project_id: string | null
+          source_key: string | null
           token_estimate: number | null
         }
         Insert: {
@@ -247,7 +248,8 @@ export type Database = {
           document_id: string
           embedding?: string | null
           id?: string
-          project_id: string
+          project_id?: string | null
+          source_key?: string | null
           token_estimate?: number | null
         }
         Update: {
@@ -257,7 +259,8 @@ export type Database = {
           document_id?: string
           embedding?: string | null
           id?: string
-          project_id?: string
+          project_id?: string | null
+          source_key?: string | null
           token_estimate?: number | null
         }
         Relationships: [
@@ -507,9 +510,10 @@ export type Database = {
           error: string | null
           file_path: string
           id: string
+          is_global: boolean
           kind: string
           mime_type: string | null
-          project_id: string
+          project_id: string | null
           status: string
           title: string
           uploaded_by: string | null
@@ -520,9 +524,10 @@ export type Database = {
           error?: string | null
           file_path: string
           id?: string
+          is_global?: boolean
           kind?: string
           mime_type?: string | null
-          project_id: string
+          project_id?: string | null
           status?: string
           title: string
           uploaded_by?: string | null
@@ -533,9 +538,10 @@ export type Database = {
           error?: string | null
           file_path?: string
           id?: string
+          is_global?: boolean
           kind?: string
           mime_type?: string | null
-          project_id?: string
+          project_id?: string | null
           status?: string
           title?: string
           uploaded_by?: string | null
@@ -891,6 +897,21 @@ export type Database = {
         Returns: {
           id: string
           name: string
+        }[]
+      }
+      match_chunks: {
+        Args: {
+          _match_count?: number
+          _project_id: string
+          _query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          document_id: string
+          id: string
+          is_global: boolean
+          similarity: number
         }[]
       }
       match_project_chunks: {
