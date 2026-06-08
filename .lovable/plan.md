@@ -1,55 +1,52 @@
 ## Goal
-Add a PM-only entry point on the Milestones screen so a project manager can upload a contract, use a template, or add a milestone manually at any time after project creation — not just during the one-time setup flow.
-
-## Background
-- The three setup pages (`/document-upload`, `/template-select`, `/manual-milestone`) already read `currentProjectId` from `DemoProjectContext` and work standalone.
-- Database RLS already restricts milestone INSERT/UPDATE to PMs. A trigger additionally locks non-PMs to only setting `status = 'in_review'`.
-- The current UI has two gaps:
-  1. Empty state shows only "no milestones" text — no action for PMs.
-  2. Non-empty state has a small "add milestone" button that only links to manual entry and is visually easy to miss.
+Let a PM defer a suggested addition on `/document-upload` instead of forcing accept-or-dismiss in the moment. Deferred items survive across sessions and can be reviewed later from the Milestones screen.
 
 ## Changes
 
-### 1. PM-only empty-state CTA card
-**File:** `src/pages/MilestonesList.tsx` (inside `PMClientSpine`)
+### 1. New table: `milestone_suggestions`
+Stores deferred suggestions per project so they persist across sessions/devices.
 
-When `ordered.length === 0` and `role === "pm"`, replace the current plain card with a white card offering three inline actions:
+Columns:
+- `project_id` (uuid, FK projects)
+- `phase_id` (text) — ontology phase id
+- `phase_name` (text)
+- `reason` (text)
+- `status` (text, default `'deferred'`) — `'deferred' | 'accepted' | 'dismissed'`
+- `deferred_by` (uuid, FK auth.users)
+- `resolved_by` (uuid, nullable)
+- `resolved_at` (timestamptz, nullable)
+- standard `id`, `created_at`, `updated_at`
 
-```
-+ upload contract    → /document-upload
-+ use a template     → /template-select
-+ add manually       → /manual-milestone
-```
+Unique `(project_id, phase_id)` so the same phase can't pile up duplicates.
 
-Design: white background (`bg-white`), rounded-3xl (`rounded-3xl`), DM Mono labels (`font-mono text-[13px]`), no shadows, no gradients. Each action is a full-width pill button with a subtle border.
+RLS: only project members can read; only PMs (via `get_project_role`) can insert/update/delete. GRANTs to `authenticated` and `service_role`.
 
-### 2. PM-only "+ add" sheet (non-empty state)
-When `ordered.length > 0` and `role === "pm"`, replace the existing tiny "add milestone" button with a single `+ add` pill.
+### 2. `/document-upload` — DocumentUpload.tsx
+- Add a third button **"review later"** next to **accept** / **dismiss** in the suggested-additions list.
+- Action: upsert row into `milestone_suggestions` with `status='deferred'`, remove from the local `suggestions` list, log signal `suggested_addition / deferred`.
+- When the page loads, fetch existing `deferred` rows for the project and filter them out of the in-memory suggestions list so they don't reappear here (they live on the Milestones screen now).
+- **Confirm guard**: if any suggestion is still in the in-memory list (i.e. neither accepted, dismissed, nor deferred), tapping "confirm milestones" first shows an inline warning row: "N suggestion(s) still to review — continue anyway?" with **continue** / **back**. No new dialog component.
 
-Tapping it opens a shadcn `Sheet` (bottom drawer on mobile) containing the same three actions:
-- Upload contract
-- Use a template
-- Add manually
-
-Each routes to its existing page. The sheet closes on selection.
-
-### 3. Non-PM visibility
-For roles other than `"pm"`, both the empty-state CTA and the `+ add` pill are hidden. The spine renders exactly as it does today.
+### 3. Milestones screen — MilestonesList.tsx
+- PM-only: fetch `milestone_suggestions` where `status='deferred'` for the current project.
+- If count > 0, render a small banner above the spine: `N suggestion(s) to review` opening a `Sheet` (same pattern as the existing `+ add to project` sheet) listing each deferred suggestion with **accept** / **dismiss** buttons.
+  - **accept**: insert a milestone (same shape as `acceptSuggestion` in DocumentUpload — phase_id, name, description=reason, default empty payment/date/assignee) then mark suggestion `status='accepted'`. PM still needs to edit due date / assignee in the milestone row afterwards.
+  - **dismiss**: mark suggestion `status='dismissed'`.
+- Non-PM roles see nothing.
 
 ## Out of scope
-- `/document-upload` page logic, contract extraction, `contract_extractions` table
-- `contracts` storage bucket, its RLS, or its existence
-- `extract-milestones` edge function
-- `tag-evidence`, ontology, training signals
-- Routing changes (existing routes are used as-is)
-- Data hooks or backend modifications
-- Project owner / permission model (uses existing `role === "pm"` from `RoleContext`)
+- Changes to `extract-milestones` edge function or how suggestions are originally generated.
+- Email/notification when a suggestion is added.
+- Bulk accept/dismiss in the review-later sheet.
+- Routing, ontology, training-signal schema, contracts bucket, RLS on existing tables.
 
 ## Files changed
-- `src/pages/MilestonesList.tsx` — add empty-state CTA, replace add button with `+ add` sheet
+- `supabase/migrations/<timestamp>_milestone_suggestions.sql` — new table + RLS + grants
+- `src/pages/DocumentUpload.tsx` — "review later" button, load deferred filter, pre-confirm warning
+- `src/pages/MilestonesList.tsx` — PM-only deferred-suggestions banner + sheet
 
 ## Verification
-- Log in as `pm@test.com` on a project with zero milestones → empty-state CTA visible, clicking each route works.
-- Add one milestone → empty-state CTA disappears, `+ add` pill appears at bottom of spine.
-- Open sheet, select each option → navigates to correct page, sheet closes.
-- Log in as client/contractor on same project → no CTA, no `+ add` pill, spine unchanged.
+- As PM: upload a contract that produces suggestions → tap "review later" on one → it disappears from the list, row visible in `milestone_suggestions` with `status='deferred'`.
+- Tap "confirm" while another suggestion is still un-actioned → warning row appears, "continue" proceeds.
+- Open `/milestones` → banner "1 suggestion to review" → open sheet → tap **accept** → new milestone appears in spine, suggestion row flips to `accepted`.
+- As contractor/client on same project → no banner, no sheet.
