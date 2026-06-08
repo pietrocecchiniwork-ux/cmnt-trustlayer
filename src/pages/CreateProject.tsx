@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCreateProject, useAddProjectMember } from "@/hooks/useSupabaseProject";
@@ -42,6 +42,15 @@ export default function CreateProject() {
   const [savedMembers, setSavedMembers] = useState<InlineTeamMember[]>([]);
   const [showInviteMessages, setShowInviteMessages] = useState(false);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        toast.error("Your session expired — please sign in again");
+        navigate("/auth");
+      }
+    });
+  }, [navigate]);
+
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -64,9 +73,15 @@ export default function CreateProject() {
         .single();
       setCreatedProject({ id: result.id, code: proj?.project_code ?? "" });
       setStep(3);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Create project failed:", err);
-      toast.error("Failed to create project");
+      const msg = String(err?.message ?? "");
+      if (msg === "Not authenticated") {
+        toast.error("Your session expired — please sign in again");
+        navigate("/auth");
+      } else {
+        toast.error(msg || "Failed to create project");
+      }
     }
   };
 
