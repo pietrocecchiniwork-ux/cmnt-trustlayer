@@ -3,7 +3,8 @@ import { COMPACT_TAXONOMY_PROMPT } from "../_shared/ontology-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const PROMPT =
@@ -11,21 +12,12 @@ const PROMPT =
 
 const IMAGE_TYPES = ["jpg", "jpeg", "png"];
 
-function base64ToText(base64: string): string {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
     return new Response(JSON.stringify({ error: "AI not configured" }), {
       status: 500,
@@ -51,83 +43,94 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const isImage = IMAGE_TYPES.includes(file_type.toLowerCase());
+  const ext = file_type.toLowerCase();
+  const isImage = IMAGE_TYPES.includes(ext);
+  const isPdf = ext === "pdf";
 
-  let messages: unknown[];
+  if (ext === "docx" || ext === "doc") {
+    return new Response(
+      JSON.stringify({
+        error:
+          "DOCX/DOC contracts are not supported. Please export the document as a digital PDF and re-upload.",
+      }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
-  if (isImage) {
+  if (!isImage && !isPdf) {
+    return new Response(
+      JSON.stringify({ error: `Unsupported file type: ${ext}. Upload a PDF or image.` }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  let userContent: unknown[];
+
+  if (isPdf) {
+    userContent = [
+      {
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: file_base64 },
+      },
+      { type: "text", text: PROMPT },
+    ];
+  } else {
     const mediaTypeMap: Record<string, string> = {
       jpg: "image/jpeg",
       jpeg: "image/jpeg",
       png: "image/png",
     };
-    const mediaType = mediaTypeMap[file_type.toLowerCase()] ?? "image/jpeg";
-
-    messages = [
+    const mediaType = mediaTypeMap[ext] ?? "image/jpeg";
+    userContent = [
       {
-        role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: { url: `data:${mediaType};base64,${file_base64}` },
-          },
-          { type: "text", text: PROMPT },
-        ],
+        type: "image",
+        source: { type: "base64", media_type: mediaType, data: file_base64 },
       },
-    ];
-  } else {
-    const text = base64ToText(file_base64);
-    messages = [
-      {
-        role: "user",
-        content: `${PROMPT}\n\nDocument content:\n${text}`,
-      },
+      { type: "text", text: PROMPT },
     ];
   }
 
-  const gatewayRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages,
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      messages: [{ role: "user", content: userContent }],
     }),
   });
 
-  if (!gatewayRes.ok) {
-    const err = await gatewayRes.text();
-    console.error("AI gateway error:", gatewayRes.status, err);
+  if (!anthropicRes.ok) {
+    const err = await anthropicRes.text();
+    console.error("Anthropic error:", anthropicRes.status, err);
 
-    if (gatewayRes.status === 429) {
+    if (anthropicRes.status === 429) {
       return new Response(JSON.stringify({ error: "Rate limited, please try again shortly." }), {
         status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (gatewayRes.status === 402) {
-      return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     return new Response(JSON.stringify({ error: "AI error", detail: err }), {
       status: 502,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const data = await gatewayRes.json();
-  const rawText: string = data.choices?.[0]?.message?.content ?? "";
+  const data = await anthropicRes.json();
+  const rawText: string =
+    data?.content?.find((b: { type: string }) => b.type === "text")?.text ?? "";
 
   let milestones: unknown[] = [];
   let projectType: string | null = null;
+  let parseOk = false;
   try {
     const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
+    parseOk = true;
     if (Array.isArray(parsed)) {
       milestones = parsed;
     } else if (parsed && typeof parsed === "object") {
@@ -136,7 +139,18 @@ Deno.serve(async (req: Request) => {
     }
   } catch (e) {
     console.error("Failed to parse AI response:", rawText, e);
-    milestones = [];
+  }
+
+  if (!parseOk || milestones.length === 0) {
+    return new Response(
+      JSON.stringify({
+        error:
+          "We couldn't extract any milestones from this document. If it's a scanned PDF, please upload a digital (text-based) PDF instead.",
+        project_type: projectType,
+        milestones: [],
+      }),
+      { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   return new Response(JSON.stringify({ project_type: projectType, milestones }), {
