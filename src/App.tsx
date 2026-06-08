@@ -89,7 +89,6 @@ const App = () => (
               <Route path="/join" element={<JoinProject />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route path="/admin/ontology" element={<AdminOntology />} />
-              </Route>
               
               {/* Project screens with bottom nav */}
               <Route element={<AppLayout />}>
