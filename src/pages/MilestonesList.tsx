@@ -366,6 +366,10 @@ function PMClientSpine({
             </ul>
           )}
 
+          {role === "pm" && currentProjectId && (
+            <DeferredSuggestionsBanner projectId={currentProjectId} />
+          )}
+
           {role === "pm" && (
             <PMAddCard variant="pill" navigate={navigate} />
           )}
