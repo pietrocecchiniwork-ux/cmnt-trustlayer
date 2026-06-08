@@ -454,3 +454,118 @@ function PMAddCard({
     </Sheet>
   );
 }
+
+type DeferredSuggestion = {
+  id: string;
+  phase_id: string;
+  phase_name: string;
+  reason: string | null;
+};
+
+function DeferredSuggestionsBanner({ projectId }: { projectId: string }) {
+  const [open, setOpen] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  const { data: deferred = [] } = useQuery({
+    queryKey: ["milestone-suggestions", projectId, "deferred"],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("milestone_suggestions")
+        .select("id, phase_id, phase_name, reason")
+        .eq("project_id", projectId)
+        .eq("status", "deferred")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as DeferredSuggestion[];
+    },
+  });
+
+  if (deferred.length === 0) return null;
+
+  const resolve = async (s: DeferredSuggestion, action: "accepted" | "dismissed") => {
+    setBusyId(s.id);
+    try {
+      if (action === "accepted") {
+        const { data: userRes } = await supabase.auth.getUser();
+        const uid = userRes.user?.id ?? null;
+        const { error: insErr } = await (supabase as any).from("milestones").insert({
+          project_id: projectId,
+          name: s.phase_name,
+          description: s.reason,
+          status: "pending",
+          created_by: uid,
+        });
+        if (insErr) {
+          toast.error("Could not add milestone");
+          setBusyId(null);
+          return;
+        }
+        qc.invalidateQueries({ queryKey: ["milestones", projectId] });
+      }
+      const { data: userRes2 } = await supabase.auth.getUser();
+      const { error: updErr } = await (supabase as any)
+        .from("milestone_suggestions")
+        .update({
+          status: action,
+          resolved_by: userRes2.user?.id ?? null,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("id", s.id);
+      if (updErr) {
+        toast.error("Could not update suggestion");
+        setBusyId(null);
+        return;
+      }
+      toast.success(action === "accepted" ? "Milestone added — set due date & assignee" : "Suggestion dismissed");
+      qc.invalidateQueries({ queryKey: ["milestone-suggestions", projectId, "deferred"] });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button className="w-full mt-4 py-3 bg-white border border-gray-200 rounded-full font-mono text-[11px] text-foreground hover:bg-gray-50 transition-colors">
+          {deferred.length} suggestion{deferred.length === 1 ? "" : "s"} to review
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="rounded-t-3xl">
+        <SheetHeader>
+          <SheetTitle className="font-sans text-[16px] text-left">suggestions to review</SheetTitle>
+        </SheetHeader>
+        <div className="space-y-3 mt-4 pb-4">
+          {deferred.map((s) => (
+            <div
+              key={s.id}
+              className="rounded-2xl border border-gray-200 bg-white px-4 py-3"
+            >
+              <p className="font-sans text-[14px] text-foreground">{s.phase_name}</p>
+              {s.reason && (
+                <p className="font-mono text-[11px] text-gray-500 mt-1">{s.reason}</p>
+              )}
+              <div className="flex items-center gap-3 mt-3">
+                <button
+                  onClick={() => resolve(s, "accepted")}
+                  disabled={busyId === s.id}
+                  className="font-mono text-[11px] text-foreground underline underline-offset-4 disabled:opacity-50"
+                >
+                  accept
+                </button>
+                <button
+                  onClick={() => resolve(s, "dismissed")}
+                  disabled={busyId === s.id}
+                  className="font-mono text-[11px] text-muted-foreground disabled:opacity-50"
+                >
+                  dismiss
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
