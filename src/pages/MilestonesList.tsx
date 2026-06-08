@@ -366,7 +366,7 @@ function PMClientSpine({
             </ul>
           )}
 
-          {role === "pm" && ordered.length > 0 && (
+          {role === "pm" && (
             <PMAddCard variant="pill" navigate={navigate} />
           )}
         </div>
