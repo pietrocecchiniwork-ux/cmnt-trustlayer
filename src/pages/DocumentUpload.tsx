@@ -522,6 +522,12 @@ export default function DocumentUpload() {
                           accept
                         </button>
                         <button
+                          onClick={() => deferSuggestion(s)}
+                          className="font-mono text-[11px] text-muted-foreground underline underline-offset-4"
+                        >
+                          review later
+                        </button>
+                        <button
                           onClick={() => dismissSuggestion(s)}
                           className="font-mono text-[11px] text-muted-foreground"
                         >
