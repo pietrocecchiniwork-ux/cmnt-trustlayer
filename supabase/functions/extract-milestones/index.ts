@@ -124,16 +124,22 @@ Deno.serve(async (req: Request) => {
   const rawText: string = data.choices?.[0]?.message?.content ?? "";
 
   let milestones: unknown[] = [];
+  let projectType: string | null = null;
   try {
     const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
-    milestones = JSON.parse(cleaned);
-    if (!Array.isArray(milestones)) milestones = [];
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      milestones = parsed;
+    } else if (parsed && typeof parsed === "object") {
+      milestones = Array.isArray(parsed.milestones) ? parsed.milestones : [];
+      projectType = typeof parsed.project_type === "string" ? parsed.project_type : null;
+    }
   } catch (e) {
     console.error("Failed to parse AI response:", rawText, e);
     milestones = [];
   }
 
-  return new Response(JSON.stringify(milestones), {
+  return new Response(JSON.stringify({ project_type: projectType, milestones }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
