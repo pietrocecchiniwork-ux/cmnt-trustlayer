@@ -54,6 +54,7 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           created_by: string | null
+          file_path: string | null
           filename: string | null
           id: string
           parsed_status: string
@@ -65,6 +66,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           created_by?: string | null
+          file_path?: string | null
           filename?: string | null
           id?: string
           parsed_status?: string
@@ -76,6 +78,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           created_by?: string | null
+          file_path?: string | null
           filename?: string | null
           id?: string
           parsed_status?: string
