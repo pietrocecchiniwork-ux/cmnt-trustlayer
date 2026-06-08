@@ -78,7 +78,7 @@ export default function MilestonesList() {
 
     // Mode A milestones (no tasks, assigned to user)
     for (const m of milestones) {
-      if ((m as any).assigned_to === user.id && !milestonesWithTasks.has(m.id)) {
+      if ((m as any).assigned_to === user.id && !milestonesWithTasksForUser.has(m.id)) {
         items.push({
           id: m.id,
           name: m.name,
