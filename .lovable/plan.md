@@ -1,53 +1,75 @@
-## Demo walkthrough — minimal color refinement
 
-Scope: `src/components/DemoWalkthrough.tsx` only. No app, token, or memory changes.
+# Project Knowledge (Ontology) for Cemento AI
 
-### New surface palette
+Today Cemento has no knowledge store — the AI only sees the fixed taxonomy hard-coded in `tag-evidence/index.ts` plus the current milestone/task. This plan adds a **per-project knowledge library** where you can upload reference files (spec, JCT, drawings list, method statements, NHBC notes, internal SOPs). The AI then pulls the most relevant excerpts into every `tag-evidence` and `extract-milestones` call.
 
-Replace per-slide bright backgrounds with a single muted dark-beige/mud across all slides except the final cream one.
+Retrieval recommendation: **semantic search (RAG)** with `pgvector`. Cemento is text-heavy and you'll quickly outgrow "stuff the whole doc in the prompt" — RAG keeps token costs and accuracy stable as the library grows.
 
-- Slide background: `#2A2520` (dark mud-beige), text light
-- Card on slide: `#332E28` with 1px hairline `rgba(255,255,255,0.08)`
-- Final slide: keep cream `#F5F3EE`, text dark
+## What you'll be able to do
 
-### Role color (kept, minimal)
+- Open a project → **Knowledge** screen → drag a PDF / DOCX / image / TXT.
+- Cemento extracts text, splits it into chunks, embeds them, and stores them against the project.
+- Each chunk gets a kind tag: `spec`, `contract`, `drawing_note`, `standard`, `sop`, `other` (editable).
+- When AI tags a photo or extracts milestones, it fetches the top 4–6 most relevant chunks and injects them as extra context.
+- You see, rename, retag, and delete documents on the same screen.
 
-Color appears only in the role marker at the top of each slide — the dot + the eyebrow label + a 1px underline beneath the role label. Nothing else on the slide carries hue.
+## Data model
 
-- PM → orange `#C1531E`
-- Contractor → blue `#60A5FA`
-- AI → neutral white (no hue, AI is the system voice)
-- Client → green `#3D7A5A`
+New private bucket `project-knowledge` (PDFs/DOCX/images stored here, never public).
 
-`dotColor` field already exists per slide; we extend it to also tint the eyebrow text and the small underline.
+Two new tables:
 
-### Inside cards — strip color
+- `project_documents` — one row per uploaded file
+  - `id`, `project_id`, `uploaded_by`, `title`, `kind`, `file_path`, `mime_type`, `byte_size`, `status` (`processing` | `ready` | `failed`), `error`, `created_at`
+- `knowledge_chunks` — one row per text chunk
+  - `id`, `document_id`, `project_id`, `chunk_index`, `content` (text), `embedding` (`vector(1536)`), `token_estimate`, `created_at`
+  - HNSW index on `embedding` with `vector_cosine_ops`
+  - `pgvector` extension enabled
 
-- StatusPill / ChecklistPill: drop green `#1A3D2B` / amber `#3D2A0A` filled backgrounds. Use a single muted row style `rgba(255,255,255,0.05)` with a small leading dot:
-  - done → muted dot `rgba(255,255,255,0.45)` + label "done"
-  - in progress → white dot + label "in progress"
-  - todo → hollow ring + label "to do"
-- Progress bars: single white fill on `rgba(255,255,255,0.12)` track. Drop dual-color (green + amber) split.
-- AI check rows: drop colored ✓/△ and colored result pills. Use neutral mono labels; the one flag becomes "1 flag" muted text at the bottom. Remove the pulsing green "LIVE" indicator.
-- Approval card: replace the green "approved with condition" filled block with a hairline-bordered row, neutral text.
-- Client payment card: numbers all in white/muted — drop green `£63,000` and amber `£11,000` accents. The "this payment" amount stays larger via type weight, not color.
+RLS: only active members of the project can read/write. Service role can do everything (used by edge functions). PMs can delete; any member can upload (matches your "doesn't matter" answer — easy to tighten later).
 
-### Iconography
+## Edge functions
 
-Remove all emoji (💬 📷 📍 🎙 ✓ △ ○ →). Replace with text labels and small hairline-bordered squares where an icon slot is structurally needed (evidence sources).
+1. **`ingest-document`** (new)
+   - Input: `document_id`
+   - Downloads the file from storage, extracts text (PDF via `pdf-parse`/`unpdf`, DOCX via `mammoth`, images via Gemini vision OCR, txt direct)
+   - Chunks at ~1000 chars with ~150 overlap
+   - Embeds each chunk via Lovable AI Gateway `openai/text-embedding-3-small` (1536 dims, cheap)
+   - Inserts `knowledge_chunks`, sets `project_documents.status = 'ready'`
 
-### CTAs
+2. **`retrieve-knowledge`** (new, internal helper)
+   - Input: `project_id`, `query` (string), `k` (default 5)
+   - Embeds the query, runs `match_project_chunks(project_id, query_embedding, k)` SQL function, returns top chunks with similarity scores
+   - Reused by both AI functions below
 
-One pill style per surface:
-- Dark slides → cream pill, dark text
-- Cream final slide → dark pill, cream text
+3. **`tag-evidence`** (modify)
+   - Before calling Claude, build a query string from `milestone_name + task_name + project_name`
+   - Call `retrieve-knowledge`; append the chunks to the prompt under a `Project knowledge:` section
+   - Everything else stays the same (same model, same JSON output)
 
-Drop the per-slide `ctaTone` branching.
+4. **`extract-milestones`** (modify)
+   - After first extraction pass, run a second query using `project_name + "contract milestones payment stages"` to pull relevant chunks, then re-prompt for a refined list. Optional: skip if no chunks exist (keeps current behaviour for projects without knowledge).
 
-### Result
+## UI
 
-Seven slides reading as one continuous muted-mud sequence. The only color on each slide is the small role marker at the top (orange/blue/white/green dot + eyebrow + underline). Final cream slide acts as the tonal reset and CTA moment.
+New route `/project/knowledge` (PM nav + project menu):
 
-### Files touched
+- Header: "Project knowledge" + count
+- Drop zone (PDF, DOCX, JPG, PNG, TXT) — same visual language as `DocumentUpload.tsx`
+- List of documents: title, kind chip, status pill (`processing` → spinner, `ready` → green dot, `failed` → red), file size, uploaded by/when, delete button
+- Click a row → drawer showing extracted text preview + first 3 chunks (for trust)
+- Empty state: "Cemento learns from your project documents. Drop a spec, contract, or method statement to start."
 
-- `src/components/DemoWalkthrough.tsx`
+Small badge on `MilestoneDetailPage` / evidence cards: "AI used N knowledge sources" (when chunks were injected) so you can see it's working.
+
+## Rollout
+
+Phase 1 (this plan): bucket + tables + ingest + retrieve + wire into `tag-evidence` + Knowledge screen.
+Phase 2 (later, if you want): wire into `extract-milestones`, global org-wide standards library, per-chunk feedback ("this chunk was useful / not useful") to improve retrieval.
+
+## Files touched
+
+- New: `supabase/functions/ingest-document/index.ts`, `supabase/functions/retrieve-knowledge/index.ts`, `src/pages/ProjectKnowledge.tsx`, migration for tables + pgvector + RLS + `match_project_chunks` function
+- Modified: `supabase/functions/tag-evidence/index.ts` (add retrieval call), `src/App.tsx` (route), `src/components/BurgerMenu.tsx` or nav (link), `src/i18n/en.ts` + `it.ts`
+
+Nothing in the existing milestone / evidence / payment flows changes shape — this is purely additive context for the AI.
