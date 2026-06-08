@@ -667,3 +667,24 @@ function Table({ headers, rows }: { headers: string[]; rows: (string | number)[]
     </div>
   );
 }
+
+function LegendDot({ className = "" }: { className?: string }) {
+  return <span className={`inline-block h-2.5 w-2.5 rounded-sm ${className}`} />;
+}
+
+function batchSwatchClass(status: BatchStatus): string {
+  switch (status) {
+    case "pending":
+      return "bg-secondary text-muted-foreground border border-border";
+    case "running":
+      return "bg-foreground/40 text-background animate-pulse";
+    case "succeeded":
+      return "bg-[hsl(var(--success,142_40%_36%))] text-background";
+    case "failed":
+      return "bg-destructive text-destructive-foreground";
+    case "retried-ok":
+      return "bg-[hsl(var(--success,142_40%_36%))] text-background ring-1 ring-foreground";
+    case "retried-failed":
+      return "bg-destructive text-destructive-foreground ring-1 ring-foreground";
+  }
+}
