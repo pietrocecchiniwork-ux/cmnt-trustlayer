@@ -113,10 +113,35 @@ export default function DocumentUpload() {
       const base64 = await readFileAsBase64(file);
       const fileExt = file.name.split(".").pop()?.toLowerCase() ?? "";
 
+      // Upload original file to private contracts bucket: {projectId}/{uuid}/{filename}
+      let uploadedPath: string | null = null;
+      try {
+        const folderId = crypto.randomUUID();
+        const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+        const path = `${currentProjectId}/${folderId}/${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("contracts")
+          .upload(path, file, { contentType: file.type || undefined, upsert: false });
+        if (upErr) {
+          console.warn("contract upload failed:", upErr);
+        } else {
+          uploadedPath = path;
+        }
+      } catch (e) {
+        console.warn("contract upload threw:", e);
+      }
+
       const { data, error } = await supabase.functions.invoke("extract-milestones", {
         body: { file_base64: base64, file_type: fileExt },
       });
-      if (error) throw error;
+      if (error) {
+        const msg =
+          (error as { message?: string })?.message ??
+          "Failed to read document. If it's a scanned PDF, upload a digital (not scanned) PDF.";
+        toast.error(msg);
+        setState("error");
+        return;
+      }
 
       // Tolerate both old array shape and new object shape.
       const payload: ExtractionResponse = Array.isArray(data)
@@ -125,6 +150,9 @@ export default function DocumentUpload() {
 
       const extracted = Array.isArray(payload.milestones) ? payload.milestones : [];
       if (extracted.length === 0) {
+        toast.error(
+          "We couldn't extract any milestones. If it's a scanned PDF, please upload a digital (text-based) PDF."
+        );
         setState("error");
         return;
       }
@@ -138,11 +166,12 @@ export default function DocumentUpload() {
         .insert({
           project_id: currentProjectId,
           filename: file.name,
+          file_path: uploadedPath,
           parsed_status: "parsed",
           project_type: payload.project_type ?? null,
           raw_payload: payload as never,
           created_by: currentUser?.id ?? null,
-        })
+        } as never)
         .select("id")
         .single();
       if (extraction?.id) setExtractionId(extraction.id);
