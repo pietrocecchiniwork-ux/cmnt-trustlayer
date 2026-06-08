@@ -363,15 +363,30 @@ export default function AdminOntology() {
           </div>
         )}
 
-        {/* Error banner */}
+        {/* Error banner + failed-batch breakdown */}
         {seedError && (
           <div className="mb-3 p-2 border border-destructive/40 bg-destructive/5 rounded">
             <p className="font-mono text-[10px] text-destructive uppercase tracking-wider mb-1">
-              error
+              error{retryAttempt > 0 ? ` · after retry ${retryAttempt}` : ""}
             </p>
             <p className="font-mono text-[11px] text-destructive break-words">{seedError}</p>
+            {failedBatches.length > 0 && (
+              <ul className="mt-2 space-y-0.5">
+                {failedBatches.map((b) => (
+                  <li
+                    key={b.startIndex}
+                    className="font-mono text-[10px] text-destructive/90 break-words"
+                  >
+                    · batch {b.batchNum}/{b.batchCount} (chunks {b.startIndex}–
+                    {b.startIndex + BATCH_SIZE - 1}): {b.error}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
+
+
 
         {/* Live log */}
         {log.length > 0 && (
