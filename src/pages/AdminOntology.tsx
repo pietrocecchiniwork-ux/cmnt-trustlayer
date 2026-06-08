@@ -196,6 +196,9 @@ export default function AdminOntology() {
     setLog([]);
     setFailedBatches([]);
     setRetryAttempt(0);
+    setCooldownUntil(null);
+    setBatchStates([]);
+    setFinishedAt(null);
     setFinishedAt(null);
     setElapsedMs(0);
     const start = Date.now();
