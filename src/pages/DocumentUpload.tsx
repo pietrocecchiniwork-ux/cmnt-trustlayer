@@ -93,9 +93,9 @@ export default function DocumentUpload() {
         signal_type: args.signal_type,
         entity_id: args.entity_id,
         action: args.action,
-        context: args.context ?? null,
+        context: (args.context ?? null) as never,
         user_id: currentUser?.id ?? null,
-      });
+      } as never);
     } catch (e) {
       console.warn("training signal failed:", e);
     }
