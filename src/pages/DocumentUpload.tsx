@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/contexts/DemoProjectContext";
@@ -75,9 +75,29 @@ export default function DocumentUpload() {
   const [rawPayload, setRawPayload] = useState<unknown>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
   const [suggestions, setSuggestions] = useState<MissingPhaseSuggestion[]>([]);
+  const [deferredPhaseIds, setDeferredPhaseIds] = useState<Set<string>>(new Set());
+  const [confirmWarn, setConfirmWarn] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const assignableMembers = members.filter((m) => m.user_id !== null);
+
+  // Load any phases the PM previously deferred so we don't re-show them here.
+  useEffect(() => {
+    if (!currentProjectId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("milestone_suggestions")
+        .select("phase_id")
+        .eq("project_id", currentProjectId)
+        .eq("status", "deferred");
+      if (cancelled || error || !data) return;
+      setDeferredPhaseIds(new Set((data as { phase_id: string }[]).map((r) => r.phase_id)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentProjectId]);
 
   // ---------------------------------------------------------------- training signal
   const logSignal = async (args: {
@@ -189,7 +209,8 @@ export default function DocumentUpload() {
       setRows(newRows);
 
       const presentPhaseIds = newRows.map((r) => r.phase_id ?? "").filter(Boolean);
-      setSuggestions(getSuggestedMissingPhases(payload.project_type, presentPhaseIds));
+      const allSuggestions = getSuggestedMissingPhases(payload.project_type, presentPhaseIds);
+      setSuggestions(allSuggestions.filter((s) => !deferredPhaseIds.has(s.phase.id)));
 
       setState("extracted");
     } catch (err) {
@@ -286,9 +307,55 @@ export default function DocumentUpload() {
     });
   };
 
+  const deferSuggestion = async (s: MissingPhaseSuggestion) => {
+    if (!currentProjectId) return;
+    try {
+      const { error } = await (supabase as any)
+        .from("milestone_suggestions")
+        .upsert(
+          {
+            project_id: currentProjectId,
+            phase_id: s.phase.id,
+            phase_name: s.phase.name,
+            reason: s.reason,
+            status: "deferred",
+            deferred_by: currentUser?.id ?? null,
+            resolved_by: null,
+            resolved_at: null,
+          },
+          { onConflict: "project_id,phase_id" }
+        );
+      if (error) {
+        toast.error("Could not save for later");
+        return;
+      }
+    } catch {
+      toast.error("Could not save for later");
+      return;
+    }
+    setSuggestions((prev) => prev.filter((x) => x.phase.id !== s.phase.id));
+    setDeferredPhaseIds((prev) => new Set(prev).add(s.phase.id));
+    logSignal({
+      signal_type: "suggested_addition",
+      entity_id: s.phase.id,
+      action: "edited",
+      context: { project_type: projectType, deferred: true },
+    });
+    toast.success("Saved — review it later in milestones");
+  };
+
   const canConfirm =
     rows.length > 0 &&
     rows.every((r) => r.name.trim() !== "" && r.due_date !== "" && r.assigned_member_id !== "");
+
+  const onConfirmClick = () => {
+    if (suggestions.length > 0 && !confirmWarn) {
+      setConfirmWarn(true);
+      return;
+    }
+    setConfirmWarn(false);
+    void handleConfirm();
+  };
 
   // ---------------------------------------------------------------- confirm
   const handleConfirm = async () => {
@@ -453,6 +520,12 @@ export default function DocumentUpload() {
                           className="font-mono text-[11px] text-foreground underline underline-offset-4"
                         >
                           accept
+                        </button>
+                        <button
+                          onClick={() => deferSuggestion(s)}
+                          className="font-mono text-[11px] text-muted-foreground underline underline-offset-4"
+                        >
+                          review later
                         </button>
                         <button
                           onClick={() => dismissSuggestion(s)}
@@ -622,11 +695,26 @@ export default function DocumentUpload() {
       </div>
 
       {state === "extracted" && (
-        <Button variant="dark" size="full" onClick={handleConfirm} disabled={saving || !canConfirm}>
-          <span className="font-sans text-[16px]">
-            {saving ? "saving…" : "confirm milestones"}
-          </span>
-        </Button>
+        <div className="space-y-2">
+          {confirmWarn && suggestions.length > 0 && (
+            <div className="border border-warning/40 bg-warning/5 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+              <p className="font-mono text-[11px] text-foreground">
+                {suggestions.length} suggestion{suggestions.length === 1 ? "" : "s"} still to review — continue anyway?
+              </p>
+              <button
+                onClick={() => setConfirmWarn(false)}
+                className="font-mono text-[11px] text-muted-foreground"
+              >
+                back
+              </button>
+            </div>
+          )}
+          <Button variant="dark" size="full" onClick={onConfirmClick} disabled={saving || !canConfirm}>
+            <span className="font-sans text-[16px]">
+              {saving ? "saving…" : confirmWarn ? "continue" : "confirm milestones"}
+            </span>
+          </Button>
+        </div>
       )}
     </div>
   );

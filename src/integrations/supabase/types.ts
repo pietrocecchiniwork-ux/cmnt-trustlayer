@@ -394,6 +394,56 @@ export type Database = {
           },
         ]
       }
+      milestone_suggestions: {
+        Row: {
+          created_at: string
+          deferred_by: string | null
+          id: string
+          phase_id: string
+          phase_name: string
+          project_id: string
+          reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deferred_by?: string | null
+          id?: string
+          phase_id: string
+          phase_name: string
+          project_id: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deferred_by?: string | null
+          id?: string
+          phase_id?: string
+          phase_name?: string
+          project_id?: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_suggestions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestones: {
         Row: {
           approved_at: string | null
