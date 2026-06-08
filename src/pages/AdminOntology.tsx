@@ -127,14 +127,20 @@ export default function AdminOntology() {
   const runBatches = async (
     chunks: ReturnType<typeof buildKnowledgeChunks>,
     targets: Array<{ startIndex: number; batchNum: number; batchCount: number }>,
-    onSuccess: (startIndex: number, size: number) => void
+    onSuccess: (startIndex: number, size: number) => void,
+    isRetry: boolean
   ): Promise<FailedBatch[]> => {
     const stillFailing: FailedBatch[] = [];
     for (const t of targets) {
       const slice = chunks.slice(t.startIndex, t.startIndex + BATCH_SIZE);
+      setBatchStates((prev) =>
+        prev.map((b) =>
+          b.startIndex === t.startIndex ? { ...b, status: "running" } : b
+        )
+      );
       pushLog(
         "info",
-        `batch ${t.batchNum}/${t.batchCount}: embedding ${slice.length} chunks (${t.startIndex}–${t.startIndex + slice.length - 1})`
+        `batch ${t.batchNum}/${t.batchCount}${isRetry ? " (retry)" : ""}: embedding ${slice.length} chunks (${t.startIndex}–${t.startIndex + slice.length - 1})`
       );
       try {
         const res = await supabase.functions.invoke("seed-global-knowledge", {
@@ -147,9 +153,23 @@ export default function AdminOntology() {
         });
         if (res.error) throw new Error(res.error.message || `batch ${t.batchNum} failed`);
         onSuccess(t.startIndex, slice.length);
+        setBatchStates((prev) =>
+          prev.map((b) =>
+            b.startIndex === t.startIndex
+              ? { ...b, status: isRetry ? "retried-ok" : "succeeded", attempts: b.attempts + 1, lastError: undefined }
+              : b
+          )
+        );
         pushLog("success", `batch ${t.batchNum}/${t.batchCount}: inserted ${slice.length} chunks`);
       } catch (err) {
         const message = (err as Error).message ?? String(err);
+        setBatchStates((prev) =>
+          prev.map((b) =>
+            b.startIndex === t.startIndex
+              ? { ...b, status: isRetry ? "retried-failed" : "failed", attempts: b.attempts + 1, lastError: message }
+              : b
+          )
+        );
         pushLog("error", `batch ${t.batchNum}/${t.batchCount} failed: ${message}`);
         stillFailing.push({
           startIndex: t.startIndex,
