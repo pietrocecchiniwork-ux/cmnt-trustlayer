@@ -42,6 +42,9 @@ import ProjectActivity from "./pages/ProjectActivity";
 import Unsubscribe from "./pages/Unsubscribe";
 import ProjectKnowledge from "./pages/ProjectKnowledge";
 import AdminOntology from "./pages/AdminOntology";
+import NotificationsInbox from "./pages/NotificationsInbox";
+import NotificationSettings from "./pages/NotificationSettings";
+import { NotificationBell } from "./components/NotificationBell";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
