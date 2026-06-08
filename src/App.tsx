@@ -40,6 +40,7 @@ import JoinProject from "./pages/JoinProject";
 import TaskDetail from "./pages/TaskDetail";
 import ProjectActivity from "./pages/ProjectActivity";
 import Unsubscribe from "./pages/Unsubscribe";
+import ProjectKnowledge from "./pages/ProjectKnowledge";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -103,6 +104,7 @@ const App = () => (
                 <Route path="/project/payment-certificate/:milestoneId" element={<PaymentCertificate />} />
                 <Route path="/project/task/:taskId" element={<TaskDetail />} />
                 <Route path="/project/activity" element={<ProjectActivity />} />
+                <Route path="/project/knowledge" element={<ProjectKnowledge />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

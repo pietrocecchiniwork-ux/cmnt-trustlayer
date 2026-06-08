@@ -200,6 +200,7 @@ export function BurgerMenu() {
                   { path: "/project/payments", label: t("navigation.payments") },
                   { path: "/project/team", label: t("navigation.team") },
                   { path: "/project/activity", label: t("navigation.activity") },
+                  { path: "/project/knowledge", label: "knowledge" },
                 ].map((item) => (
                   <button
                     key={item.path}

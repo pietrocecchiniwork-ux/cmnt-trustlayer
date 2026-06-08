@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { readEvidenceHandoff, clearEvidencePhotoState, EvidencePhotoState } from "@/lib/photoStore";
+import { useProjectContext } from "@/contexts/DemoProjectContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,7 @@ async function computeHash(blob: Blob): Promise<string> {
 
 export default function EvidenceConfirm() {
   const navigate = useNavigate();
+  const { currentProjectId } = useProjectContext();
   const [note, setNote] = useState("");
   const [state, setState] = useState<EvidencePhotoState | null>(null);
   const [aiTags, setAiTags] = useState<AiTags | null>(null);
@@ -113,6 +115,7 @@ export default function EvidenceConfirm() {
     supabase.functions.invoke("tag-evidence", {
       body: {
         image_base64: firstPhoto.base64,
+        project_id: currentProjectId,
         milestone_name: photoState.milestoneName,
         task_name: photoState.taskName,
         project_name: photoState.projectName,

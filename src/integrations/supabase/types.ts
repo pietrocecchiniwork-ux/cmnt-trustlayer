@@ -229,6 +229,54 @@ export type Database = {
           },
         ]
       }
+      knowledge_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          project_id: string
+          token_estimate: number | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          project_id: string
+          token_estimate?: number | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          project_id?: string
+          token_estimate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "project_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_chunks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestone_assignments: {
         Row: {
           id: string
@@ -445,6 +493,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "project_changes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_documents: {
+        Row: {
+          byte_size: number | null
+          created_at: string
+          error: string | null
+          file_path: string
+          id: string
+          kind: string
+          mime_type: string | null
+          project_id: string
+          status: string
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          byte_size?: number | null
+          created_at?: string
+          error?: string | null
+          file_path: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          project_id: string
+          status?: string
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          byte_size?: number | null
+          created_at?: string
+          error?: string | null
+          file_path?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          project_id?: string
+          status?: string
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -793,6 +891,20 @@ export type Database = {
         Returns: {
           id: string
           name: string
+        }[]
+      }
+      match_project_chunks: {
+        Args: {
+          _match_count?: number
+          _project_id: string
+          _query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          document_id: string
+          id: string
+          similarity: number
         }[]
       }
       move_to_dlq: {

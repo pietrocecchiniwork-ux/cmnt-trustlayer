@@ -11,7 +11,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { image_base64, milestone_name, task_name, project_name, milestone_description, task_description, all_tasks } = await req.json();
+    const { image_base64, project_id, milestone_name, task_name, project_name, milestone_description, task_description, all_tasks } = await req.json();
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
@@ -40,13 +40,45 @@ Deno.serve(async (req: Request) => {
       const taskList = all_tasks.map((t: { name: string; status: string }) => `  - ${t.name} (${t.status})`).join("\n");
       contextLines.push(`- Other tasks in this milestone:\n${taskList}`);
     }
+
+    // Retrieve project knowledge (RAG)
+    let knowledgeBlock = "";
+    if (project_id) {
+      try {
+        const query = [project_name, milestone_name, task_name, milestone_description].filter(Boolean).join(" — ");
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (supabaseUrl && serviceKey && query) {
+          const retRes = await fetch(`${supabaseUrl}/functions/v1/retrieve-knowledge`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ project_id, query, k: 5 }),
+          });
+          if (retRes.ok) {
+            const { chunks } = await retRes.json();
+            if (Array.isArray(chunks) && chunks.length > 0) {
+              const formatted = chunks
+                .map((c: { content: string }, i: number) => `[${i + 1}] ${c.content}`)
+                .join("\n\n");
+              knowledgeBlock = `\n\nProject knowledge (excerpts from uploaded reference documents — use to inform your assessment):\n${formatted}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Knowledge retrieval failed:", e);
+      }
+    }
+
     const extraContext = contextLines.length ? "\n" + contextLines.join("\n") : "";
 
     const prompt = `You are analysing a construction site photo for a UK construction verification platform.
 
 Project context:
 - Milestone: ${milestone_name || "unknown"}
-- Task: ${task_name || "unknown"}${extraContext}
+- Task: ${task_name || "unknown"}${extraContext}${knowledgeBlock}
 
 Analyse this photo and return ONLY a valid JSON object with exactly these six fields and only these allowed values:
 
