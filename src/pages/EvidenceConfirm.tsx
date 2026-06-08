@@ -115,6 +115,7 @@ export default function EvidenceConfirm() {
     supabase.functions.invoke("tag-evidence", {
       body: {
         image_base64: firstPhoto.base64,
+        project_id: currentProjectId,
         milestone_name: photoState.milestoneName,
         task_name: photoState.taskName,
         project_name: photoState.projectName,
