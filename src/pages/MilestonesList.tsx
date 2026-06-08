@@ -126,7 +126,7 @@ export default function MilestonesList() {
     });
 
     return items;
-  }, [milestones, allProjectTasks, user, isWorker, milestonesWithTasks]);
+  }, [milestones, allProjectTasks, user, isWorker, milestonesWithTasksForUser]);
 
   if (isLoading) {
     return (
