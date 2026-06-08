@@ -41,6 +41,7 @@ import TaskDetail from "./pages/TaskDetail";
 import ProjectActivity from "./pages/ProjectActivity";
 import Unsubscribe from "./pages/Unsubscribe";
 import ProjectKnowledge from "./pages/ProjectKnowledge";
+import AdminOntology from "./pages/AdminOntology";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/whatsapp-sim" element={<WhatsAppSim />} />
               <Route path="/join" element={<JoinProject />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/admin/ontology" element={<AdminOntology />} />
               
               {/* Project screens with bottom nav */}
               <Route element={<AppLayout />}>

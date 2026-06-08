@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let body: { project_id?: string; query?: string; k?: number };
+  let body: { project_id?: string | null; query?: string; k?: number };
   try {
     body = await req.json();
   } catch {
@@ -30,9 +30,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { project_id, query, k = 5 } = body;
-  if (!project_id || !query) {
-    return new Response(JSON.stringify({ error: "project_id and query required", chunks: [] }), {
+  const { project_id, query, k = 6 } = body;
+  if (!query) {
+    return new Response(JSON.stringify({ error: "query required", chunks: [] }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -45,8 +45,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({ model: "openai/text-embedding-3-small", input: query }),
     });
     if (!embRes.ok) {
-      const err = await embRes.text();
-      console.error("Embedding error:", embRes.status, err);
+      console.error("Embedding error:", embRes.status, await embRes.text());
       return new Response(JSON.stringify({ chunks: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,14 +54,14 @@ Deno.serve(async (req: Request) => {
     const embedding: number[] = embData.data[0].embedding;
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data, error } = await admin.rpc("match_project_chunks", {
-      _project_id: project_id,
+    const { data, error } = await admin.rpc("match_chunks", {
+      _project_id: project_id ?? null,
       _query_embedding: `[${embedding.join(",")}]`,
       _match_count: k,
     });
 
     if (error) {
-      console.error("match_project_chunks error:", error);
+      console.error("match_chunks error:", error);
       return new Response(JSON.stringify({ chunks: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

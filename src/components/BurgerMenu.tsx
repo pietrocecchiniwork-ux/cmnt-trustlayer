@@ -226,6 +226,9 @@ export function BurgerMenu() {
                   {t("project.switch_project")}
                 </button>
               )}
+              <button onClick={() => go("/admin/ontology")} className={itemClass("/admin/ontology")}>
+                app knowledge
+              </button>
             </div>
           </section>
 
