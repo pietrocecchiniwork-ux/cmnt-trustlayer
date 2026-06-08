@@ -541,6 +541,75 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email: boolean
+          event_type: string
+          id: string
+          in_app: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: boolean
+          event_type: string
+          id?: string
+          in_app?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: boolean
+          event_type?: string
+          id?: string
+          in_app?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          metadata: Json
+          project_id: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          metadata?: Json
+          project_id?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          metadata?: Json
+          project_id?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ontology_training_signals: {
         Row: {
           action: string
@@ -1133,6 +1202,18 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      insert_notification: {
+        Args: {
+          _body: string
+          _link: string
+          _metadata: Json
+          _project_id: string
+          _title: string
+          _type: string
+          _user_id: string
+        }
+        Returns: string
+      }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
@@ -1189,6 +1270,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      should_send_inapp: {
+        Args: { _event_type: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
