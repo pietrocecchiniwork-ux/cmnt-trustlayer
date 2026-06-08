@@ -38,6 +38,12 @@ type LogEntry = { ts: number; level: "info" | "success" | "error"; msg: string }
 
 type FailedBatch = { startIndex: number; batchNum: number; batchCount: number; error: string };
 
+type BatchStatus = "pending" | "running" | "succeeded" | "failed" | "retried-ok" | "retried-failed";
+type BatchState = { startIndex: number; batchNum: number; batchCount: number; status: BatchStatus; attempts: number; lastError?: string };
+
+const MAX_RETRIES = 3;
+const COOLDOWN_MS = 15_000;
+
 export default function AdminOntology() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
