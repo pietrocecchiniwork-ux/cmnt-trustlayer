@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const PROMPT =
-  `You are analysing a UK construction document. Extract every milestone, stage, or work package. Return ONLY a valid JSON array where each object has: name (string max 60 chars), due_date (ISO date or null), payment_value (number or null), trade (string or null), description (string one sentence). Where possible, map each milestone name to a canonical Cemento phase using the ontology below. No explanation. No markdown.\n\n${COMPACT_TAXONOMY_PROMPT}`;
+  `You are analysing a UK construction document. Return ONLY valid JSON in this exact shape:\n{"project_type": "new_build"|"extension"|"loft"|"refurb"|"fit_out"|"commercial_fit_out"|null, "milestones": [ { "name": string (max 60), "due_date": ISO date or null, "payment_value": number or null, "trade": string or null, "description": one-sentence string, "phase_id": canonical Cemento phase ID (e.g. "PH-005") or null } ]}\n\nMap each milestone to the closest canonical phase from the ontology below. If unsure, set phase_id to null. Infer project_type from the document. No explanation. No markdown.\n\n${COMPACT_TAXONOMY_PROMPT}`;
 
 const IMAGE_TYPES = ["jpg", "jpeg", "png"];
 
@@ -124,16 +124,22 @@ Deno.serve(async (req: Request) => {
   const rawText: string = data.choices?.[0]?.message?.content ?? "";
 
   let milestones: unknown[] = [];
+  let projectType: string | null = null;
   try {
     const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
-    milestones = JSON.parse(cleaned);
-    if (!Array.isArray(milestones)) milestones = [];
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      milestones = parsed;
+    } else if (parsed && typeof parsed === "object") {
+      milestones = Array.isArray(parsed.milestones) ? parsed.milestones : [];
+      projectType = typeof parsed.project_type === "string" ? parsed.project_type : null;
+    }
   } catch (e) {
     console.error("Failed to parse AI response:", rawText, e);
     milestones = [];
   }
 
-  return new Response(JSON.stringify(milestones), {
+  return new Response(JSON.stringify({ project_type: projectType, milestones }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
