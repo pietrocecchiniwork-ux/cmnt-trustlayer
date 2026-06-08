@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import type { Task } from "@/hooks/useSupabaseProject";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const STATUS_FILTERS = ["all", "pending", "in_progress", "in_review", "overdue", "complete"] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
