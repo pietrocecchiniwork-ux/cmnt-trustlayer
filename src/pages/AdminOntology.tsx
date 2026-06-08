@@ -277,6 +277,16 @@ export default function AdminOntology() {
     const chunks = chunksRef.current;
     if (!chunks || failedBatches.length === 0) return;
 
+    if (retryAttempt >= MAX_RETRIES) {
+      const msg = `max retries (${MAX_RETRIES}) reached — re-seed from scratch or investigate the failing batches`;
+      pushLog("error", msg);
+      toast.error(msg);
+      return;
+    }
+    if (cooldownUntil && Date.now() < cooldownUntil) {
+      return;
+    }
+
     const attempt = retryAttempt + 1;
     setRetryAttempt(attempt);
     setSeeding(true);
@@ -284,13 +294,20 @@ export default function AdminOntology() {
     setFinishedAt(null);
 
     const retryStart = Date.now();
-    // Keep the original startedAt so total elapsed reflects the whole effort,
-    // but reset elapsedMs base off of original start so the live timer keeps ticking.
     if (!startedAt) setStartedAt(retryStart);
+
+    // Reset prior retry-failed markers so the new attempt's per-batch results are clear
+    setBatchStates((prev) =>
+      prev.map((b) =>
+        b.status === "failed" || b.status === "retried-failed"
+          ? { ...b, status: "pending" as BatchStatus }
+          : b
+      )
+    );
 
     pushLog(
       "info",
-      `── retry attempt ${attempt}: re-running ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"} ──`
+      `── retry attempt ${attempt}/${MAX_RETRIES}: re-running ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"} ──`
     );
 
     try {
@@ -302,7 +319,7 @@ export default function AdminOntology() {
 
       const remaining = await runBatches(chunks, targets, (_startIndex, size) => {
         setProgress((p) => ({ done: Math.min(p.done + size, p.total), total: p.total }));
-      });
+      }, true);
 
       setFailedBatches(remaining);
 
@@ -314,10 +331,17 @@ export default function AdminOntology() {
         pushLog("success", `retry attempt ${attempt}: all batches succeeded — global knowledge ready`);
         toast.success(`Retry succeeded — all batches embedded`);
       } else {
-        const summary = `retry attempt ${attempt}: ${remaining.length} batch${remaining.length === 1 ? "" : "es"} still failing`;
+        const summary = `retry attempt ${attempt}/${MAX_RETRIES}: ${remaining.length} batch${remaining.length === 1 ? "" : "es"} still failing`;
         setSeedError(summary);
         pushLog("error", summary);
         toast.error(summary);
+        if (attempt >= MAX_RETRIES) {
+          pushLog("error", `max retries reached — retry button disabled`);
+        } else {
+          const until = Date.now() + COOLDOWN_MS;
+          setCooldownUntil(until);
+          pushLog("info", `cooldown ${(COOLDOWN_MS / 1000).toFixed(0)}s before next retry is allowed`);
+        }
       }
     } catch (err) {
       const message = (err as Error).message ?? String(err);
