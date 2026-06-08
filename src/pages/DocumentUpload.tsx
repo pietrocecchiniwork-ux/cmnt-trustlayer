@@ -307,9 +307,55 @@ export default function DocumentUpload() {
     });
   };
 
+  const deferSuggestion = async (s: MissingPhaseSuggestion) => {
+    if (!currentProjectId) return;
+    try {
+      const { error } = await (supabase as any)
+        .from("milestone_suggestions")
+        .upsert(
+          {
+            project_id: currentProjectId,
+            phase_id: s.phase.id,
+            phase_name: s.phase.name,
+            reason: s.reason,
+            status: "deferred",
+            deferred_by: currentUser?.id ?? null,
+            resolved_by: null,
+            resolved_at: null,
+          },
+          { onConflict: "project_id,phase_id" }
+        );
+      if (error) {
+        toast.error("Could not save for later");
+        return;
+      }
+    } catch {
+      toast.error("Could not save for later");
+      return;
+    }
+    setSuggestions((prev) => prev.filter((x) => x.phase.id !== s.phase.id));
+    setDeferredPhaseIds((prev) => new Set(prev).add(s.phase.id));
+    logSignal({
+      signal_type: "suggested_addition",
+      entity_id: s.phase.id,
+      action: "edited",
+      context: { project_type: projectType, deferred: true },
+    });
+    toast.success("Saved — review it later in milestones");
+  };
+
   const canConfirm =
     rows.length > 0 &&
     rows.every((r) => r.name.trim() !== "" && r.due_date !== "" && r.assigned_member_id !== "");
+
+  const onConfirmClick = () => {
+    if (suggestions.length > 0 && !confirmWarn) {
+      setConfirmWarn(true);
+      return;
+    }
+    setConfirmWarn(false);
+    void handleConfirm();
+  };
 
   // ---------------------------------------------------------------- confirm
   const handleConfirm = async () => {
