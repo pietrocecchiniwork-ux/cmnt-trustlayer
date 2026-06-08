@@ -57,6 +57,9 @@ export default function AdminOntology() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const [failedBatches, setFailedBatches] = useState<FailedBatch[]>([]);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [batchStates, setBatchStates] = useState<BatchState[]>([]);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   // Keep the chunks from the most recent run available for retries
