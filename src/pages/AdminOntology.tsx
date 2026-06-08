@@ -226,11 +226,14 @@ export default function AdminOntology() {
         batchNum: k + 1,
         batchCount,
       }));
+      setBatchStates(
+        targets.map((t) => ({ ...t, status: "pending" as BatchStatus, attempts: 0 }))
+      );
 
       const failures = await runBatches(chunks, targets, (startIndex, size) => {
         completedIndexes.add(startIndex);
         setProgress((p) => ({ done: p.done + size, total: p.total }));
-      });
+      }, false);
 
       if (failures.length > 0) {
         setFailedBatches(failures);
