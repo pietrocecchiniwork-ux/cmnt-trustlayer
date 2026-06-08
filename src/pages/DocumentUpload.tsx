@@ -209,7 +209,8 @@ export default function DocumentUpload() {
       setRows(newRows);
 
       const presentPhaseIds = newRows.map((r) => r.phase_id ?? "").filter(Boolean);
-      setSuggestions(getSuggestedMissingPhases(payload.project_type, presentPhaseIds));
+      const allSuggestions = getSuggestedMissingPhases(payload.project_type, presentPhaseIds);
+      setSuggestions(allSuggestions.filter((s) => !deferredPhaseIds.has(s.phase.id)));
 
       setState("extracted");
     } catch (err) {
