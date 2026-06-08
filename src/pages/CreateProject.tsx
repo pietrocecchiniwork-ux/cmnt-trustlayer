@@ -42,6 +42,15 @@ export default function CreateProject() {
   const [savedMembers, setSavedMembers] = useState<InlineTeamMember[]>([]);
   const [showInviteMessages, setShowInviteMessages] = useState(false);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        toast.error("Your session expired — please sign in again");
+        navigate("/auth");
+      }
+    });
+  }, [navigate]);
+
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
