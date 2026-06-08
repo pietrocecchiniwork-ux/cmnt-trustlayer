@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { COMPACT_TAXONOMY_PROMPT } from "../_shared/ontology-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,7 +7,7 @@ const corsHeaders = {
 };
 
 const PROMPT =
-  "You are analysing a UK construction document. Extract every milestone, stage, or work package. Return ONLY a valid JSON array where each object has: name (string max 60 chars), due_date (ISO date or null), payment_value (number or null), trade (string or null), description (string one sentence). No explanation. No markdown.";
+  `You are analysing a UK construction document. Extract every milestone, stage, or work package. Return ONLY a valid JSON array where each object has: name (string max 60 chars), due_date (ISO date or null), payment_value (number or null), trade (string or null), description (string one sentence). Where possible, map each milestone name to a canonical Cemento phase using the ontology below. No explanation. No markdown.\n\n${COMPACT_TAXONOMY_PROMPT}`;
 
 const IMAGE_TYPES = ["jpg", "jpeg", "png"];
 

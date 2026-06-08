@@ -77,11 +77,13 @@ Deno.serve(async (req: Request) => {
 
     const prompt = `You are analysing a construction site photo for a UK construction verification platform.
 
+${COMPACT_TAXONOMY_PROMPT}
+
 Project context:
 - Milestone: ${milestone_name || "unknown"}
 - Task: ${task_name || "unknown"}${extraContext}${knowledgeBlock}
 
-Analyse this photo and return ONLY a valid JSON object with exactly these six fields and only these allowed values:
+Analyse this photo and return ONLY a valid JSON object with exactly these fields:
 
 {
   "work_type": one of [electrical, plumbing, structural, roofing, insulation, plastering, carpentry, glazing, decoration, groundworks, drainage, hvac, other],
@@ -89,12 +91,16 @@ Analyse this photo and return ONLY a valid JSON object with exactly these six fi
   "location_in_building": one of [basement, ground_floor, first_floor, second_floor, roof, external, foundation, party_wall, loft, other],
   "completion_stage": one of [groundworks, shell, first_fix, insulation, plastering, second_fix, fit_out, snagging, complete],
   "condition_flag": one of [pass, concern, fail],
-  "building_element": one of [wall, ceiling, floor, roof, window, door, staircase, foundation, frame, drainage, services, other]
+  "building_element": one of [wall, ceiling, floor, roof, window, door, staircase, foundation, frame, drainage, services, other],
+  "phase_id": canonical Cemento phase ID (PH-001…PH-033) that best matches the work shown, or null,
+  "trade_id": canonical Cemento trade ID (TR-001…TR-018) that best matches, or null,
+  "defect_ids": array of Cemento defect IDs (DEF-001…DEF-018) observed in the photo (empty array if none),
+  "standards_referenced": array of Cemento standard IDs (STD-001…STD-015) most relevant to assessing this work (max 3)
 }
 
-Also add two additional fields:
-- "milestone_match": boolean — does this photo appear to show work related to the milestone "${milestone_name || "unknown"}"?
-- "ai_comment": string — one sentence assessment of the work quality and whether it appears correctly completed
+Also add:
+- "milestone_match": boolean — does this photo show work related to the milestone "${milestone_name || "unknown"}"?
+- "ai_comment": string — one-sentence assessment of work quality and whether it appears correctly completed. Cite a specific compliance value or standard from the Project knowledge or Ontology when relevant.
 
 Return ONLY the JSON object. No explanation. No markdown.`;
 
