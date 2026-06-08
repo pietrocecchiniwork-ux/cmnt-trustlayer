@@ -480,11 +480,13 @@ export type Database = {
           assigned_to: string | null
           assigned_to_name: string | null
           checklist: Json | null
+          contract_type: string | null
           created_at: string
           created_from: Database["public"]["Enums"]["milestone_source"]
           description: string | null
           due_date: string | null
           id: string
+          milestone_key: string | null
           name: string
           payment_value: number | null
           position: number
@@ -497,11 +499,13 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_name?: string | null
           checklist?: Json | null
+          contract_type?: string | null
           created_at?: string
           created_from?: Database["public"]["Enums"]["milestone_source"]
           description?: string | null
           due_date?: string | null
           id?: string
+          milestone_key?: string | null
           name: string
           payment_value?: number | null
           position?: number
@@ -514,11 +518,13 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_name?: string | null
           checklist?: Json | null
+          contract_type?: string | null
           created_at?: string
           created_from?: Database["public"]["Enums"]["milestone_source"]
           description?: string | null
           due_date?: string | null
           id?: string
+          milestone_key?: string | null
           name?: string
           payment_value?: number | null
           position?: number

@@ -1,52 +1,51 @@
-## Goal
-Let a PM defer a suggested addition on `/document-upload` instead of forcing accept-or-dismiss in the moment. Deferred items survive across sessions and can be reviewed later from the Milestones screen.
+## In-app notifications & inbox
 
-## Changes
+### 1. Database (one migration)
 
-### 1. New table: `milestone_suggestions`
-Stores deferred suggestions per project so they persist across sessions/devices.
+**`notifications` table**
+- `user_id` (recipient), `project_id` (nullable), `type` (text: `project_invite`, `task_assigned`, `milestone_submitted`, `milestone_approved`, `milestone_rejected`, `milestone_overdue`, `evidence_submitted`, `payment_authorized`, `payment_released`), `title`, `body`, `link` (in-app route), `metadata` (jsonb), `read_at` (nullable), `created_at`.
+- RLS: user can SELECT/UPDATE/DELETE own rows. INSERT via service_role (triggers + edge functions).
+- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE notifications`.
 
-Columns:
-- `project_id` (uuid, FK projects)
-- `phase_id` (text) — ontology phase id
-- `phase_name` (text)
-- `reason` (text)
-- `status` (text, default `'deferred'`) — `'deferred' | 'accepted' | 'dismissed'`
-- `deferred_by` (uuid, FK auth.users)
-- `resolved_by` (uuid, nullable)
-- `resolved_at` (timestamptz, nullable)
-- standard `id`, `created_at`, `updated_at`
+**`notification_preferences` table**
+- `user_id`, `event_type` (same enum strings as above), `in_app` (bool, default true), `email` (bool, default true). Unique `(user_id, event_type)`.
+- RLS: user manages own rows.
+- Missing row = both channels enabled (default).
 
-Unique `(project_id, phase_id)` so the same phase can't pile up duplicates.
+**Triggers (SECURITY DEFINER)** that insert into `notifications`:
+- `project_members` INSERT (status='invited' or 'active' with user_id) → `project_invite` for the new member.
+- `tasks` INSERT or UPDATE where `assigned_to` changes → `task_assigned` for the assignee.
+- `milestones` UPDATE on `status` change → notify PM(s) on `in_review`, assignee on `complete`/`rejected`.
+- `evidence` INSERT → notify PM(s) (`evidence_submitted`).
+- `payment_certificates` INSERT/UPDATE → notify client (`payment_authorized`) and PM (`payment_released`).
 
-RLS: only project members can read; only PMs (via `get_project_role`) can insert/update/delete. GRANTs to `authenticated` and `service_role`.
+Triggers check `notification_preferences.in_app` (defaulting true) before inserting.
 
-### 2. `/document-upload` — DocumentUpload.tsx
-- Add a third button **"review later"** next to **accept** / **dismiss** in the suggested-additions list.
-- Action: upsert row into `milestone_suggestions` with `status='deferred'`, remove from the local `suggestions` list, log signal `suggested_addition / deferred`.
-- When the page loads, fetch existing `deferred` rows for the project and filter them out of the in-memory suggestions list so they don't reappear here (they live on the Milestones screen now).
-- **Confirm guard**: if any suggestion is still in the in-memory list (i.e. neither accepted, dismissed, nor deferred), tapping "confirm milestones" first shows an inline warning row: "N suggestion(s) still to review — continue anyway?" with **continue** / **back**. No new dialog component.
+### 2. Email gating
 
-### 3. Milestones screen — MilestonesList.tsx
-- PM-only: fetch `milestone_suggestions` where `status='deferred'` for the current project.
-- If count > 0, render a small banner above the spine: `N suggestion(s) to review` opening a `Sheet` (same pattern as the existing `+ add to project` sheet) listing each deferred suggestion with **accept** / **dismiss** buttons.
-  - **accept**: insert a milestone (same shape as `acceptSuggestion` in DocumentUpload — phase_id, name, description=reason, default empty payment/date/assignee) then mark suggestion `status='accepted'`. PM still needs to edit due date / assignee in the milestone row afterwards.
-  - **dismiss**: mark suggestion `status='dismissed'`.
-- Non-PM roles see nothing.
+Update existing `send-transactional-email` invocations (or the edge function itself) to check `notification_preferences.email` for the recipient + matching event type. Easiest: add a small check in `sendTransactionalEmail` helper that queries the prefs table by recipient email + event type and short-circuits when disabled. Map template names → event types in one small constant.
 
-## Out of scope
-- Changes to `extract-milestones` edge function or how suggestions are originally generated.
-- Email/notification when a suggestion is added.
-- Bulk accept/dismiss in the review-later sheet.
-- Routing, ontology, training-signal schema, contracts bucket, RLS on existing tables.
+### 3. UI
 
-## Files changed
-- `supabase/migrations/<timestamp>_milestone_suggestions.sql` — new table + RLS + grants
-- `src/pages/DocumentUpload.tsx` — "review later" button, load deferred filter, pre-confirm warning
-- `src/pages/MilestonesList.tsx` — PM-only deferred-suggestions banner + sheet
+**`src/hooks/useNotifications.ts`** — React Query hooks: `useNotifications()` (list, sorted desc), `useUnreadCount()`, `useMarkRead(id)`, `useMarkAllRead()`. Realtime subscription on `notifications` filtered by `user_id=eq.<me>` invalidates queries and fires a sonner toast for new ones.
 
-## Verification
-- As PM: upload a contract that produces suggestions → tap "review later" on one → it disappears from the list, row visible in `milestone_suggestions` with `status='deferred'`.
-- Tap "confirm" while another suggestion is still un-actioned → warning row appears, "continue" proceeds.
-- Open `/milestones` → banner "1 suggestion to review" → open sheet → tap **accept** → new milestone appears in spine, suggestion row flips to `accepted`.
-- As contractor/client on same project → no banner, no sheet.
+**Bell icon** in the existing top-right area (next to `ProjectPill` / `BurgerMenu`). Shows unread count badge. Click opens a `Sheet` with the latest 10 notifications and a "View all" link to `/inbox`.
+
+**`/inbox` route** (new page, added to bottom nav with badge). Full list grouped by today / earlier. Each row: icon by type, title, body, relative time, unread dot. Click → navigates to `link` and marks read. "Mark all read" action.
+
+**Settings → Notifications** (new `/settings/notifications` page, linked from `BurgerMenu`). Table of event types × (in-app toggle, email toggle). Upserts `notification_preferences` rows.
+
+### 4. Out of scope
+- Push/web-push notifications.
+- Per-project notification preferences (global only for v1).
+- Digest emails.
+- Notifying about own actions (triggers skip when actor == recipient).
+
+### Files
+- `supabase/migrations/<ts>_notifications.sql` (new)
+- `src/hooks/useNotifications.ts` (new)
+- `src/components/NotificationBell.tsx` (new)
+- `src/pages/Inbox.tsx` (exists — repurpose as the inbox page route, add to nav)
+- `src/pages/NotificationSettings.tsx` (new)
+- `src/components/BottomNav.tsx`, `src/components/BurgerMenu.tsx`, `src/App.tsx` — wire new route + bell + nav entry
+- `src/lib/sendEmail.ts` — add preference check
