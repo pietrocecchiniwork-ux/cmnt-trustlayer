@@ -276,11 +276,15 @@ function PMClientSpine({
         {/* Spine */}
         <div className="flex-1 px-6 pt-4 pb-24">
           {ordered.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded-xl px-6 py-8 mt-4">
-              <p className="font-mono text-[13px] text-gray-500 text-center">
-                {t("milestone.no_milestones")}
-              </p>
-            </div>
+            role === "pm" ? (
+              <PMAddCard variant="empty" navigate={navigate} />
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-3xl px-6 py-8 mt-4">
+                <p className="font-mono text-[13px] text-gray-500 text-center">
+                  {t("milestone.no_milestones")}
+                </p>
+              </div>
+            )
           ) : (
             <ul className="relative">
               {ordered.map((m, i) => {
@@ -363,15 +367,85 @@ function PMClientSpine({
           )}
 
           {role === "pm" && ordered.length > 0 && (
-            <button
-              onClick={() => navigate("/manual-milestone")}
-              className="w-full mt-4 py-4 bg-card rounded-full font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {t("milestone.add_milestone")}
-            </button>
+            <PMAddCard variant="pill" navigate={navigate} />
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function PMAddCard({
+  variant,
+  navigate,
+}: {
+  variant: "empty" | "pill";
+  navigate: (path: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const actions: { label: string; sub: string; path: string }[] = [
+    { label: "upload contract", sub: "extract milestones from a pdf", path: "/document-upload" },
+    { label: "use a template", sub: "start from a construction template", path: "/template-select" },
+    { label: "add manually", sub: "create a single milestone", path: "/manual-milestone" },
+  ];
+
+  const go = (path: string) => {
+    setOpen(false);
+    navigate(path);
+  };
+
+  if (variant === "empty") {
+    return (
+      <div className="bg-white border border-gray-200 rounded-3xl px-5 py-6 mt-4">
+        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-gray-500">
+          get started
+        </p>
+        <p className="font-sans text-[15px] text-foreground mt-1 mb-4">
+          add milestones to this project
+        </p>
+        <div className="space-y-2">
+          {actions.map((a) => (
+            <button
+              key={a.path}
+              onClick={() => navigate(a.path)}
+              className="w-full text-left rounded-full border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <p className="font-sans text-[14px] text-foreground">+ {a.label}</p>
+              <p className="font-mono text-[11px] text-gray-500 mt-0.5">{a.sub}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button
+          className="w-full mt-4 py-4 bg-white border border-gray-200 rounded-full font-mono text-[12px] text-foreground hover:bg-gray-50 transition-colors"
+        >
+          + add to project
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="rounded-t-3xl">
+        <SheetHeader>
+          <SheetTitle className="font-sans text-[16px] text-left">add to project</SheetTitle>
+        </SheetHeader>
+        <div className="space-y-2 mt-4 pb-4">
+          {actions.map((a) => (
+            <button
+              key={a.path}
+              onClick={() => go(a.path)}
+              className="w-full text-left rounded-2xl border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <p className="font-sans text-[14px] text-foreground">+ {a.label}</p>
+              <p className="font-mono text-[11px] text-gray-500 mt-0.5">{a.sub}</p>
+            </button>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
