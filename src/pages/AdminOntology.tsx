@@ -38,6 +38,12 @@ type LogEntry = { ts: number; level: "info" | "success" | "error"; msg: string }
 
 type FailedBatch = { startIndex: number; batchNum: number; batchCount: number; error: string };
 
+type BatchStatus = "pending" | "running" | "succeeded" | "failed" | "retried-ok" | "retried-failed";
+type BatchState = { startIndex: number; batchNum: number; batchCount: number; status: BatchStatus; attempts: number; lastError?: string };
+
+const MAX_RETRIES = 3;
+const COOLDOWN_MS = 15_000;
+
 export default function AdminOntology() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -51,6 +57,9 @@ export default function AdminOntology() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const [failedBatches, setFailedBatches] = useState<FailedBatch[]>([]);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [batchStates, setBatchStates] = useState<BatchState[]>([]);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   // Keep the chunks from the most recent run available for retries
@@ -62,6 +71,22 @@ export default function AdminOntology() {
     const id = setInterval(() => setElapsedMs(Date.now() - startedAt), 100);
     return () => clearInterval(id);
   }, [startedAt, finishedAt]);
+
+  // Cooldown countdown
+  useEffect(() => {
+    if (!cooldownUntil) {
+      setCooldownRemaining(0);
+      return;
+    }
+    const tick = () => {
+      const rem = Math.max(0, cooldownUntil - Date.now());
+      setCooldownRemaining(rem);
+      if (rem === 0) setCooldownUntil(null);
+    };
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
 
   // Auto-scroll log
   useEffect(() => {
@@ -102,14 +127,20 @@ export default function AdminOntology() {
   const runBatches = async (
     chunks: ReturnType<typeof buildKnowledgeChunks>,
     targets: Array<{ startIndex: number; batchNum: number; batchCount: number }>,
-    onSuccess: (startIndex: number, size: number) => void
+    onSuccess: (startIndex: number, size: number) => void,
+    isRetry: boolean
   ): Promise<FailedBatch[]> => {
     const stillFailing: FailedBatch[] = [];
     for (const t of targets) {
       const slice = chunks.slice(t.startIndex, t.startIndex + BATCH_SIZE);
+      setBatchStates((prev) =>
+        prev.map((b) =>
+          b.startIndex === t.startIndex ? { ...b, status: "running" } : b
+        )
+      );
       pushLog(
         "info",
-        `batch ${t.batchNum}/${t.batchCount}: embedding ${slice.length} chunks (${t.startIndex}–${t.startIndex + slice.length - 1})`
+        `batch ${t.batchNum}/${t.batchCount}${isRetry ? " (retry)" : ""}: embedding ${slice.length} chunks (${t.startIndex}–${t.startIndex + slice.length - 1})`
       );
       try {
         const res = await supabase.functions.invoke("seed-global-knowledge", {
@@ -122,9 +153,23 @@ export default function AdminOntology() {
         });
         if (res.error) throw new Error(res.error.message || `batch ${t.batchNum} failed`);
         onSuccess(t.startIndex, slice.length);
+        setBatchStates((prev) =>
+          prev.map((b) =>
+            b.startIndex === t.startIndex
+              ? { ...b, status: isRetry ? "retried-ok" : "succeeded", attempts: b.attempts + 1, lastError: undefined }
+              : b
+          )
+        );
         pushLog("success", `batch ${t.batchNum}/${t.batchCount}: inserted ${slice.length} chunks`);
       } catch (err) {
         const message = (err as Error).message ?? String(err);
+        setBatchStates((prev) =>
+          prev.map((b) =>
+            b.startIndex === t.startIndex
+              ? { ...b, status: isRetry ? "retried-failed" : "failed", attempts: b.attempts + 1, lastError: message }
+              : b
+          )
+        );
         pushLog("error", `batch ${t.batchNum}/${t.batchCount} failed: ${message}`);
         stillFailing.push({
           startIndex: t.startIndex,
@@ -151,6 +196,8 @@ export default function AdminOntology() {
     setLog([]);
     setFailedBatches([]);
     setRetryAttempt(0);
+    setCooldownUntil(null);
+    setBatchStates([]);
     setFinishedAt(null);
     setElapsedMs(0);
     const start = Date.now();
@@ -179,11 +226,14 @@ export default function AdminOntology() {
         batchNum: k + 1,
         batchCount,
       }));
+      setBatchStates(
+        targets.map((t) => ({ ...t, status: "pending" as BatchStatus, attempts: 0 }))
+      );
 
       const failures = await runBatches(chunks, targets, (startIndex, size) => {
         completedIndexes.add(startIndex);
         setProgress((p) => ({ done: p.done + size, total: p.total }));
-      });
+      }, false);
 
       if (failures.length > 0) {
         setFailedBatches(failures);
@@ -227,6 +277,16 @@ export default function AdminOntology() {
     const chunks = chunksRef.current;
     if (!chunks || failedBatches.length === 0) return;
 
+    if (retryAttempt >= MAX_RETRIES) {
+      const msg = `max retries (${MAX_RETRIES}) reached — re-seed from scratch or investigate the failing batches`;
+      pushLog("error", msg);
+      toast.error(msg);
+      return;
+    }
+    if (cooldownUntil && Date.now() < cooldownUntil) {
+      return;
+    }
+
     const attempt = retryAttempt + 1;
     setRetryAttempt(attempt);
     setSeeding(true);
@@ -234,13 +294,20 @@ export default function AdminOntology() {
     setFinishedAt(null);
 
     const retryStart = Date.now();
-    // Keep the original startedAt so total elapsed reflects the whole effort,
-    // but reset elapsedMs base off of original start so the live timer keeps ticking.
     if (!startedAt) setStartedAt(retryStart);
+
+    // Reset prior retry-failed markers so the new attempt's per-batch results are clear
+    setBatchStates((prev) =>
+      prev.map((b) =>
+        b.status === "failed" || b.status === "retried-failed"
+          ? { ...b, status: "pending" as BatchStatus }
+          : b
+      )
+    );
 
     pushLog(
       "info",
-      `── retry attempt ${attempt}: re-running ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"} ──`
+      `── retry attempt ${attempt}/${MAX_RETRIES}: re-running ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"} ──`
     );
 
     try {
@@ -252,7 +319,7 @@ export default function AdminOntology() {
 
       const remaining = await runBatches(chunks, targets, (_startIndex, size) => {
         setProgress((p) => ({ done: Math.min(p.done + size, p.total), total: p.total }));
-      });
+      }, true);
 
       setFailedBatches(remaining);
 
@@ -264,10 +331,17 @@ export default function AdminOntology() {
         pushLog("success", `retry attempt ${attempt}: all batches succeeded — global knowledge ready`);
         toast.success(`Retry succeeded — all batches embedded`);
       } else {
-        const summary = `retry attempt ${attempt}: ${remaining.length} batch${remaining.length === 1 ? "" : "es"} still failing`;
+        const summary = `retry attempt ${attempt}/${MAX_RETRIES}: ${remaining.length} batch${remaining.length === 1 ? "" : "es"} still failing`;
         setSeedError(summary);
         pushLog("error", summary);
         toast.error(summary);
+        if (attempt >= MAX_RETRIES) {
+          pushLog("error", `max retries reached — retry button disabled`);
+        } else {
+          const until = Date.now() + COOLDOWN_MS;
+          setCooldownUntil(until);
+          pushLog("info", `cooldown ${(COOLDOWN_MS / 1000).toFixed(0)}s before next retry is allowed`);
+        }
       }
     } catch (err) {
       const message = (err as Error).message ?? String(err);
@@ -422,6 +496,36 @@ export default function AdminOntology() {
           </div>
         )}
 
+        {/* Per-batch status grid */}
+        {batchStates.length > 0 && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                per-batch status
+              </span>
+              <div className="flex items-center gap-2.5 font-mono text-[10px] text-muted-foreground">
+                <LegendDot className="bg-secondary border border-border" /> pending
+                <LegendDot className="bg-foreground/40" /> running
+                <LegendDot className="bg-[hsl(var(--success,142_40%_36%))]" /> ok
+                <LegendDot className="bg-destructive" /> failed
+                <LegendDot className="bg-[hsl(var(--success,142_40%_36%))] ring-1 ring-foreground" /> retried-ok
+                <LegendDot className="bg-destructive ring-1 ring-foreground" /> retried-failed
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {batchStates.map((b) => (
+                <div
+                  key={b.startIndex}
+                  title={`batch ${b.batchNum}/${b.batchCount} · ${b.status} · ${b.attempts} attempt${b.attempts === 1 ? "" : "s"}${b.lastError ? ` · ${b.lastError}` : ""}`}
+                  className={`h-5 min-w-[28px] px-1.5 flex items-center justify-center rounded-sm font-mono text-[9px] tabular-nums ${batchSwatchClass(b.status)}`}
+                >
+                  {b.batchNum}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleSeed}
@@ -438,15 +542,26 @@ export default function AdminOntology() {
           {failedBatches.length > 0 && (
             <button
               onClick={handleRetry}
-              disabled={seeding}
+              disabled={seeding || retryAttempt >= MAX_RETRIES || cooldownRemaining > 0}
               className="h-9 px-4 rounded-full border border-destructive text-destructive font-sans text-[13px] disabled:opacity-50"
             >
               {seeding && retryAttempt > 0
-                ? `retrying attempt ${retryAttempt}…`
-                : `retry ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"}${retryAttempt > 0 ? ` (attempt ${retryAttempt + 1})` : ""}`}
+                ? `retrying attempt ${retryAttempt}/${MAX_RETRIES}…`
+                : retryAttempt >= MAX_RETRIES
+                ? `max retries reached (${MAX_RETRIES}/${MAX_RETRIES})`
+                : cooldownRemaining > 0
+                ? `cooldown ${(cooldownRemaining / 1000).toFixed(0)}s…`
+                : `retry ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"} (attempt ${retryAttempt + 1}/${MAX_RETRIES})`}
             </button>
           )}
+
+          {failedBatches.length > 0 && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {retryAttempt}/{MAX_RETRIES} retries used
+            </span>
+          )}
         </div>
+
 
       </div>
 
@@ -551,4 +666,25 @@ function Table({ headers, rows }: { headers: string[]; rows: (string | number)[]
       </table>
     </div>
   );
+}
+
+function LegendDot({ className = "" }: { className?: string }) {
+  return <span className={`inline-block h-2.5 w-2.5 rounded-sm ${className}`} />;
+}
+
+function batchSwatchClass(status: BatchStatus): string {
+  switch (status) {
+    case "pending":
+      return "bg-secondary text-muted-foreground border border-border";
+    case "running":
+      return "bg-foreground/40 text-background animate-pulse";
+    case "succeeded":
+      return "bg-[hsl(var(--success,142_40%_36%))] text-background";
+    case "failed":
+      return "bg-destructive text-destructive-foreground";
+    case "retried-ok":
+      return "bg-[hsl(var(--success,142_40%_36%))] text-background ring-1 ring-foreground";
+    case "retried-failed":
+      return "bg-destructive text-destructive-foreground ring-1 ring-foreground";
+  }
 }
