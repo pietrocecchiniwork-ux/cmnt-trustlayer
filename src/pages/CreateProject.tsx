@@ -73,9 +73,15 @@ export default function CreateProject() {
         .single();
       setCreatedProject({ id: result.id, code: proj?.project_code ?? "" });
       setStep(3);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Create project failed:", err);
-      toast.error("Failed to create project");
+      const msg = String(err?.message ?? "");
+      if (msg === "Not authenticated") {
+        toast.error("Your session expired — please sign in again");
+        navigate("/auth");
+      } else {
+        toast.error(msg || "Failed to create project");
+      }
     }
   };
 
