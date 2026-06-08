@@ -11,7 +11,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { image_base64, milestone_name, task_name, project_name, milestone_description, task_description, all_tasks } = await req.json();
+    const { image_base64, project_id, milestone_name, task_name, project_name, milestone_description, task_description, all_tasks } = await req.json();
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
