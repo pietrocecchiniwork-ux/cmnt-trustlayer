@@ -36,6 +36,8 @@ const BATCH_SIZE = 32;
 
 type LogEntry = { ts: number; level: "info" | "success" | "error"; msg: string };
 
+type FailedBatch = { startIndex: number; batchNum: number; batchCount: number; error: string };
+
 export default function AdminOntology() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -47,7 +49,12 @@ export default function AdminOntology() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [seedError, setSeedError] = useState<string | null>(null);
   const [log, setLog] = useState<LogEntry[]>([]);
+  const [failedBatches, setFailedBatches] = useState<FailedBatch[]>([]);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Keep the chunks from the most recent run available for retries
+  const chunksRef = useRef<ReturnType<typeof buildKnowledgeChunks> | null>(null);
 
   // Live elapsed timer while seeding
   useEffect(() => {
@@ -87,17 +94,73 @@ export default function AdminOntology() {
     },
   });
 
+  /**
+   * Runs a list of batches sequentially. Continues past failures so we
+   * collect every failed batch in one pass. Returns the new list of
+   * still-failing batches (empty = all good).
+   */
+  const runBatches = async (
+    chunks: ReturnType<typeof buildKnowledgeChunks>,
+    targets: Array<{ startIndex: number; batchNum: number; batchCount: number }>,
+    onSuccess: (startIndex: number, size: number) => void
+  ): Promise<FailedBatch[]> => {
+    const stillFailing: FailedBatch[] = [];
+    for (const t of targets) {
+      const slice = chunks.slice(t.startIndex, t.startIndex + BATCH_SIZE);
+      pushLog(
+        "info",
+        `batch ${t.batchNum}/${t.batchCount}: embedding ${slice.length} chunks (${t.startIndex}–${t.startIndex + slice.length - 1})`
+      );
+      try {
+        const res = await supabase.functions.invoke("seed-global-knowledge", {
+          body: {
+            mode: "batch",
+            ontology_version: ONTOLOGY_VERSION,
+            chunks: slice,
+            start_index: t.startIndex,
+          },
+        });
+        if (res.error) throw new Error(res.error.message || `batch ${t.batchNum} failed`);
+        onSuccess(t.startIndex, slice.length);
+        pushLog("success", `batch ${t.batchNum}/${t.batchCount}: inserted ${slice.length} chunks`);
+      } catch (err) {
+        const message = (err as Error).message ?? String(err);
+        pushLog("error", `batch ${t.batchNum}/${t.batchCount} failed: ${message}`);
+        stillFailing.push({
+          startIndex: t.startIndex,
+          batchNum: t.batchNum,
+          batchCount: t.batchCount,
+          error: message,
+        });
+      }
+    }
+    return stillFailing;
+  };
+
+  const finalize = async () => {
+    pushLog("info", "finalize: marking global document ready");
+    const finRes = await supabase.functions.invoke("seed-global-knowledge", {
+      body: { mode: "finalize", ontology_version: ONTOLOGY_VERSION },
+    });
+    if (finRes.error) throw new Error(finRes.error.message || "finalize failed");
+  };
+
   const handleSeed = async () => {
     setSeeding(true);
     setSeedError(null);
     setLog([]);
+    setFailedBatches([]);
+    setRetryAttempt(0);
     setFinishedAt(null);
     setElapsedMs(0);
     const start = Date.now();
     setStartedAt(start);
 
+    const completedIndexes = new Set<number>();
+
     try {
       const chunks = buildKnowledgeChunks();
+      chunksRef.current = chunks;
       const total = chunks.length;
       setProgress({ done: 0, total });
       pushLog("info", `built ${total} chunks from ontology v${ONTOLOGY_VERSION}`);
@@ -109,54 +172,117 @@ export default function AdminOntology() {
       });
       if (initRes.error) throw new Error(initRes.error.message || "init failed");
 
-      // 2) batches
-      for (let i = 0; i < total; i += BATCH_SIZE) {
-        const slice = chunks.slice(i, i + BATCH_SIZE);
-        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-        const batchCount = Math.ceil(total / BATCH_SIZE);
-        pushLog("info", `batch ${batchNum}/${batchCount}: embedding ${slice.length} chunks (${i}–${i + slice.length - 1})`);
-        const res = await supabase.functions.invoke("seed-global-knowledge", {
-          body: {
-            mode: "batch",
-            ontology_version: ONTOLOGY_VERSION,
-            chunks: slice,
-            start_index: i,
-          },
-        });
-        if (res.error) throw new Error(res.error.message || `batch ${batchNum} failed`);
-        setProgress({ done: i + slice.length, total });
-        pushLog("success", `batch ${batchNum}/${batchCount}: inserted ${slice.length} chunks`);
-      }
+      // 2) batches — build the full target list, then run, continuing past errors
+      const batchCount = Math.ceil(total / BATCH_SIZE);
+      const targets = Array.from({ length: batchCount }, (_, k) => ({
+        startIndex: k * BATCH_SIZE,
+        batchNum: k + 1,
+        batchCount,
+      }));
 
-      // 3) finalize
-      pushLog("info", "finalize: marking global document ready");
-      const finRes = await supabase.functions.invoke("seed-global-knowledge", {
-        body: { mode: "finalize", ontology_version: ONTOLOGY_VERSION },
+      const failures = await runBatches(chunks, targets, (startIndex, size) => {
+        completedIndexes.add(startIndex);
+        setProgress((p) => ({ done: p.done + size, total: p.total }));
       });
-      if (finRes.error) throw new Error(finRes.error.message || "finalize failed");
 
-      const finished = Date.now();
-      setFinishedAt(finished);
-      setElapsedMs(finished - start);
-      pushLog("success", `done — ${total} chunks embedded in ${((finished - start) / 1000).toFixed(1)}s`);
-      toast.success(`Seeded ${total} ontology chunks in ${((finished - start) / 1000).toFixed(1)}s`);
-      queryClient.invalidateQueries({ queryKey: ["global-ontology-doc"] });
-      queryClient.invalidateQueries({ queryKey: ["global-chunk-count"] });
+      if (failures.length > 0) {
+        setFailedBatches(failures);
+        const summary = `${failures.length}/${batchCount} batch${failures.length === 1 ? "" : "es"} failed — use retry to re-run only the failures`;
+        setSeedError(summary);
+        pushLog("error", summary);
+        toast.error(summary);
+      } else {
+        // 3) finalize
+        await finalize();
+        const finished = Date.now();
+        setFinishedAt(finished);
+        setElapsedMs(finished - start);
+        pushLog("success", `done — ${total} chunks embedded in ${((finished - start) / 1000).toFixed(1)}s`);
+        toast.success(`Seeded ${total} ontology chunks in ${((finished - start) / 1000).toFixed(1)}s`);
+      }
     } catch (err) {
       const message = (err as Error).message ?? String(err);
       console.error("seed error:", err);
       setSeedError(message);
       pushLog("error", message);
       toast.error(`Seed failed: ${message}`);
+    } finally {
       const finished = Date.now();
-      setFinishedAt(finished);
-      setElapsedMs(finished - start);
+      if (!finishedAt) {
+        setFinishedAt(finished);
+        setElapsedMs(finished - start);
+      }
       queryClient.invalidateQueries({ queryKey: ["global-ontology-doc"] });
       queryClient.invalidateQueries({ queryKey: ["global-chunk-count"] });
-    } finally {
       setSeeding(false);
     }
   };
+
+  /**
+   * Retry only the batches that failed in the previous run. The original
+   * log + run history is preserved; new entries are appended under a
+   * "retry attempt N" separator. Does NOT re-init (so successful chunks stay).
+   */
+  const handleRetry = async () => {
+    const chunks = chunksRef.current;
+    if (!chunks || failedBatches.length === 0) return;
+
+    const attempt = retryAttempt + 1;
+    setRetryAttempt(attempt);
+    setSeeding(true);
+    setSeedError(null);
+    setFinishedAt(null);
+
+    const retryStart = Date.now();
+    // Keep the original startedAt so total elapsed reflects the whole effort,
+    // but reset elapsedMs base off of original start so the live timer keeps ticking.
+    if (!startedAt) setStartedAt(retryStart);
+
+    pushLog(
+      "info",
+      `── retry attempt ${attempt}: re-running ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"} ──`
+    );
+
+    try {
+      const targets = failedBatches.map((b) => ({
+        startIndex: b.startIndex,
+        batchNum: b.batchNum,
+        batchCount: b.batchCount,
+      }));
+
+      const remaining = await runBatches(chunks, targets, (_startIndex, size) => {
+        setProgress((p) => ({ done: Math.min(p.done + size, p.total), total: p.total }));
+      });
+
+      setFailedBatches(remaining);
+
+      if (remaining.length === 0) {
+        await finalize();
+        const finished = Date.now();
+        setFinishedAt(finished);
+        if (startedAt) setElapsedMs(finished - startedAt);
+        pushLog("success", `retry attempt ${attempt}: all batches succeeded — global knowledge ready`);
+        toast.success(`Retry succeeded — all batches embedded`);
+      } else {
+        const summary = `retry attempt ${attempt}: ${remaining.length} batch${remaining.length === 1 ? "" : "es"} still failing`;
+        setSeedError(summary);
+        pushLog("error", summary);
+        toast.error(summary);
+      }
+    } catch (err) {
+      const message = (err as Error).message ?? String(err);
+      console.error("retry error:", err);
+      setSeedError(message);
+      pushLog("error", `retry attempt ${attempt}: ${message}`);
+      toast.error(`Retry failed: ${message}`);
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ["global-ontology-doc"] });
+      queryClient.invalidateQueries({ queryKey: ["global-chunk-count"] });
+      setSeeding(false);
+    }
+  };
+
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background px-6 pt-12 pb-12">
@@ -237,15 +363,30 @@ export default function AdminOntology() {
           </div>
         )}
 
-        {/* Error banner */}
+        {/* Error banner + failed-batch breakdown */}
         {seedError && (
           <div className="mb-3 p-2 border border-destructive/40 bg-destructive/5 rounded">
             <p className="font-mono text-[10px] text-destructive uppercase tracking-wider mb-1">
-              error
+              error{retryAttempt > 0 ? ` · after retry ${retryAttempt}` : ""}
             </p>
             <p className="font-mono text-[11px] text-destructive break-words">{seedError}</p>
+            {failedBatches.length > 0 && (
+              <ul className="mt-2 space-y-0.5">
+                {failedBatches.map((b) => (
+                  <li
+                    key={b.startIndex}
+                    className="font-mono text-[10px] text-destructive/90 break-words"
+                  >
+                    · batch {b.batchNum}/{b.batchCount} (chunks {b.startIndex}–
+                    {b.startIndex + BATCH_SIZE - 1}): {b.error}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
+
+
 
         {/* Live log */}
         {log.length > 0 && (
@@ -281,17 +422,32 @@ export default function AdminOntology() {
           </div>
         )}
 
-        <button
-          onClick={handleSeed}
-          disabled={seeding}
-          className="h-9 px-4 rounded-full bg-foreground text-background font-sans text-[13px] disabled:opacity-50"
-        >
-          {seeding
-            ? `seeding… ${progress.done}/${progress.total}`
-            : globalDoc
-            ? "re-seed global knowledge"
-            : "seed global knowledge"}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="h-9 px-4 rounded-full bg-foreground text-background font-sans text-[13px] disabled:opacity-50"
+          >
+            {seeding && retryAttempt === 0
+              ? `seeding… ${progress.done}/${progress.total}`
+              : globalDoc
+              ? "re-seed global knowledge"
+              : "seed global knowledge"}
+          </button>
+
+          {failedBatches.length > 0 && (
+            <button
+              onClick={handleRetry}
+              disabled={seeding}
+              className="h-9 px-4 rounded-full border border-destructive text-destructive font-sans text-[13px] disabled:opacity-50"
+            >
+              {seeding && retryAttempt > 0
+                ? `retrying attempt ${retryAttempt}…`
+                : `retry ${failedBatches.length} failed batch${failedBatches.length === 1 ? "" : "es"}${retryAttempt > 0 ? ` (attempt ${retryAttempt + 1})` : ""}`}
+            </button>
+          )}
+        </div>
+
       </div>
 
 
