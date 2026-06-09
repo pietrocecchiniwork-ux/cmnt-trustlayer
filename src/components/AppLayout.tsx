@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { BottomNav } from "./BottomNav";
+import { AssistantFab } from "./ProjectAssistant/AssistantFab";
 
 export function AppLayout() {
   return (
@@ -8,6 +9,7 @@ export function AppLayout() {
         <Outlet />
       </div>
       <BottomNav />
+      <AssistantFab />
     </div>
   );
 }
