@@ -57,7 +57,8 @@ export function AssistantPanel({
       });
       if (error) throw error;
       const reply = (data as { reply?: string })?.reply ?? "No response.";
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      const citations = (data as { citations?: CitationMap })?.citations ?? {};
+      setMessages((m) => [...m, { role: "assistant", content: reply, citations }]);
     } catch (e: any) {
       setMessages((m) => [
         ...m,
@@ -108,10 +109,14 @@ export function AssistantPanel({
                 className={
                   m.role === "user"
                     ? "max-w-[85%] rounded-3xl rounded-tr-md bg-foreground text-background px-4 py-2.5 text-sm whitespace-pre-wrap"
-                    : "max-w-[95%] text-sm text-foreground whitespace-pre-wrap leading-relaxed"
+                    : "max-w-[95%] text-sm text-foreground"
                 }
               >
-                {m.content}
+                {m.role === "assistant" ? (
+                  <RenderedAnswer text={m.content} citations={m.citations ?? {}} />
+                ) : (
+                  m.content
+                )}
               </div>
             </div>
           ))}
