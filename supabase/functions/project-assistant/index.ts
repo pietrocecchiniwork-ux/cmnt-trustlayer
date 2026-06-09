@@ -203,6 +203,16 @@ STRICT RULES:
 - For "explain this task/milestone" questions, summarise its description, whether evidence is required, assignee, due date, and current status.
 - Answer in the language of the user's question.
 
+CITATIONS — VERY IMPORTANT:
+- Every time you mention a specific milestone, task, or activity from the context, append an inline citation token IMMEDIATELY after the name.
+- Tokens MUST use these exact formats (no spaces inside the brackets):
+  - For a milestone: [[m:<milestone_id>]]
+  - For a task: [[t:<task_id>]]
+  - For an activity entry: [[a:<index>]] where <index> is the 0-based index into activity_last_7_days.
+- Use the real IDs from the PROJECT CONTEXT JSON. Never invent IDs. If you can't find an ID for something you want to cite, omit the token rather than guessing.
+- Example: "The kitchen install [[m:0c1e...-...]] is overdue; new task 'Tiles' [[t:9b2a...-...]] was added today [[a:3]]."
+- Do not list raw IDs anywhere else — they are only allowed inside [[...]] tokens.
+
 PROJECT CONTEXT (JSON):
 ${JSON.stringify(projectCtx)}`;
 
