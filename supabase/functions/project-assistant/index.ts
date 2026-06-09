@@ -84,30 +84,30 @@ Deno.serve(async (req: Request) => {
       | "client";
 
     // Load scoped context
-    const [{ data: project }, { data: milestones }, { data: tasks }, { data: members }, { data: changes }] =
-      await Promise.all([
-        admin.from("projects").select("*").eq("id", projectId).maybeSingle(),
-        admin
-          .from("milestones")
-          .select("id,name,description,status,due_date,assigned_to,concealment,contract_value")
-          .eq("project_id", projectId)
-          .order("due_date", { ascending: true }),
-        admin
+    const { data: project } = await admin.from("projects").select("*").eq("id", projectId).maybeSingle();
+    const { data: milestones } = await admin
+      .from("milestones")
+      .select("id,name,description,status,due_date,assigned_to,payment_value")
+      .eq("project_id", projectId)
+      .order("due_date", { ascending: true });
+    const milestoneIdsAll = (milestones ?? []).map((m: any) => m.id);
+    const { data: tasks } = milestoneIdsAll.length
+      ? await admin
           .from("tasks")
-          .select("id,name,description,status,milestone_id,assigned_to,due_date")
-          .eq("project_id", projectId),
-        admin
-          .from("project_members")
-          .select("user_id,role,full_name,email,verified")
-          .eq("project_id", projectId),
-        admin
-          .from("project_changes")
-          .select("created_at,actor_name,change_type,entity_name,summary")
-          .eq("project_id", projectId)
-          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .order("created_at", { ascending: false })
-          .limit(80),
-      ]);
+          .select("id,name,description,status,milestone_id,assigned_to,due_date,evidence_required")
+          .in("milestone_id", milestoneIdsAll)
+      : { data: [] as any[] };
+    const { data: members } = await admin
+      .from("project_members")
+      .select("user_id,role,name,email,status")
+      .eq("project_id", projectId);
+    const { data: changes } = await admin
+      .from("project_changes")
+      .select("created_at,changed_by_name,change_type,entity_type,entity_name,note")
+      .eq("project_id", projectId)
+      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(80);
 
     // Role-filter milestones/tasks
     const isContractor = role === "contractor" || role === "trade";
@@ -128,7 +128,7 @@ Deno.serve(async (req: Request) => {
     );
 
     const memberNameById = new Map<string, string>(
-      (members ?? []).map((m: any) => [m.user_id, m.full_name || m.email || "Unknown"]),
+      (members ?? []).map((m: any) => [m.user_id, m.name || m.email || "Unknown"]),
     );
 
     const todayChanges = (changes ?? []).filter((c: any) => c.created_at >= today);
@@ -137,11 +137,11 @@ Deno.serve(async (req: Request) => {
       project: project
         ? {
             name: project.name,
-            contract_type: project.contract_type,
+            address: project.address,
             start_date: project.start_date,
             end_date: project.end_date,
-            contract_value: project.contract_value,
-            status: project.status,
+            total_budget: project.total_budget,
+            payment_mode: project.payment_mode,
           }
         : null,
       role,
@@ -157,8 +157,7 @@ Deno.serve(async (req: Request) => {
         status: m.status,
         due_date: m.due_date,
         assignee: m.assigned_to ? memberNameById.get(m.assigned_to) ?? null : null,
-        concealment: m.concealment ?? false,
-        contract_value: m.contract_value,
+        payment_value: m.payment_value,
       })),
       tasks: visibleTasks.map((t: any) => ({
         id: t.id,
@@ -168,18 +167,20 @@ Deno.serve(async (req: Request) => {
         milestone_id: t.milestone_id,
         assignee: t.assigned_to ? memberNameById.get(t.assigned_to) ?? null : null,
         due_date: t.due_date,
+        evidence_required: t.evidence_required,
       })),
       team: (members ?? []).map((m: any) => ({
-        name: m.full_name || m.email,
+        name: m.name || m.email,
         role: m.role,
-        verified: m.verified,
+        status: m.status,
       })),
       activity_last_7_days: (changes ?? []).map((c: any) => ({
         at: c.created_at,
-        actor: c.actor_name,
+        actor: c.changed_by_name,
         type: c.change_type,
+        entity_type: c.entity_type,
         entity: c.entity_name,
-        summary: c.summary,
+        note: c.note,
       })),
       activity_today: todayChanges,
       blockers: {
