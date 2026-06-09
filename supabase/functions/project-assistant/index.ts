@@ -247,7 +247,34 @@ ${JSON.stringify(projectCtx)}`;
       data?.content?.map((c: any) => c?.text ?? "").join("").trim() ||
       "I couldn't generate a response.";
 
-    return new Response(JSON.stringify({ reply }), {
+    // Build a citation map for tokens the model may have emitted
+    const citations: Record<string, { kind: "milestone" | "task" | "activity"; label: string; href?: string; subtitle?: string }> = {};
+    for (const m of projectCtx.milestones) {
+      citations[`m:${m.id}`] = {
+        kind: "milestone",
+        label: m.name,
+        subtitle: m.status,
+        href: `/project/milestone/${m.id}`,
+      };
+    }
+    for (const t of projectCtx.tasks) {
+      citations[`t:${t.id}`] = {
+        kind: "task",
+        label: t.name,
+        subtitle: t.status,
+        href: `/project/task/${t.id}`,
+      };
+    }
+    projectCtx.activity_last_7_days.forEach((a: any, i: number) => {
+      citations[`a:${i}`] = {
+        kind: "activity",
+        label: `${a.actor ?? "Someone"} · ${a.type}${a.entity ? ` · ${a.entity}` : ""}`,
+        subtitle: new Date(a.at).toLocaleString(),
+        href: `/project/activity`,
+      };
+    });
+
+    return new Response(JSON.stringify({ reply, citations }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
