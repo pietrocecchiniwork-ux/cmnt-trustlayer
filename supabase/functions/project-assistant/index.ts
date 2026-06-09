@@ -203,6 +203,16 @@ STRICT RULES:
 - For "explain this task/milestone" questions, summarise its description, whether evidence is required, assignee, due date, and current status.
 - Answer in the language of the user's question.
 
+CITATIONS — VERY IMPORTANT:
+- Every time you mention a specific milestone, task, or activity from the context, append an inline citation token IMMEDIATELY after the name.
+- Tokens MUST use these exact formats (no spaces inside the brackets):
+  - For a milestone: [[m:<milestone_id>]]
+  - For a task: [[t:<task_id>]]
+  - For an activity entry: [[a:<index>]] where <index> is the 0-based index into activity_last_7_days.
+- Use the real IDs from the PROJECT CONTEXT JSON. Never invent IDs. If you can't find an ID for something you want to cite, omit the token rather than guessing.
+- Example: "The kitchen install [[m:0c1e...-...]] is overdue; new task 'Tiles' [[t:9b2a...-...]] was added today [[a:3]]."
+- Do not list raw IDs anywhere else — they are only allowed inside [[...]] tokens.
+
 PROJECT CONTEXT (JSON):
 ${JSON.stringify(projectCtx)}`;
 
@@ -237,7 +247,34 @@ ${JSON.stringify(projectCtx)}`;
       data?.content?.map((c: any) => c?.text ?? "").join("").trim() ||
       "I couldn't generate a response.";
 
-    return new Response(JSON.stringify({ reply }), {
+    // Build a citation map for tokens the model may have emitted
+    const citations: Record<string, { kind: "milestone" | "task" | "activity"; label: string; href?: string; subtitle?: string }> = {};
+    for (const m of projectCtx.milestones) {
+      citations[`m:${m.id}`] = {
+        kind: "milestone",
+        label: m.name,
+        subtitle: m.status,
+        href: `/project/milestone/${m.id}`,
+      };
+    }
+    for (const t of projectCtx.tasks) {
+      citations[`t:${t.id}`] = {
+        kind: "task",
+        label: t.name,
+        subtitle: t.status,
+        href: `/project/task/${t.id}`,
+      };
+    }
+    projectCtx.activity_last_7_days.forEach((a: any, i: number) => {
+      citations[`a:${i}`] = {
+        kind: "activity",
+        label: `${a.actor ?? "Someone"} · ${a.type}${a.entity ? ` · ${a.entity}` : ""}`,
+        subtitle: new Date(a.at).toLocaleString(),
+        href: `/project/activity`,
+      };
+    });
+
+    return new Response(JSON.stringify({ reply, citations }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
