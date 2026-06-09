@@ -1,51 +1,73 @@
-## In-app notifications & inbox
 
-### 1. Database (one migration)
+## Project AI Assistant
 
-**`notifications` table**
-- `user_id` (recipient), `project_id` (nullable), `type` (text: `project_invite`, `task_assigned`, `milestone_submitted`, `milestone_approved`, `milestone_rejected`, `milestone_overdue`, `evidence_submitted`, `payment_authorized`, `payment_released`), `title`, `body`, `link` (in-app route), `metadata` (jsonb), `read_at` (nullable), `created_at`.
-- RLS: user can SELECT/UPDATE/DELETE own rows. INSERT via service_role (triggers + edge functions).
-- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE notifications`.
+A floating "Ask AI" button available on every project screen. Users (PM, Contractor, Client) can open a chat panel to ask anything about the current project — get a daily recap, understand what a task means, or see what's blocked. Read-only: the assistant never modifies data. Sessions are ephemeral (cleared when the panel closes or the project is left).
 
-**`notification_preferences` table**
-- `user_id`, `event_type` (same enum strings as above), `in_app` (bool, default true), `email` (bool, default true). Unique `(user_id, event_type)`.
-- RLS: user manages own rows.
-- Missing row = both channels enabled (default).
+### User experience
 
-**Triggers (SECURITY DEFINER)** that insert into `notifications`:
-- `project_members` INSERT (status='invited' or 'active' with user_id) → `project_invite` for the new member.
-- `tasks` INSERT or UPDATE where `assigned_to` changes → `task_assigned` for the assignee.
-- `milestones` UPDATE on `status` change → notify PM(s) on `in_review`, assignee on `complete`/`rejected`.
-- `evidence` INSERT → notify PM(s) (`evidence_submitted`).
-- `payment_certificates` INSERT/UPDATE → notify client (`payment_authorized`) and PM (`payment_released`).
+- **Floating button**: round, bottom-right of every project route, AI sparkle-free icon (chat bubble + small mark consistent with the cream/white design system).
+- **Slide-over panel**: opens from the right (desktop) / bottom sheet (mobile). Contains:
+  - Header: "Project assistant" + project name + close button.
+  - Suggested prompts as chips (role-aware): "What happened today?", "What's blocked?", "Explain my next task", "What did <member> do this week?".
+  - Message transcript using AI Elements (`Conversation`, `Message`, `MessageResponse`, `Shimmer`, `PromptInput`).
+  - Composer pinned to bottom, auto-focused.
+- **Ephemeral**: closing the panel or navigating to a different project clears the transcript. No DB persistence.
+- **Role-aware scope**: the assistant only sees data the current user is allowed to see (PM = full project; Contractor = own milestones/tasks; Client = high-level + payments).
 
-Triggers check `notification_preferences.in_app` (defaulting true) before inserting.
+### Capabilities (v1)
 
-### 2. Email gating
+All read-only. The model is given a compact project context bundle plus a small set of server-side tools:
 
-Update existing `send-transactional-email` invocations (or the edge function itself) to check `notification_preferences.email` for the recipient + matching event type. Easiest: add a small check in `sendTransactionalEmail` helper that queries the prefs table by recipient email + event type and short-circuits when disabled. Map template names → event types in one small constant.
+1. **Daily activity recap** — summarises evidence submitted, tasks completed, milestones moved, payments released for a given day (default: today).
+2. **Explain a task / milestone** — plain-English description, expected evidence, concealment flag, who's assigned, current state.
+3. **Surface blockers & overdue items** — overdue milestones, stuck evidence (awaiting QA), unverified team members, payment certificates pending action.
+4. **General project Q&A** — progress %, who's on the team, contract value, next upcoming milestones.
 
-### 3. UI
+Out of scope for v1: creating/editing tasks, sending messages to members, payment actions (kept consistent with the "no task management / no messaging" project constraints — assistant only *reports* on these).
 
-**`src/hooks/useNotifications.ts`** — React Query hooks: `useNotifications()` (list, sorted desc), `useUnreadCount()`, `useMarkRead(id)`, `useMarkAllRead()`. Realtime subscription on `notifications` filtered by `user_id=eq.<me>` invalidates queries and fires a sonner toast for new ones.
+### Technical design
 
-**Bell icon** in the existing top-right area (next to `ProjectPill` / `BurgerMenu`). Shows unread count badge. Click opens a `Sheet` with the latest 10 notifications and a "View all" link to `/inbox`.
+**Frontend**
+- New component `src/components/ProjectAssistant/AssistantFab.tsx` — floating button, mounted inside `ProjectLayout` so it appears on every `/project/*` route.
+- `AssistantPanel.tsx` — slide-over (`Sheet` from shadcn) hosting the chat.
+- `AssistantChat.tsx` — uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport` pointed at the new edge function. Messages held in component state only; unmount on close = ephemeral.
+- AI Elements installed: `conversation`, `message`, `prompt-input`, `shimmer`, `tool`.
+- Suggested-prompt chips call `sendMessage({ text })`.
 
-**`/inbox` route** (new page, added to bottom nav with badge). Full list grouped by today / earlier. Each row: icon by type, title, body, relative time, unread dot. Click → navigates to `link` and marks read. "Mark all read" action.
+**Backend — new edge function `project-assistant`**
+- Input: `{ projectId, messages: UIMessage[] }`.
+- Auth: validates JWT, then verifies the user is a member of `projectId` via `project_members`; derives role.
+- Builds a **scoped context bundle** (server-side, role-filtered):
+  - Project meta (name, contract type, dates, value, progress).
+  - Recent activity from `project_changes` (last 7 days, filtered by role visibility — reuses existing role-filtered audit logic).
+  - Milestones with state, due dates, assignee (Contractor sees only own).
+  - Tasks for current user (Contractor) or all (PM/Client high-level).
+  - Open blockers: overdue milestones, evidence in `pending_qa`, payment certificates awaiting action.
+- Calls Lovable AI Gateway via the AI SDK with `google/gemini-3-flash-preview`, streams response via `toUIMessageStreamResponse`.
+- System prompt includes the LCM ontology (reuses `mem://features/app-knowledge-ontology` pattern already injected elsewhere) + the role + the scoped bundle as a structured JSON block + strict instructions ("read-only, never invent data, cite milestone/task names when referring to them, answer in the user's language").
+- Optional AI SDK tool `get_day_activity({ date })` so the model can request a specific day's recap without bloating the initial context.
 
-**Settings → Notifications** (new `/settings/notifications` page, linked from `BurgerMenu`). Table of event types × (in-app toggle, email toggle). Upserts `notification_preferences` rows.
+**Security**
+- No new tables, no RLS changes. The edge function is the only new surface; it enforces project membership and role before assembling context.
+- `LOVABLE_API_KEY` stays server-side.
 
-### 4. Out of scope
-- Push/web-push notifications.
-- Per-project notification preferences (global only for v1).
-- Digest emails.
-- Notifying about own actions (triggers skip when actor == recipient).
+### Files to add/change
 
-### Files
-- `supabase/migrations/<ts>_notifications.sql` (new)
-- `src/hooks/useNotifications.ts` (new)
-- `src/components/NotificationBell.tsx` (new)
-- `src/pages/Inbox.tsx` (exists — repurpose as the inbox page route, add to nav)
-- `src/pages/NotificationSettings.tsx` (new)
-- `src/components/BottomNav.tsx`, `src/components/BurgerMenu.tsx`, `src/App.tsx` — wire new route + bell + nav entry
-- `src/lib/sendEmail.ts` — add preference check
+```text
+supabase/functions/project-assistant/index.ts        (new)
+supabase/functions/_shared/ai-gateway.ts             (new or reuse if exists)
+src/components/ProjectAssistant/AssistantFab.tsx     (new)
+src/components/ProjectAssistant/AssistantPanel.tsx   (new)
+src/components/ProjectAssistant/AssistantChat.tsx    (new)
+src/components/ProjectAssistant/SuggestedPrompts.tsx (new)
+src/components/ai-elements/*                         (installed via ai-elements CLI)
+src/layouts/ProjectLayout.tsx (or equivalent)        (mount <AssistantFab />)
+```
+
+No database migrations. No changes to existing screens beyond mounting the FAB in the project layout.
+
+### Out of scope (explicit)
+- Persisting chat history (ephemeral per session by user choice).
+- Letting the assistant write/modify data (read-only by user choice).
+- Voice input, file uploads into the chat, multi-project chat.
+
