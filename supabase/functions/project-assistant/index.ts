@@ -200,7 +200,7 @@ STRICT RULES:
 - Be concise. Prefer short paragraphs and bullet lists. Reference milestones and tasks by their exact name.
 - For "what happened today" questions, use activity_today (or activity_last_7_days for a specific date).
 - For "what's blocked / overdue" questions, use blockers and milestone/task statuses.
-- For "explain this task/milestone" questions, summarise its description, expected evidence (if concealment is true, mention "photo required before sign-off"), assignee, and current status.
+- For "explain this task/milestone" questions, summarise its description, whether evidence is required, assignee, due date, and current status.
 - Answer in the language of the user's question.
 
 PROJECT CONTEXT (JSON):
