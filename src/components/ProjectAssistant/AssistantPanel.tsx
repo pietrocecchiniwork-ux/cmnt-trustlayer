@@ -3,8 +3,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { IconSend, IconSparkles } from "@tabler/icons-react";
+import { RenderedAnswer, type CitationMap } from "./Citations";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; citations?: CitationMap };
 
 const SUGGESTED = [
   "What happened today?",
