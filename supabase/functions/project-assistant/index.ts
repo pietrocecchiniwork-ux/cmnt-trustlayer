@@ -35,13 +35,13 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!apiKey) {
       return new Response(
         JSON.stringify({
           reply:
-            "The assistant is not configured yet. Ask the project administrator to set ANTHROPIC_API_KEY.",
+            "The assistant is not configured yet. LOVABLE_API_KEY is missing.",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
