@@ -216,12 +216,6 @@ CITATIONS — VERY IMPORTANT:
 PROJECT CONTEXT (JSON):
 ${JSON.stringify(projectCtx)}`;
 
-    const claudeBody = {
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: messages.slice(-12).map((m) => ({ role: m.role, content: m.content })),
-    };
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
