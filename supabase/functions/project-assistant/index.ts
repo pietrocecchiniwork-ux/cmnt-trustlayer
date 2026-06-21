@@ -223,19 +223,24 @@ ${JSON.stringify(projectCtx)}`;
       messages: messages.slice(-12).map((m) => ({ role: m.role, content: m.content })),
     };
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(claudeBody),
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.slice(-12).map((m) => ({ role: m.role, content: m.content })),
+        ],
+      }),
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("Claude error", res.status, errText);
+      console.error("AI gateway error", res.status, errText);
       return new Response(
         JSON.stringify({ error: "AI request failed", detail: errText }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -244,7 +249,7 @@ ${JSON.stringify(projectCtx)}`;
 
     const data = await res.json();
     const reply =
-      data?.content?.map((c: any) => c?.text ?? "").join("").trim() ||
+      data?.choices?.[0]?.message?.content?.trim() ||
       "I couldn't generate a response.";
 
     // Build a citation map for tokens the model may have emitted
