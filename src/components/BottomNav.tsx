@@ -15,10 +15,10 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-gray-200"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
+      className="fixed bottom-0 left-0 right-0 z-40 px-4 pointer-events-none"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)" }}
     >
-      <div className="max-w-md mx-auto px-3 pt-2 flex justify-between items-center gap-1">
+      <div className="pointer-events-auto max-w-sm mx-auto p-1.5 flex items-center gap-1 rounded-full bg-primary text-primary-foreground">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
@@ -26,14 +26,15 @@ export function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className={`flex-1 min-w-0 h-10 px-2 rounded-full font-mono text-[10px] leading-none tracking-[0.06em] uppercase truncate transition-all flex items-center justify-center gap-1.5 ${
+              aria-label={t(tab.key)}
+              className={`h-11 rounded-full flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.08em] uppercase transition-all duration-300 ${
                 isActive
-                  ? "bg-gray-100 text-gray-900 font-medium"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "flex-[2] bg-card text-foreground px-4"
+                  : "flex-1 text-primary-foreground/60 hover:text-primary-foreground"
               }`}
             >
               <Icon size={18} stroke={1.75} />
-              {t(tab.key)}
+              {isActive && <span className="truncate">{t(tab.key)}</span>}
             </button>
           );
         })}
