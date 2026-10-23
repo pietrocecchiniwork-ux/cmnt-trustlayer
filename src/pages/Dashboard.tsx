@@ -16,12 +16,16 @@ import { sendTransactionalEmail } from "@/lib/sendEmail";
 import { HealthDashboard } from "@/components/HealthDashboard";
 import { BulkApproveQueue } from "@/components/BulkApproveQueue";
 import Inbox from "@/pages/Inbox";
+import { ProjectHomeHero } from "@/components/ProjectHomeHero";
 
 export default function Dashboard() {
   const { role } = useRole();
-  if (role === "pm") return <Inbox />;
-  if (role === "client") return <PMDashboard />;
-  return <ContractorDashboard />;
+  return (
+    <>
+      <ProjectHomeHero />
+      {role === "pm" ? <Inbox /> : role === "client" ? <PMDashboard /> : <ContractorDashboard />}
+    </>
+  );
 }
 
 /* ───────────────────── PM / CLIENT DASHBOARD ───────────────────── */
