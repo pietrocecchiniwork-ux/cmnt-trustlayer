@@ -24,8 +24,8 @@ export function AssistantFab() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Open project assistant"
-        className="fixed z-40 right-4 bottom-24 h-14 w-14 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition-transform"
-        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+        className="fixed z-40 right-4 h-12 w-12 rounded-full bg-accent text-accent-foreground flex items-center justify-center hover:scale-105 transition-transform"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)" }}
       >
         <IconSparkles size={22} stroke={1.75} />
       </button>
