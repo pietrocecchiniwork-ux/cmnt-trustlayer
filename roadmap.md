@@ -1,5 +1,5 @@
 # UI refresh roadmap
-- [ ] Unified project home: combine milestones, tasks, payments and evidence; verify the signed-in flow
+- [x] Unified project home: combine milestones, tasks, payments and evidence; verify the signed-in flow
 - [x] Step 1: floating dock nav + assistant button repositioned
 - [x] Step 2: role-aware home with "Action required" card
 - [ ] Step 3: milestone & task detail restyle
