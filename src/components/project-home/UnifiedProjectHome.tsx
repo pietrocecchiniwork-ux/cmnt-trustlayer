@@ -87,7 +87,8 @@ export function UnifiedProjectHome() {
   const today = new Date().toISOString().slice(0, 10);
   const overdue = stages.filter(m => m.status !== "complete" && m.due_date && m.due_date < today);
   const urgentTask = [...visibleTasks].filter(t => t.status !== "complete").sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999") || a.position - b.position)[0];
-  const urgentStage = [...stages].filter(m => m.status !== "complete").sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"))[0];
+  const priority: Record<string, number> = { in_review: 0, overdue: 1, disputed: 2, in_progress: 3, pending: 4 };
+  const urgentStage = [...stages].filter(m => m.status !== "complete").sort((a, b) => (priority[a.status] ?? 5) - (priority[b.status] ?? 5) || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"))[0];
   const action = role === "client" && awaiting.length
     ? { title: `${awaiting.length} payment${awaiting.length === 1 ? "" : "s"} awaiting your authorisation`, detail: `${money(awaiting.reduce((sum, c) => sum + c.amount, 0))} · verified stages`, label: "Review payment", run: () => setSelectedCertificateId(awaiting[0].id) }
     : role === "pm" && review.length
@@ -113,7 +114,7 @@ export function UnifiedProjectHome() {
     setAuthorizing(true);
     try {
       const now = new Date().toISOString();
-      const { error } = await supabase.from("payment_certificates").update({ payment_status: "authorized", released_at: now, released_by: user.id }).eq("id", selectedCertificate.id);
+      const { error } = await supabase.from("payment_certificates").update({ payment_status: "authorized", released_at: now, released_by: user.id }).eq("id", selectedCertificate.id).eq("payment_status", "awaiting_client_authorization").select("id").single();
       if (error) throw error;
       const { error: logError } = await supabase.from("project_changes").insert({ project_id: currentProjectId, entity_type: "payment", entity_id: selectedCertificate.milestone_id, entity_name: selectedCertificate.milestone_name, change_type: "authorized", changed_by: user.id, changed_by_name: user.email, new_value: { amount: selectedCertificate.amount, milestone_name: selectedCertificate.milestone_name } });
       if (logError) toast.error("Payment authorised, but its activity record could not be saved.");

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconInbox, IconLayoutList, IconCreditCard } from "@tabler/icons-react";
+import { IconHome, IconLayoutList, IconCreditCard } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
 
 export function BottomNav() {
   const location = useLocation();
@@ -8,7 +9,7 @@ export function BottomNav() {
   const { t } = useTranslation();
 
   const tabs = [
-    { key: "navigation.inbox", path: "/project/dashboard", icon: IconInbox },
+    { key: "navigation.inbox", label: "Home", path: "/project/dashboard", icon: IconHome },
     { key: "navigation.project", path: "/project/milestones", icon: IconLayoutList },
     { key: "navigation.payments", path: "/project/payments", icon: IconCreditCard },
   ];
@@ -23,19 +24,20 @@ export function BottomNav() {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
           return (
-            <button
+            <Button
+              variant="ghost"
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              aria-label={t(tab.key)}
-              className={`h-11 rounded-full flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.08em] uppercase transition-all duration-300 ${
+              aria-label={tab.label ?? t(tab.key)}
+              className={`h-11 rounded-full flex items-center justify-center gap-2 font-mono text-[10px] uppercase transition-all duration-300 ${
                 isActive
                   ? "flex-[2] bg-card text-foreground px-4"
                   : "flex-1 text-primary-foreground/60 hover:text-primary-foreground"
               }`}
             >
               <Icon size={18} stroke={1.75} />
-              {isActive && <span className="truncate">{t(tab.key)}</span>}
-            </button>
+              {isActive && <span className="truncate">{tab.label ?? t(tab.key)}</span>}
+            </Button>
           );
         })}
       </div>
